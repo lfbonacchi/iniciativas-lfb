@@ -1,0 +1,85 @@
+<svg viewBox="0 0 1060 560" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="svgtitle">
+<title id="svgtitle">PAE Wizard F2 — Dimensionamiento (carry-over)</title>
+<desc></desc>
+<defs>
+  <style>@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap');text,tspan{font-family:'Inter',-apple-system,sans-serif;}</style>
+  <filter id="shadow-sm" x="-4%" y="-4%" width="108%" height="116%"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.06" flood-color="#000"/></filter>
+  <filter id="shadow-md" x="-4%" y="-4%" width="108%" height="120%"><feDropShadow dx="0" dy="2" stdDeviation="4" flood-opacity="0.08" flood-color="#000"/></filter>
+</defs>
+<rect width="1060" height="560" fill="#F7F8FA"/>
+<rect x="0" y="0" width="1060" height="48" fill="#FFFFFF" filter="url(#shadow-sm)"/>
+<line x1="0" y1="48" x2="1060" y2="48" stroke="#E2E5EA"/>
+<g transform="translate(16,16)">
+  <rect x="0" y="-2" width="4" height="16" rx="1" fill="#C8102E"/>
+  <text x="8" y="11" font-size="13" font-weight="700" fill="#1A1D23" letter-spacing="-0.3">PAE</text>
+  <text x="42" y="11" font-size="10" font-weight="400" fill="#5A6070" letter-spacing="0.2">Gestión de Portfolio</text>
+</g>
+<text x="200" y="30" font-size="12" font-weight="400" fill="#8B92A0">Propuesta</text>
+<text x="290" y="30" font-size="12" font-weight="600" fill="#003DA5">Dimensionamiento</text>
+<rect x="290" y="44" width="112" height="3" rx="1.5" fill="#003DA5"/>
+<text x="410" y="30" font-size="12" font-weight="400" fill="#8B92A0">MVP</text>
+<text x="465" y="30" font-size="12" font-weight="400" fill="#8B92A0">Delivery</text>
+<circle cx="990" cy="24" r="14" fill="transparent" stroke="#E2E5EA"/>
+<text x="990" y="28" text-anchor="middle" font-size="13" fill="#5A6070">🔔</text>
+<circle cx="996" cy="16" r="7" fill="#C8102E"/>
+<text x="996" y="19.5" text-anchor="middle" font-size="8" font-weight="600" fill="#FFFFFF">3</text>
+<circle cx="1032" cy="24" r="14" fill="#003DA5" opacity="0.12"/>
+<text x="1032" y="28" text-anchor="middle" font-size="10" font-weight="600" fill="#003DA5">JG</text>
+<rect x="0" y="48" width="200" height="512" fill="#FFFFFF"/>
+<line x1="200" y1="48" x2="200" y2="560" stroke="#E2E5EA"/>
+<rect x="16" y="72" width="168" height="36" rx="8" fill="#003DA5"/>
+<text x="100" y="94" text-anchor="middle" font-size="12" font-weight="500" fill="#FFFFFF">+ Nueva propuesta</text>
+<text x="16" y="130" font-size="10" font-weight="600" fill="#8B92A0" letter-spacing="0.8">NAVEGACIÓN</text>
+<text x="24" y="158" font-size="13" font-weight="400" fill="#5A6070">Dashboards</text>
+<rect x="8" y="176" width="184" height="32" rx="6" fill="#003DA5" opacity="0.06"/>
+<rect x="4" y="182" width="3" height="20" rx="1.5" fill="#003DA5"/>
+<text x="24" y="194" font-size="13" font-weight="600" fill="#003DA5">Mis iniciativas</text>
+<text x="24" y="230" font-size="13" font-weight="400" fill="#5A6070">Gateways</text>
+<rect x="16" y="268" width="168" height="32" rx="6" fill="#C8102E" opacity="0.06"/>
+<text x="28" y="288" font-size="12" font-weight="500" fill="#C8102E">Aprob. pendientes</text>
+<circle cx="170" cy="284" r="9" fill="#C8102E"/>
+<text x="170" y="288" text-anchor="middle" font-size="9" font-weight="600" fill="#FFFFFF">2</text>
+<text x="224" y="72" font-size="11" fill="#5A6070">Mis iniciativas  ›  Optimización de pozo  ›  <tspan font-weight="500" fill="#1A1D23">Formulario 2 — Dimensionamiento</tspan></text>
+<text x="224" y="96" font-size="18" font-weight="600" fill="#1A1D23">F2 — Dimensionamiento</text>
+<rect x="496" y="80" width="64" height="22" rx="11" fill="#003DA5" opacity="0.08"/>
+<text x="528" y="95" text-anchor="middle" font-size="10" font-weight="500" fill="#003DA5">Borrador</text>
+<text x="864" y="96" font-size="10" fill="#00843D">● Autoguardado hace 30s</text>
+<rect x="216" y="108" width="828" height="28" rx="6" fill="#F7F8FA" stroke="#E2E5EA"/>
+<rect x="228" y="114" width="12" height="12" rx="3" fill="#F7F8FA" stroke="#8B92A0"/>
+<text x="246" y="124" font-size="10" fill="#5A6070">Heredado de F1 (revisar y profundizar)</text>
+<rect x="496" y="114" width="12" height="12" rx="3" fill="#003DA5" opacity="0.08" stroke="#003DA5"/>
+<text x="514" y="124" font-size="10" fill="#5A6070">Campo nuevo de F2</text>
+<rect x="216" y="148" width="828" height="160" rx="10" fill="#FFFFFF" filter="url(#shadow-sm)"/>
+<text x="232" y="176" font-size="15" font-weight="600" fill="#1A1D23">1. Propósito (heredado de F1)</text>
+<rect x="516" y="160" width="130" height="22" rx="11" fill="#8B92A0" opacity="0.08"/>
+<text x="581" y="175" text-anchor="middle" font-size="10" font-weight="500" fill="#8B92A0">Heredado de Etapa 1</text>
+
+<!-- Inherited field (grey background) -->
+<text x="232" y="204" font-size="11" font-weight="500" fill="#5A6070">Propósito de la iniciativa</text>
+<rect x="232" y="212" width="796" height="40" rx="8" fill="#F3F4F6" stroke="#E2E5EA"/>
+<text x="244" y="236" font-size="12" fill="#1A1D23">Optimizar la producción de pozos maduros mediante IA predictiva para reducir costos operativos</text>
+<text x="944" y="256" font-size="9" fill="#8B92A0">Click para editar</text>
+
+<!-- New field (blue accent) -->
+<text x="232" y="280" font-size="11" font-weight="500" fill="#5A6070">Síntesis de la necesidad</text>
+<rect x="416" y="266" width="46" height="22" rx="11" fill="#003DA5" opacity="0.08"/>
+<text x="439" y="281" text-anchor="middle" font-size="10" font-weight="500" fill="#003DA5">Nuevo</text>
+<rect x="232" y="288" width="796" height="40" rx="8" fill="#003DA5" opacity="0.02" stroke="#003DA5" stroke-width="1"/>
+<text x="244" y="312" font-size="12" fill="#8B92A0">Describí la necesidad que esta iniciativa resuelve...</text>
+<rect x="216" y="322" width="828" height="100" rx="10" fill="#FFFFFF" filter="url(#shadow-sm)"/>
+<text x="232" y="350" font-size="15" font-weight="600" fill="#1A1D23">2. Procesos</text>
+<rect x="336" y="334" width="46" height="22" rx="11" fill="#003DA5" opacity="0.08"/>
+<text x="359" y="349" text-anchor="middle" font-size="10" font-weight="500" fill="#003DA5">Nuevo</text>
+
+<text x="232" y="376" font-size="11" font-weight="500" fill="#5A6070">Proceso as-is</text>
+<rect x="232" y="384" width="382" height="28" rx="6" fill="#003DA5" opacity="0.02" stroke="#003DA5"/>
+<text x="244" y="402" font-size="11" fill="#8B92A0">Describir proceso actual...</text>
+
+<text x="634" y="376" font-size="11" font-weight="500" fill="#5A6070">Proceso to-be</text>
+<rect x="634" y="384" width="394" height="28" rx="6" fill="#003DA5" opacity="0.02" stroke="#003DA5"/>
+<text x="646" y="402" font-size="11" fill="#8B92A0">Describir proceso futuro...</text>
+<rect x="844" y="504" width="90" height="36" rx="8" fill="#F7F8FA" stroke="#E2E5EA"/>
+<text x="889" y="526" text-anchor="middle" font-size="12" font-weight="500" fill="#5A6070">← Anterior</text>
+<rect x="944" y="504" width="84" height="36" rx="8" fill="#003DA5"/>
+<text x="986" y="526" text-anchor="middle" font-size="12" font-weight="500" fill="#FFFFFF">Siguiente →</text>
+</svg>

@@ -1,0 +1,108 @@
+<svg viewBox="0 0 1060 760" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="svgtitle">
+<title id="svgtitle">PAE Detalle — Tab Documentos (Etapa 4)</title>
+<desc></desc>
+<defs>
+  <style>@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap');text,tspan{font-family:'Inter',-apple-system,sans-serif;}</style>
+  <filter id="shadow-sm" x="-4%" y="-4%" width="108%" height="116%"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.06" flood-color="#000"/></filter>
+  <filter id="shadow-md" x="-4%" y="-4%" width="108%" height="120%"><feDropShadow dx="0" dy="2" stdDeviation="4" flood-opacity="0.08" flood-color="#000"/></filter>
+</defs>
+<rect width="1060" height="760" fill="#F7F8FA"/>
+<rect x="0" y="0" width="1060" height="48" fill="#FFFFFF" filter="url(#shadow-sm)"/>
+<line x1="0" y1="48" x2="1060" y2="48" stroke="#E2E5EA"/>
+<g transform="translate(16,16)">
+  <rect x="0" y="-2" width="4" height="16" rx="1" fill="#C8102E"/>
+  <text x="8" y="11" font-size="13" font-weight="700" fill="#1A1D23" letter-spacing="-0.3">PAE</text>
+  <text x="42" y="11" font-size="10" font-weight="400" fill="#5A6070" letter-spacing="0.2">Gestión de Portfolio</text>
+</g>
+<text x="200" y="30" font-size="12" font-weight="400" fill="#8B92A0">Propuesta</text>
+<text x="290" y="30" font-size="12" font-weight="400" fill="#8B92A0">Dimensionamiento</text>
+<text x="410" y="30" font-size="12" font-weight="400" fill="#8B92A0">MVP</text>
+<text x="465" y="30" font-size="12" font-weight="400" fill="#8B92A0">Delivery</text>
+<circle cx="990" cy="24" r="14" fill="transparent" stroke="#E2E5EA"/>
+<text x="990" y="28" text-anchor="middle" font-size="13" fill="#5A6070">🔔</text>
+<circle cx="996" cy="16" r="7" fill="#C8102E"/>
+<text x="996" y="19.5" text-anchor="middle" font-size="8" font-weight="600" fill="#FFFFFF">3</text>
+<circle cx="1032" cy="24" r="14" fill="#003DA5" opacity="0.12"/>
+<text x="1032" y="28" text-anchor="middle" font-size="10" font-weight="600" fill="#003DA5">JG</text>
+<rect x="0" y="48" width="200" height="712" fill="#FFFFFF"/>
+<line x1="200" y1="48" x2="200" y2="760" stroke="#E2E5EA"/>
+<rect x="16" y="72" width="168" height="36" rx="8" fill="#003DA5"/>
+<text x="100" y="94" text-anchor="middle" font-size="12" font-weight="500" fill="#FFFFFF">+ Nueva propuesta</text>
+<text x="16" y="130" font-size="10" font-weight="600" fill="#8B92A0" letter-spacing="0.8">NAVEGACIÓN</text>
+<text x="24" y="158" font-size="13" font-weight="400" fill="#5A6070">Dashboards</text>
+<rect x="8" y="176" width="184" height="32" rx="6" fill="#003DA5" opacity="0.06"/>
+<rect x="4" y="182" width="3" height="20" rx="1.5" fill="#003DA5"/>
+<text x="24" y="194" font-size="13" font-weight="600" fill="#003DA5">Mis iniciativas</text>
+<text x="24" y="230" font-size="13" font-weight="400" fill="#5A6070">Gateways</text>
+<rect x="16" y="268" width="168" height="32" rx="6" fill="#C8102E" opacity="0.06"/>
+<text x="28" y="288" font-size="12" font-weight="500" fill="#C8102E">Aprob. pendientes</text>
+<circle cx="170" cy="284" r="9" fill="#C8102E"/>
+<text x="170" y="288" text-anchor="middle" font-size="9" font-weight="600" fill="#FFFFFF">2</text>
+<text x="224" y="72" font-size="11" fill="#5A6070">Mis iniciativas  ›  <tspan font-weight="500" fill="#1A1D23">Optimización de pozo</tspan></text>
+<text x="224" y="98" font-size="20" font-weight="600" fill="#1A1D23">Optimización de pozo</text>
+<rect x="456" y="82" width="64" height="22" rx="11" fill="#00843D" opacity="0.08"/>
+<text x="488" y="97" text-anchor="middle" font-size="10" font-weight="500" fill="#00843D">Delivery</text>
+<rect x="526" y="82" width="82" height="22" rx="11" fill="#00843D" opacity="0.08"/>
+<text x="567" y="97" text-anchor="middle" font-size="10" font-weight="500" fill="#00843D">En progreso</text>
+<text x="224" y="118" font-size="11" fill="#5A6070">Dim: Producción  |  PO: J. García  |  BO: A. Torres  |  Sponsor: R. Méndez</text>
+<rect x="884" y="82" width="70" height="30" rx="6" fill="#C8102E" opacity="0.06"/>
+<text x="919" y="102" text-anchor="middle" font-size="11" font-weight="600" fill="#C8102E">PPTX</text>
+<rect x="962" y="82" width="80" height="30" rx="6" fill="#F7F8FA" stroke="#E2E5EA"/>
+<text x="1002" y="102" text-anchor="middle" font-size="10" fill="#5A6070">Nota prensa</text>
+
+<rect x="216" y="130" width="828" height="40" fill="#FFFFFF"/>
+<line x1="216" y1="169" x2="1044" y2="169" stroke="#E2E5EA"/>
+<text x="232" y="156" font-size="12" font-weight="400" fill="#5A6070">Resumen</text>
+<text x="308.5" y="156" font-size="12" font-weight="400" fill="#5A6070">Eventos</text>
+<text x="385.0" y="156" font-size="12" font-weight="400" fill="#5A6070">Formularios</text>
+<text x="491.5" y="156" font-size="12" font-weight="600" fill="#003DA5">Documentos</text>
+<rect x="491.5" y="165" width="75.0" height="3" rx="1.5" fill="#003DA5"/>
+<text x="590.5" y="156" font-size="12" font-weight="400" fill="#5A6070">Equipo</text>
+<text x="659.5" y="156" font-size="12" font-weight="400" fill="#5A6070">Mesa de trabajo</text>
+<rect x="216" y="182" width="828" height="540" rx="10" fill="#FFFFFF" filter="url(#shadow-sm)"/>
+<text x="232" y="210" font-size="14" font-weight="600" fill="#1A1D23">Documentos — Optimización de pozo</text>
+<text x="232" y="230" font-size="11" fill="#5A6070">Estructura sincronizada con SharePoint</text>
+<text x="924" y="210" font-size="11" font-weight="500" fill="#003DA5">+ Subir documento</text>
+<text x="240" y="250" font-size="14">📁</text>
+<text x="260" y="250" font-size="12" font-weight="500" fill="#1A1D23">▾ Etapa 1 — Propuesta</text>
+<text x="272" y="274" font-size="13">📄</text>
+<text x="292" y="274" font-size="11" fill="#003DA5">F1_propuesta_VF.docx</text>
+<text x="636" y="274" font-size="10" fill="#8B92A0">Auto · 12 mar 2026</text>
+<circle cx="1004" cy="270" r="3" fill="#00843D"/>
+<text x="272" y="296" font-size="13">📊</text>
+<text x="292" y="296" font-size="11" fill="#003DA5">F1_resumen.pptx</text>
+<text x="636" y="296" font-size="10" fill="#8B92A0">Auto · 12 mar 2026</text>
+<circle cx="1004" cy="292" r="3" fill="#00843D"/>
+<text x="272" y="318" font-size="13">📋</text>
+<text x="292" y="318" font-size="11" fill="#003DA5">F1_datos.xlsx</text>
+<text x="636" y="318" font-size="10" fill="#8B92A0">Auto · 12 mar 2026</text>
+<circle cx="1004" cy="314" r="3" fill="#00843D"/>
+<text x="240" y="346" font-size="14">📁</text>
+<text x="260" y="346" font-size="12" font-weight="500" fill="#1A1D23">▾ Etapa 2 — Dimensionamiento</text>
+<text x="272" y="370" font-size="13">📄</text>
+<text x="292" y="370" font-size="11" fill="#003DA5">F2_dimensionamiento_VF.docx</text>
+<text x="636" y="370" font-size="10" fill="#8B92A0">Auto · 5 abr 2026</text>
+<circle cx="1004" cy="366" r="3" fill="#00843D"/>
+<text x="272" y="392" font-size="13">📊</text>
+<text x="292" y="392" font-size="11" fill="#003DA5">F2_resumen.pptx</text>
+<text x="636" y="392" font-size="10" fill="#8B92A0">Auto · 5 abr 2026</text>
+<circle cx="1004" cy="388" r="3" fill="#00843D"/>
+<text x="240" y="420" font-size="14">📁</text>
+<text x="260" y="420" font-size="12" font-weight="500" fill="#1A1D23">▸ Etapa 3 — MVP</text>
+<text x="240" y="444" font-size="14">📁</text>
+<text x="260" y="444" font-size="12" font-weight="500" fill="#1A1D23">▾ Etapa 4 — Delivery</text>
+<text x="272" y="468" font-size="13">📁</text>
+<text x="292" y="468" font-size="11" fill="#003DA5">LTP 2026</text>
+<text x="272" y="490" font-size="13">📁</text>
+<text x="292" y="490" font-size="11" fill="#003DA5">Seguimiento mensual</text>
+<text x="240" y="518" font-size="14">📁</text>
+<text x="260" y="518" font-size="12" font-weight="500" fill="#1A1D23">▾ Documentos adicionales</text>
+<text x="272" y="542" font-size="13">📎</text>
+<text x="292" y="542" font-size="11" fill="#003DA5">benchmark_competencia.pdf</text>
+<text x="636" y="542" font-size="10" fill="#8B92A0">Manual · J. García · 20 mar</text>
+<circle cx="1004" cy="538" r="3" fill="#003DA5"/>
+<text x="272" y="564" font-size="13">📎</text>
+<text x="292" y="564" font-size="11" fill="#003DA5">notas_reunion_kick-off.docx</text>
+<text x="636" y="564" font-size="10" fill="#8B92A0">Manual · L. Romero · 8 feb</text>
+<circle cx="1004" cy="560" r="3" fill="#003DA5"/>
+</svg>

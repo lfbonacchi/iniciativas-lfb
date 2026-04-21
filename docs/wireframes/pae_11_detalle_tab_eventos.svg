@@ -1,0 +1,123 @@
+<svg viewBox="0 0 1060 560" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="svgtitle">
+<title id="svgtitle">PAE Detalle — Tab Eventos (Gantt)</title>
+<desc></desc>
+<defs>
+  <style>@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap');text,tspan{font-family:'Inter',-apple-system,sans-serif;}</style>
+  <filter id="shadow-sm" x="-4%" y="-4%" width="108%" height="116%"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.06" flood-color="#000"/></filter>
+  <filter id="shadow-md" x="-4%" y="-4%" width="108%" height="120%"><feDropShadow dx="0" dy="2" stdDeviation="4" flood-opacity="0.08" flood-color="#000"/></filter>
+</defs>
+<rect width="1060" height="560" fill="#F7F8FA"/>
+<rect x="0" y="0" width="1060" height="48" fill="#FFFFFF" filter="url(#shadow-sm)"/>
+<line x1="0" y1="48" x2="1060" y2="48" stroke="#E2E5EA"/>
+<g transform="translate(16,16)">
+  <rect x="0" y="-2" width="4" height="16" rx="1" fill="#C8102E"/>
+  <text x="8" y="11" font-size="13" font-weight="700" fill="#1A1D23" letter-spacing="-0.3">PAE</text>
+  <text x="42" y="11" font-size="10" font-weight="400" fill="#5A6070" letter-spacing="0.2">Gestión de Portfolio</text>
+</g>
+<text x="200" y="30" font-size="12" font-weight="400" fill="#8B92A0">Propuesta</text>
+<text x="290" y="30" font-size="12" font-weight="400" fill="#8B92A0">Dimensionamiento</text>
+<text x="410" y="30" font-size="12" font-weight="400" fill="#8B92A0">MVP</text>
+<text x="465" y="30" font-size="12" font-weight="400" fill="#8B92A0">Delivery</text>
+<circle cx="990" cy="24" r="14" fill="transparent" stroke="#E2E5EA"/>
+<text x="990" y="28" text-anchor="middle" font-size="13" fill="#5A6070">🔔</text>
+<circle cx="996" cy="16" r="7" fill="#C8102E"/>
+<text x="996" y="19.5" text-anchor="middle" font-size="8" font-weight="600" fill="#FFFFFF">3</text>
+<circle cx="1032" cy="24" r="14" fill="#003DA5" opacity="0.12"/>
+<text x="1032" y="28" text-anchor="middle" font-size="10" font-weight="600" fill="#003DA5">JG</text>
+<rect x="0" y="48" width="200" height="512" fill="#FFFFFF"/>
+<line x1="200" y1="48" x2="200" y2="560" stroke="#E2E5EA"/>
+<rect x="16" y="72" width="168" height="36" rx="8" fill="#003DA5"/>
+<text x="100" y="94" text-anchor="middle" font-size="12" font-weight="500" fill="#FFFFFF">+ Nueva propuesta</text>
+<text x="16" y="130" font-size="10" font-weight="600" fill="#8B92A0" letter-spacing="0.8">NAVEGACIÓN</text>
+<text x="24" y="158" font-size="13" font-weight="400" fill="#5A6070">Dashboards</text>
+<rect x="8" y="176" width="184" height="32" rx="6" fill="#003DA5" opacity="0.06"/>
+<rect x="4" y="182" width="3" height="20" rx="1.5" fill="#003DA5"/>
+<text x="24" y="194" font-size="13" font-weight="600" fill="#003DA5">Mis iniciativas</text>
+<text x="24" y="230" font-size="13" font-weight="400" fill="#5A6070">Gateways</text>
+<rect x="16" y="268" width="168" height="32" rx="6" fill="#C8102E" opacity="0.06"/>
+<text x="28" y="288" font-size="12" font-weight="500" fill="#C8102E">Aprob. pendientes</text>
+<circle cx="170" cy="284" r="9" fill="#C8102E"/>
+<text x="170" y="288" text-anchor="middle" font-size="9" font-weight="600" fill="#FFFFFF">2</text>
+<text x="224" y="72" font-size="11" fill="#5A6070">Mis iniciativas  ›  <tspan font-weight="500" fill="#1A1D23">Optimización de pozo</tspan></text>
+<text x="224" y="98" font-size="20" font-weight="600" fill="#1A1D23">Optimización de pozo</text>
+<rect x="456" y="82" width="70" height="22" rx="11" fill="#003DA5" opacity="0.08"/>
+<text x="491" y="97" text-anchor="middle" font-size="10" font-weight="500" fill="#003DA5">Propuesta</text>
+<rect x="532" y="82" width="82" height="22" rx="11" fill="#00843D" opacity="0.08"/>
+<text x="573" y="97" text-anchor="middle" font-size="10" font-weight="500" fill="#00843D">En progreso</text>
+<text x="224" y="118" font-size="11" fill="#5A6070">Dim: Producción  |  PO: J. García  |  BO: A. Torres  |  Sponsor: R. Méndez</text>
+<rect x="884" y="82" width="70" height="30" rx="6" fill="#C8102E" opacity="0.06"/>
+<text x="919" y="102" text-anchor="middle" font-size="11" font-weight="600" fill="#C8102E">PPTX</text>
+<rect x="962" y="82" width="80" height="30" rx="6" fill="#F7F8FA" stroke="#E2E5EA"/>
+<text x="1002" y="102" text-anchor="middle" font-size="10" fill="#5A6070">Nota prensa</text>
+
+<rect x="216" y="130" width="828" height="40" fill="#FFFFFF"/>
+<line x1="216" y1="169" x2="1044" y2="169" stroke="#E2E5EA"/>
+<text x="232" y="156" font-size="12" font-weight="400" fill="#5A6070">Resumen</text>
+<text x="308.5" y="156" font-size="12" font-weight="600" fill="#003DA5">Eventos</text>
+<rect x="308.5" y="165" width="52.5" height="3" rx="1.5" fill="#003DA5"/>
+<text x="385.0" y="156" font-size="12" font-weight="400" fill="#5A6070">Formularios</text>
+<text x="491.5" y="156" font-size="12" font-weight="400" fill="#5A6070">Documentos</text>
+<text x="590.5" y="156" font-size="12" font-weight="400" fill="#5A6070">Equipo</text>
+<text x="659.5" y="156" font-size="12" font-weight="400" fill="#5A6070">Mesa de trabajo</text>
+<rect x="216" y="182" width="828" height="280" rx="10" fill="#FFFFFF" filter="url(#shadow-sm)"/>
+<text x="232" y="206" font-size="14" font-weight="600" fill="#1A1D23">Línea de tiempo — Optimización de pozo</text>
+
+<!-- Month headers -->
+<text x="383" y="230" text-anchor="middle" font-size="9" font-weight="600" fill="#8B92A0">Ene</text>
+<text x="438" y="230" text-anchor="middle" font-size="9" font-weight="600" fill="#8B92A0">Feb</text>
+<line x1="411" y1="234" x2="411" y2="452" stroke="#E2E5EA" stroke-width="0.5" stroke-dasharray="3,3"/>
+<text x="493" y="230" text-anchor="middle" font-size="9" font-weight="600" fill="#8B92A0">Mar</text>
+<line x1="466" y1="234" x2="466" y2="452" stroke="#E2E5EA" stroke-width="0.5" stroke-dasharray="3,3"/>
+<text x="548" y="230" text-anchor="middle" font-size="9" font-weight="600" fill="#8B92A0">Abr</text>
+<line x1="521" y1="234" x2="521" y2="452" stroke="#E2E5EA" stroke-width="0.5" stroke-dasharray="3,3"/>
+<text x="603" y="230" text-anchor="middle" font-size="9" font-weight="600" fill="#8B92A0">May</text>
+<line x1="576" y1="234" x2="576" y2="452" stroke="#E2E5EA" stroke-width="0.5" stroke-dasharray="3,3"/>
+<text x="658" y="230" text-anchor="middle" font-size="9" font-weight="600" fill="#8B92A0">Jun</text>
+<line x1="631" y1="234" x2="631" y2="452" stroke="#E2E5EA" stroke-width="0.5" stroke-dasharray="3,3"/>
+<text x="713" y="230" text-anchor="middle" font-size="9" font-weight="600" fill="#8B92A0">Jul</text>
+<line x1="686" y1="234" x2="686" y2="452" stroke="#E2E5EA" stroke-width="0.5" stroke-dasharray="3,3"/>
+<text x="768" y="230" text-anchor="middle" font-size="9" font-weight="600" fill="#8B92A0">Ago</text>
+<line x1="741" y1="234" x2="741" y2="452" stroke="#E2E5EA" stroke-width="0.5" stroke-dasharray="3,3"/>
+<text x="823" y="230" text-anchor="middle" font-size="9" font-weight="600" fill="#8B92A0">Sep</text>
+<line x1="796" y1="234" x2="796" y2="452" stroke="#E2E5EA" stroke-width="0.5" stroke-dasharray="3,3"/>
+<text x="878" y="230" text-anchor="middle" font-size="9" font-weight="600" fill="#8B92A0">Oct</text>
+<line x1="851" y1="234" x2="851" y2="452" stroke="#E2E5EA" stroke-width="0.5" stroke-dasharray="3,3"/>
+<text x="933" y="230" text-anchor="middle" font-size="9" font-weight="600" fill="#8B92A0">Nov</text>
+<line x1="906" y1="234" x2="906" y2="452" stroke="#E2E5EA" stroke-width="0.5" stroke-dasharray="3,3"/>
+<text x="988" y="230" text-anchor="middle" font-size="9" font-weight="600" fill="#8B92A0">Dic</text>
+<line x1="961" y1="234" x2="961" y2="452" stroke="#E2E5EA" stroke-width="0.5" stroke-dasharray="3,3"/>
+<text x="232" y="256" font-size="10" font-weight="500" fill="#1A1D23">Etapa 1 — Propuesta</text>
+<rect x="356" y="246" width="110" height="16" rx="4" fill="#003DA5" opacity="0.3"/>
+<text x="232" y="286" font-size="10" font-weight="500" fill="#1A1D23">Etapa 2 — Dim.</text>
+<rect x="466" y="276" width="110" height="16" rx="4" fill="#003DA5" opacity="0.5"/>
+<text x="232" y="316" font-size="10" font-weight="500" fill="#1A1D23">Etapa 3 — MVP</text>
+<rect x="576" y="306" width="165" height="16" rx="4" fill="#00843D" opacity="0.7"/>
+<text x="232" y="346" font-size="10" font-weight="500" fill="#1A1D23">Etapa 4 — Delivery</text>
+<rect x="741" y="336" width="275" height="16" rx="4" fill="#00843D" opacity="0.4"/>
+<line x1="466" y1="234" x2="466" y2="382" stroke="#C8102E" stroke-width="1.5" stroke-dasharray="4,2"/>
+<circle cx="466" cy="387" r="8" fill="#C8102E"/>
+<text x="466" y="391" text-anchor="middle" font-size="8" font-weight="600" fill="#FFFFFF">G1</text>
+<line x1="576" y1="234" x2="576" y2="382" stroke="#C8102E" stroke-width="1.5" stroke-dasharray="4,2"/>
+<circle cx="576" cy="387" r="8" fill="#C8102E"/>
+<text x="576" y="391" text-anchor="middle" font-size="8" font-weight="600" fill="#FFFFFF">G2</text>
+<line x1="741" y1="234" x2="741" y2="382" stroke="#C8102E" stroke-width="1.5" stroke-dasharray="4,2"/>
+<circle cx="741" cy="387" r="8" fill="#C8102E"/>
+<text x="741" y="391" text-anchor="middle" font-size="8" font-weight="600" fill="#FFFFFF">G3</text>
+<text x="232" y="412" font-size="10" font-weight="500" fill="#1A1D23">Gestión cambio</text>
+<rect x="521" y="402" width="220" height="12" rx="3" fill="#F59E0B" opacity="0.3"/>
+<text x="232" y="440" font-size="10" font-weight="500" fill="#1A1D23">Seg. mensual</text>
+<circle cx="548" cy="436" r="3" fill="#003DA5" opacity="0.5"/>
+<circle cx="603" cy="436" r="3" fill="#003DA5" opacity="0.5"/>
+<circle cx="658" cy="436" r="3" fill="#003DA5" opacity="0.5"/>
+<circle cx="713" cy="436" r="3" fill="#003DA5" opacity="0.5"/>
+<circle cx="768" cy="436" r="3" fill="#003DA5" opacity="0.5"/>
+<circle cx="823" cy="436" r="3" fill="#003DA5" opacity="0.5"/>
+<circle cx="878" cy="436" r="3" fill="#003DA5" opacity="0.5"/>
+<circle cx="933" cy="436" r="3" fill="#003DA5" opacity="0.5"/>
+<circle cx="988" cy="436" r="3" fill="#003DA5" opacity="0.5"/>
+<rect x="216" y="472" width="828" height="90" rx="10" fill="#FFFFFF" filter="url(#shadow-sm)"/>
+<text x="232" y="496" font-size="13" font-weight="600" fill="#1A1D23">Historial de eventos</text>
+<text x="924" y="496" font-size="11" font-weight="500" fill="#003DA5">+ Agregar evento</text>
+<text x="232" y="520" font-size="11" fill="#5A6070">21 abr — Sprint Review · Optim. pozo · Equipo completo</text>
+<text x="232" y="540" font-size="11" fill="#5A6070">14 abr — Gate 1 aprobado · Optim. pozo · 4/4 votos</text>
+</svg>
