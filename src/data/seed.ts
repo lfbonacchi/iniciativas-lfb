@@ -787,8 +787,8 @@ const ini002_members: InitiativeMember[] = [
   mkMember("u5", "ini-002", "promotor"),
   mkMember("u5", "ini-002", "po"),
   mkMember("u2", "ini-002", "ld"),
-  mkMember("u4", "ini-002", "bo"),
-  mkMember("u1", "ini-002", "sponsor"),
+  mkMember("u6", "ini-002", "bo"),
+  mkMember("u4", "ini-002", "sponsor"),
   mkMember("u9", "ini-002", "equipo"),
   mkMember("u6", "ini-002", "equipo"),
 ];
@@ -1200,7 +1200,7 @@ const ini003_members: InitiativeMember[] = [
   mkMember("u6", "ini-003", "promotor"),
   mkMember("u6", "ini-003", "po"),
   mkMember("u7", "ini-003", "bo"),
-  mkMember("u1", "ini-003", "sponsor"),
+  mkMember("u4", "ini-003", "sponsor"),
   mkMember("u9", "ini-003", "equipo"),
   mkMember("u10", "ini-003", "equipo"),
 ];
@@ -2725,7 +2725,7 @@ const ini005_members: InitiativeMember[] = [
   mkMember("u11", "ini-005", "sm"),
   mkMember("u9", "ini-005", "po"),
   mkMember("u1", "ini-005", "bo"),
-  mkMember("u1", "ini-005", "sponsor"),
+  mkMember("u8", "ini-005", "sponsor"),
   mkMember("u2", "ini-005", "equipo"),
 ];
 
@@ -3118,7 +3118,7 @@ const ini006_members: InitiativeMember[] = [
   mkMember("u11", "ini-006", "sm"),
   mkMember("u10", "ini-006", "po"),
   mkMember("u7", "ini-006", "bo"),
-  mkMember("u7", "ini-006", "sponsor"),
+  mkMember("u8", "ini-006", "sponsor"),
 ];
 
 const ini006_F4_2025 = mkForm({

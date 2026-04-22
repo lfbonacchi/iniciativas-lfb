@@ -639,9 +639,15 @@ export function getDashboardData(
     pendingGateways.map((g) => g.initiative_id),
   );
 
-  const available_vps = Array.from(
-    new Set(baseInitiatives.map((i) => getOverlay(i.id).vicepresidencia)),
-  ).sort();
+  const vpSet = new Set<string>(
+    baseInitiatives.map((i) => getOverlay(i.id).vicepresidencia),
+  );
+  // Sumar las VPs oficiales (users is_vp:true) para que el filtro muestre
+  // siempre las 4, aunque alguna no tenga iniciativas todavía.
+  for (const u of store.users) {
+    if (u.is_vp && u.vicepresidencia) vpSet.add(u.vicepresidencia);
+  }
+  const available_vps = Array.from(vpSet).sort();
 
   const available_initiatives: DashboardInitiativeOption[] = baseInitiatives
     .map((i) => ({ id: i.id, name: i.name }))
@@ -665,14 +671,32 @@ export function getDashboardData(
   }
 
   if (roleKey === "at") {
-    data.vp_breakdown = computeVpBreakdown(filtered);
+    data.vp_breakdown = computeVpBreakdown(filtered, store);
   }
 
   return ok(data);
 }
 
-function computeVpBreakdown(initiatives: Initiative[]): VpBreakdown[] {
+function computeVpBreakdown(
+  initiatives: Initiative[],
+  store: Store,
+): VpBreakdown[] {
   const map = new Map<string, VpBreakdown>();
+
+  // Sembrar con las VPs "oficiales" — todos los users con is_vp:true, aunque
+  // no sponsoreen ninguna iniciativa aún. Así el dashboard muestra las 4 VPs
+  // programáticamente en lugar de depender de quién es sponsor de qué.
+  for (const u of store.users) {
+    if (!u.is_vp) continue;
+    const vp = u.vicepresidencia;
+    if (!vp || map.has(vp)) continue;
+    map.set(vp, {
+      vicepresidencia: vp,
+      total: 0,
+      by_stage: { proposal: 0, dimensioning: 0, mvp: 0, ltp_tracking: 0 },
+    });
+  }
+
   for (const ini of initiatives) {
     const vp = getOverlay(ini.id).vicepresidencia;
     let entry = map.get(vp);
