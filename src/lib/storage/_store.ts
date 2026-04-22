@@ -16,6 +16,7 @@ import type {
   Notification,
   User,
 } from "@/types";
+import { getSeedData } from "@/data/seed";
 
 const STORE_KEY = "pae-portfolio-v1";
 
@@ -60,56 +61,25 @@ function emptyStore(): Store {
 }
 
 function bootstrapStore(): Store {
-  const store = emptyStore();
-  const users: User[] = [
-    {
-      id: "u-po",
-      azure_oid: null,
-      email: "ana.po@pae.com",
-      display_name: "Ana Pérez (PO)",
-      job_title: "Product Owner",
-      department: "Transformación Digital",
-      vicepresidencia: "Operaciones Upstream",
-      global_role: "user",
-      is_vp: false,
-    },
-    {
-      id: "u-bo",
-      azure_oid: null,
-      email: "luis.bo@pae.com",
-      display_name: "Luis García (BO)",
-      job_title: "Gerente de Operaciones",
-      department: "Operaciones",
-      vicepresidencia: "Operaciones Upstream",
-      global_role: "user",
-      is_vp: false,
-    },
-    {
-      id: "u-vp",
-      azure_oid: null,
-      email: "sara.vp@pae.com",
-      display_name: "Sara Méndez (VP)",
-      job_title: "VP Operaciones Upstream",
-      department: "Operaciones",
-      vicepresidencia: "Operaciones Upstream",
-      global_role: "user",
-      is_vp: true,
-    },
-    {
-      id: "u-at",
-      azure_oid: null,
-      email: "marcos.at@pae.com",
-      display_name: "Marcos Romero (AT)",
-      job_title: "Gerente Transformación Digital",
-      department: "Transformación Digital",
-      vicepresidencia: "Transformación Digital",
-      global_role: "area_transformacion",
-      is_vp: false,
-    },
-  ];
-  store.users = users;
-  store.current_user_id = users[0]?.id ?? null;
-  return store;
+  const seed = getSeedData();
+  return {
+    users: seed.users,
+    initiatives: seed.initiatives,
+    initiative_members: seed.initiative_members,
+    initiative_folders: seed.initiative_folders,
+    form_definitions: seed.form_definitions,
+    forms: seed.forms,
+    form_responses: seed.form_responses,
+    form_change_log: seed.form_change_log,
+    form_snapshots: seed.form_snapshots,
+    gateways: seed.gateways,
+    gateway_votes: seed.gateway_votes,
+    notifications: seed.notifications,
+    documents: seed.documents,
+    file_uploads: seed.file_uploads,
+    audit_log: seed.audit_log,
+    current_user_id: seed.default_user_id,
+  };
 }
 
 export function isClient(): boolean {
