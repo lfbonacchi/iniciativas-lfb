@@ -6,3 +6,4 @@ export * from "./gateway";
 export * from "./notification";
 export * from "./document";
 export * from "./audit";
+export * from "./event";

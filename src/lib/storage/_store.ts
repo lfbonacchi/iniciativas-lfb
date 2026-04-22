@@ -14,6 +14,7 @@ import type {
   InitiativeFolder,
   InitiativeMember,
   Notification,
+  PortfolioEvent,
   User,
 } from "@/types";
 import { getSeedData } from "@/data/seed";
@@ -36,6 +37,7 @@ export interface Store {
   documents: Document[];
   file_uploads: FileUpload[];
   audit_log: AuditLog[];
+  portfolio_events: PortfolioEvent[];
   current_user_id: Id | null;
 }
 
@@ -56,6 +58,7 @@ function emptyStore(): Store {
     documents: [],
     file_uploads: [],
     audit_log: [],
+    portfolio_events: [],
     current_user_id: null,
   };
 }
@@ -87,6 +90,7 @@ export function seedStore(): Store {
     documents: seed.documents,
     file_uploads: seed.file_uploads,
     audit_log: seed.audit_log,
+    portfolio_events: current.portfolio_events,
     current_user_id: current.current_user_id,
   };
   writeStore(next);

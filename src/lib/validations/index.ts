@@ -5,3 +5,4 @@ export * from "./forms";
 export * from "./gateways";
 export * from "./notifications";
 export * from "./documents";
+export * from "./events";

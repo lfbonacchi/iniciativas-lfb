@@ -17,6 +17,7 @@ interface RoleDefinition {
   title: string;
   subtitle: string;
   description: string;
+  footnote?: string;
   userIds: readonly Id[];
   accent: "blue" | "green" | "red";
 }
@@ -28,6 +29,7 @@ const ROLES: readonly RoleDefinition[] = [
     subtitle: "PO / Promotor",
     description:
       "Crea y gestiona propuestas, completa formularios y sube versiones finales.",
+    footnote: "En su defecto: Líder de Dimensión.",
     userIds: ["u3", "u5", "u6"],
     accent: "blue",
   },
@@ -170,6 +172,19 @@ export default function SeleccionarUsuarioPage() {
           <p className="mt-1 text-[12px] text-pae-text-secondary">
             Cada rol tiene su propia vista del portfolio.
           </p>
+
+          <div className="mx-auto mt-4 max-w-xl space-y-2 text-left">
+            <p className="rounded-lg bg-pae-blue/5 px-3 py-2 text-[11px] leading-snug text-pae-text-secondary">
+              <span className="font-semibold text-pae-blue">Nota:</span> el
+              Líder de Dimensión determina quién es el Product Owner y asigna
+              los demás roles de la iniciativa.
+            </p>
+            <p className="rounded-lg bg-pae-blue/5 px-3 py-2 text-[11px] leading-snug text-pae-text-secondary">
+              <span className="font-semibold text-pae-blue">Nota:</span> Scrum
+              Masters y coaches pueden ser asignados a cualquier rol según
+              corresponda.
+            </p>
+          </div>
         </header>
 
         <section aria-labelledby="paso-1" className="mb-8">
@@ -217,6 +232,11 @@ export default function SeleccionarUsuarioPage() {
                     <p className="mt-1 text-[12px] leading-snug text-pae-text-secondary">
                       {r.description}
                     </p>
+                    {r.footnote && (
+                      <p className="mt-1 text-[11px] italic text-pae-text-tertiary">
+                        {r.footnote}
+                      </p>
+                    )}
                     <p className="mt-2 text-[10px] text-pae-text-tertiary">
                       {r.userIds.length === 1
                         ? "1 usuario disponible"

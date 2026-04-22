@@ -169,6 +169,21 @@ export function submitVote(
   return ok({ gateway, resolution: gateway.status });
 }
 
+export function countPendingApprovalsForUser(userId: Id): Result<number> {
+  const store = readStore();
+  const pending = store.gateways.filter((g) => g.status === "pending");
+  let count = 0;
+  for (const g of pending) {
+    const approvers = approversForInitiative(store, g.initiative_id);
+    if (!approvers.includes(userId)) continue;
+    const alreadyVoted = store.gateway_votes.some(
+      (v) => v.gateway_id === g.id && v.user_id === userId,
+    );
+    if (!alreadyVoted) count += 1;
+  }
+  return ok(count);
+}
+
 export function generateMinuta(gatewayId: Id): Result<Document> {
   const parsed = generateMinutaSchema.safeParse({ gatewayId });
   if (!parsed.success) {
