@@ -26,6 +26,7 @@ import { newId, nowIso } from "./_ids";
 import {
   getCurrentUserFromStore,
   userCanAccessInitiative,
+  userCanEditInitiativeForms,
   userRolesInInitiative,
 } from "./_security";
 import { appendAudit } from "./_audit";
@@ -35,6 +36,8 @@ export interface FormDetail {
   definition: FormDefinition | null;
   responses: Record<string, FormFieldValue>;
   completeness: { percent: number; missing_required: string[] };
+  /** True si el usuario actual puede editar este formulario. */
+  can_edit: boolean;
 }
 
 function computeCompleteness(
@@ -201,6 +204,7 @@ export function getForm(formId: Id): Result<FormDetail> {
     definition,
     responses,
     completeness: computeCompleteness(definition, responses),
+    can_edit: userCanEditInitiativeForms(user, form.initiative_id, store),
   });
 }
 
@@ -220,6 +224,12 @@ export function saveFormResponses(
   if (!form) return err("NOT_FOUND", "Formulario no encontrado");
   if (!userCanAccessInitiative(user, form.initiative_id, store)) {
     return err("FORBIDDEN", "No tenés acceso a esta iniciativa");
+  }
+  if (!userCanEditInitiativeForms(user, form.initiative_id, store)) {
+    return err(
+      "FORBIDDEN",
+      "Solo el PO, Promotor, LD, Scrum Master o el equipo con edición pueden modificar el formulario. VP, BO, Sponsor y AT pueden dejar comentarios.",
+    );
   }
   if (form.status === "approved" || form.status === "final" || form.status === "closed") {
     return err("CONFLICT", "El formulario ya fue cerrado y no se puede editar");
@@ -362,6 +372,12 @@ export function submitForm(formId: Id): Result<{ form: Form; gateway: Gateway | 
   if (!form) return err("NOT_FOUND", "Formulario no encontrado");
   if (!userCanAccessInitiative(user, form.initiative_id, store)) {
     return err("FORBIDDEN", "No tenés acceso a esta iniciativa");
+  }
+  if (!userCanEditInitiativeForms(user, form.initiative_id, store)) {
+    return err(
+      "FORBIDDEN",
+      "Solo el PO, Promotor, LD, Scrum Master o el equipo con edición pueden enviar el formulario",
+    );
   }
   if (form.status !== "draft") {
     return err("CONFLICT", "El formulario ya fue enviado");

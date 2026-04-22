@@ -42,6 +42,10 @@ export default function ResumenTab() {
     detail.initiative.current_stage === "proposal" ||
     detail.initiative.current_stage === "dimensioning";
 
+  if (!detail.has_form_data) {
+    return <EmptyInitiativeState detail={detail} />;
+  }
+
   return (
     <div className="space-y-5">
       {/* Propósito */}
@@ -230,6 +234,84 @@ export default function ResumenTab() {
           </Card>
         </>
       )}
+    </div>
+  );
+}
+
+// ============================================================================
+// Estado vacío — iniciativa sin datos cargados
+// ============================================================================
+
+function EmptyInitiativeState({ detail }: { detail: InitiativeDetail }) {
+  const iniId = detail.initiative.id;
+  const docsHref = `/iniciativas/${iniId}/documentos`;
+  const formsHref = `/iniciativas/${iniId}/formularios`;
+
+  return (
+    <div className="space-y-5">
+      <div className="rounded-xl border-2 border-dashed border-pae-blue/30 bg-pae-blue/5 p-8 text-center">
+        <p className="text-[11px] font-semibold uppercase tracking-wide text-pae-blue">
+          Sin datos cargados
+        </p>
+        <h2 className="mt-2 text-[18px] font-semibold text-pae-text">
+          Todavía no hay información en esta iniciativa
+        </h2>
+        <p className="mx-auto mt-2 max-w-lg text-[13px] leading-snug text-pae-text-secondary">
+          Los dashboards se llenan a medida que se completan los formularios.
+          Podés arrancar por el F1 o, si la iniciativa viene de un flujo
+          previo, subir los archivos de F2, F3, F4 o F5.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <div className="rounded-xl bg-pae-surface p-5 shadow-sm">
+          <p className="text-[9px] font-semibold uppercase tracking-[0.08em] text-pae-text-tertiary">
+            Opción 1 · Camino A
+          </p>
+          <h3 className="mt-2 text-[14px] font-semibold text-pae-text">
+            Completar Formulario 1 (Propuesta)
+          </h3>
+          <p className="mt-2 text-[12px] leading-snug text-pae-text-secondary">
+            Para iniciativas nuevas. Arrancá desde la propuesta y avanzá por
+            los gateways: F1 → G1 → F2 → G2 → F3 → G3 → F4/F5.
+          </p>
+          <Link
+            href={formsHref}
+            className="mt-4 inline-block rounded-lg bg-pae-blue px-4 py-2 text-[13px] font-semibold text-white transition hover:bg-pae-blue/90"
+          >
+            Ir a Formularios · F1
+          </Link>
+        </div>
+
+        <div className="rounded-xl bg-pae-surface p-5 shadow-sm">
+          <p className="text-[9px] font-semibold uppercase tracking-[0.08em] text-pae-text-tertiary">
+            Opción 2 · Camino B
+          </p>
+          <h3 className="mt-2 text-[14px] font-semibold text-pae-text">
+            Subir archivos para F2, F3, F4 o F5
+          </h3>
+          <p className="mt-2 text-[12px] leading-snug text-pae-text-secondary">
+            Para iniciativas existentes que ya tienen formularios trabajados
+            por fuera. Subí los documentos y la iniciativa queda en la etapa
+            correspondiente.
+          </p>
+          <Link
+            href={docsHref}
+            className="mt-4 inline-block rounded-lg border border-pae-border bg-pae-surface px-4 py-2 text-[13px] font-semibold text-pae-blue transition hover:bg-pae-blue/5"
+          >
+            Ir a Documentos · subir archivos
+          </Link>
+        </div>
+      </div>
+
+      <div className="rounded-xl bg-pae-surface p-5 shadow-sm">
+        <p className="text-[12px] text-pae-text-tertiary">
+          Una vez que haya datos cargados, este panel muestra propósito,
+          corrientes de valor, indicadores de impacto, desafíos,
+          interdependencias y, a partir de Delivery, los entregables y
+          presupuestos del año.
+        </p>
+      </div>
     </div>
   );
 }

@@ -22,6 +22,7 @@ import { addTeamMember } from "@/lib/storage/team";
 
 import { VotersPanel } from "./VotersPanel";
 import { ReadOnlySections } from "./ReadOnlySections";
+import { FormCommentsPanel } from "@/components/forms/FormCommentsPanel";
 
 const STATUS_PILL: Record<GatewayStatus, { bg: string; text: string; label: string }> = {
   pending: { bg: "bg-pae-amber/15", text: "text-pae-amber", label: "Esperando votos" },
@@ -264,6 +265,18 @@ export default function GatewayPage({
           onActionDone={() => setReloadTick((x) => x + 1)}
         />
       )}
+
+      {/* Comentarios del formulario en proceso */}
+      <div className="mt-6">
+        <FormCommentsPanel
+          formId={detail.form.id}
+          canComment={
+            detail.form.status === "draft" ||
+            detail.form.status === "submitted" ||
+            detail.form.status === "in_review"
+          }
+        />
+      </div>
 
       {/* VF pendiente box */}
       {showVFBox && (

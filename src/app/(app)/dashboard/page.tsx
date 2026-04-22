@@ -9,6 +9,7 @@ import {
   roleDisplayName,
   type DashboardData,
   type DashboardEvent,
+  type DashboardScope,
   type RankingRow,
   type StageDistribution,
   type ValueStream,
@@ -642,6 +643,7 @@ export default function DashboardPage() {
   const [error, setError] = useState<string | null>(null);
   const [vpFilter, setVpFilter] = useState<string>("all");
   const [iniFilter, setIniFilter] = useState<Id | "all">("all");
+  const [scope, setScope] = useState<DashboardScope>("mias");
   const [modalOpen, setModalOpen] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
   const [selectedEvent, setSelectedEvent] = useState<DashboardEvent | null>(
@@ -660,6 +662,7 @@ export default function DashboardPage() {
     const result = getDashboardData({
       vicepresidencia: vpFilter,
       initiative_id: iniFilter,
+      scope,
     });
     if (!result.success) {
       setError(result.error.message);
@@ -670,7 +673,7 @@ export default function DashboardPage() {
     }
     setError(null);
     setData(result.data);
-  }, [router, vpFilter, iniFilter, reloadKey]);
+  }, [router, vpFilter, iniFilter, scope, reloadKey]);
 
   if (error) {
     return (
@@ -690,10 +693,47 @@ export default function DashboardPage() {
 
   const title = `Dashboards — ${roleDisplayName(data.role_key)}: ${data.user.display_name} (${data.kpis.total_initiatives} inic.)`;
 
+  const SCOPE_TABS: { key: DashboardScope; label: string; hint: string }[] = [
+    { key: "mias", label: "Propias", hint: "Donde tenés rol de ownership" },
+    {
+      key: "afectan",
+      label: "Que me afectan",
+      hint: "Donde participás como equipo, aprobador o VP de scope",
+    },
+    { key: "todas", label: "Todas", hint: "Propias + que me afectan" },
+  ];
+
   return (
     <div className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-[18px] font-semibold text-pae-text">{title}</h1>
+      </div>
+
+      <nav
+        aria-label="Alcance del dashboard"
+        className="flex flex-wrap items-center gap-1 border-b border-pae-border"
+      >
+        {SCOPE_TABS.map((t) => {
+          const active = scope === t.key;
+          return (
+            <button
+              key={t.key}
+              type="button"
+              onClick={() => setScope(t.key)}
+              title={t.hint}
+              className={`relative -mb-px border-b-[3px] px-3 py-2 text-[13px] transition ${
+                active
+                  ? "border-pae-blue font-semibold text-pae-blue"
+                  : "border-transparent text-pae-text-secondary hover:text-pae-text"
+              }`}
+            >
+              {t.label}
+            </button>
+          );
+        })}
+      </nav>
+
+      <div className="flex flex-wrap items-center justify-between gap-3">
 
         <div className="flex flex-wrap items-center gap-3">
           {data.role_key === "at" && (

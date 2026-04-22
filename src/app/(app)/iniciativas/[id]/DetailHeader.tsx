@@ -2,8 +2,10 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useState } from "react";
 
 import type { InitiativeDetail } from "@/lib/storage/initiative_detail";
+import { DeleteInitiativeModal } from "@/components/shell/DeleteInitiativeModal";
 
 const TABS: { key: string; label: string; segment: string | null }[] = [
   { key: "resumen", label: "Resumen", segment: null },
@@ -56,6 +58,7 @@ export function DetailHeader({ detail }: { detail: InitiativeDetail }) {
   const base = `/iniciativas/${detail.initiative.id}`;
   const stageTone = stageChipTone(detail);
   const statusTone = statusChipTone(detail.status);
+  const [deleteOpen, setDeleteOpen] = useState(false);
 
   const rolesText = [
     `Dim: ${detail.dimension}`,
@@ -111,8 +114,27 @@ export function DetailHeader({ detail }: { detail: InitiativeDetail }) {
           >
             Nota de prensa
           </button>
+          {detail.is_area_transformacion && (
+            <button
+              type="button"
+              onClick={() => setDeleteOpen(true)}
+              className="rounded-lg border border-pae-red/40 bg-pae-surface px-3 py-2 text-[12px] font-medium text-pae-red transition hover:bg-pae-red/10"
+              title="Borrar iniciativa (solo para errores / duplicados)"
+            >
+              Borrar iniciativa
+            </button>
+          )}
         </div>
       </div>
+
+      {detail.is_area_transformacion && (
+        <DeleteInitiativeModal
+          open={deleteOpen}
+          onClose={() => setDeleteOpen(false)}
+          initiativeId={detail.initiative.id}
+          initiativeName={detail.initiative.name}
+        />
+      )}
 
       <nav className="border-b border-pae-border" aria-label="Tabs">
         <ul className="-mb-px flex flex-wrap gap-5">

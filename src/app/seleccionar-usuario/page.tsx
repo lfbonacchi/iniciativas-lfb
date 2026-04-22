@@ -11,7 +11,7 @@ import {
 } from "@/lib/storage/auth";
 import { clearAllData } from "@/lib/storage/files";
 
-type RoleKey = "po" | "bo" | "vp" | "at";
+type RoleKey = "po" | "sm" | "bo" | "vp" | "at";
 
 interface RoleDefinition {
   key: RoleKey;
@@ -32,6 +32,16 @@ const ROLES: readonly RoleDefinition[] = [
       "Crea y gestiona propuestas, completa formularios y sube versiones finales.",
     footnote: "En su defecto: Líder de Dimensión.",
     userIds: ["u3", "u5", "u6"],
+    accent: "blue",
+  },
+  {
+    key: "sm",
+    title: "Scrum Master",
+    subtitle: "SM",
+    description:
+      "Acompaña al equipo, edita formularios como delegado del PO y registra cambios.",
+    footnote: "Mismos permisos de edición que el PO.",
+    userIds: ["u11"],
     accent: "blue",
   },
   {
@@ -96,7 +106,7 @@ function initials(displayName: string): string {
 }
 
 function destinationForRole(role: RoleKey): string {
-  return role === "po" ? "/mis-iniciativas" : "/dashboard";
+  return role === "po" || role === "sm" ? "/mis-iniciativas" : "/dashboard";
 }
 
 export default function SeleccionarUsuarioPage() {

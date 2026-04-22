@@ -24,9 +24,14 @@ export type { ValueStreamKey };
 
 export type DashboardRoleKey = "at" | "vp" | "bo" | "po";
 
+// Alcance del dashboard: iniciativas propias, las que afectan al usuario,
+// o todas las visibles. Por defecto "mias".
+export type DashboardScope = "mias" | "afectan" | "todas";
+
 export interface DashboardFilters {
   vicepresidencia: string | "all";
   initiative_id: Id | "all";
+  scope: DashboardScope;
 }
 
 export interface KpiMetrics {
@@ -130,35 +135,69 @@ function resolveRoleKey(user: User, store: Store): DashboardRoleKey {
   return "po";
 }
 
+// Roles considerados "propios" — mismos criterios que listMyInitiativeCards.
+const OWN_ROLES: readonly string[] = [
+  "po",
+  "promotor",
+  "ld",
+  "bo",
+  "sponsor",
+  "sm",
+];
+const AFFECT_ROLES: readonly string[] = ["equipo"];
+
 function initiativesForUser(
   user: User,
   roleKey: DashboardRoleKey,
   store: Store,
+  scope: DashboardScope,
 ): Initiative[] {
-  if (roleKey === "at") return store.initiatives;
-
-  if (roleKey === "vp") {
-    return store.initiatives.filter((ini) => {
-      const overlay = getOverlay(ini.id);
-      return overlay.vicepresidencia === user.vicepresidencia;
-    });
+  // AT ve todo el portfolio → "mias" = "todas" salvo que explícitamente elija
+  // "afectan" (no hay iniciativas "afectan" para AT, devolvemos vacío).
+  if (roleKey === "at") {
+    if (scope === "afectan") return [];
+    return store.initiatives;
   }
 
-  const roleFilter: Record<DashboardRoleKey, string[]> = {
-    at: [],
-    vp: [],
-    bo: ["bo"],
-    po: ["po", "promotor", "ld"],
-  };
-  const allowedRoles = roleFilter[roleKey];
-  const myInitiativeIds = new Set(
-    store.initiative_members
-      .filter(
-        (m) => m.user_id === user.id && allowedRoles.includes(m.role),
-      )
+  // VP ve su vicepresidencia. "mias" = propias de la VP. "afectan" = el resto.
+  if (roleKey === "vp") {
+    const inVp = store.initiatives.filter(
+      (ini) => getOverlay(ini.id).vicepresidencia === user.vicepresidencia,
+    );
+    if (scope === "todas") return store.initiatives;
+    if (scope === "afectan") {
+      return store.initiatives.filter(
+        (ini) => getOverlay(ini.id).vicepresidencia !== user.vicepresidencia,
+      );
+    }
+    return inVp;
+  }
+
+  // Resto (PO/SM/BO/etc): usamos membership.
+  const myMembers = store.initiative_members.filter(
+    (m) => m.user_id === user.id,
+  );
+  const ownIds = new Set(
+    myMembers.filter((m) => OWN_ROLES.includes(m.role)).map((m) => m.initiative_id),
+  );
+  const affectIds = new Set(
+    myMembers
+      .filter((m) => AFFECT_ROLES.includes(m.role))
       .map((m) => m.initiative_id),
   );
-  return store.initiatives.filter((ini) => myInitiativeIds.has(ini.id));
+  // Quitar de "afectan" las que ya son propias.
+  for (const id of ownIds) affectIds.delete(id);
+
+  if (scope === "mias") {
+    return store.initiatives.filter((ini) => ownIds.has(ini.id));
+  }
+  if (scope === "afectan") {
+    return store.initiatives.filter((ini) => affectIds.has(ini.id));
+  }
+  // "todas" = unión.
+  return store.initiatives.filter(
+    (ini) => ownIds.has(ini.id) || affectIds.has(ini.id),
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -575,7 +614,8 @@ export function getDashboardData(
     return err("AUTH_REQUIRED", "No hay un usuario autenticado");
   }
   const roleKey = resolveRoleKey(user, store);
-  const baseInitiatives = initiativesForUser(user, roleKey, store);
+  const scope: DashboardScope = filters?.scope ?? "mias";
+  const baseInitiatives = initiativesForUser(user, roleKey, store, scope);
 
   const vpFilter: string =
     roleKey === "at" ? filters?.vicepresidencia ?? "all" : "all";
@@ -610,7 +650,7 @@ export function getDashboardData(
   const data: DashboardData = {
     role_key: roleKey,
     user,
-    filters: { vicepresidencia: vpFilter, initiative_id: iniFilter },
+    filters: { vicepresidencia: vpFilter, initiative_id: iniFilter, scope },
     available_vps,
     available_initiatives,
     kpis: computeKpis(filtered, pendingGateways),

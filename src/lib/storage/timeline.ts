@@ -148,7 +148,7 @@ function buildStageRow(
   form: Form | undefined,
   gateway: Gateway | undefined,
   year: number,
-  today: { month: number },
+  today: { month: number; iso: string },
 ): TimelineRow {
   if (!hasStage) {
     return { key, label, bar: null, gateway: null, dots: [] };
@@ -163,23 +163,50 @@ function buildStageRow(
   let endMonth = defaults.end;
 
   if (form) {
-    if (isFormApproved(form)) {
-      state = "completed";
-      if (form.approved_at) {
-        const m = monthOf(form.approved_at, year);
-        if (m !== null && m >= 0 && m <= 11) endMonth = m;
+    // Para pintar "completado" (verde) necesitamos evidencia real: approved_at
+    // presente, en este año, y anterior o igual a hoy. Si no la tenemos, la
+    // barra no puede afirmar que está terminada.
+    let hasRealCompletion = false;
+    if (isFormApproved(form) && form.approved_at && form.approved_at <= today.iso) {
+      const m = monthOf(form.approved_at, year);
+      if (m !== null && m >= 0 && m <= 11) {
+        state = "completed";
+        endMonth = m;
+        hasRealCompletion = true;
+        if (form.created_at) {
+          const cm = monthOf(form.created_at, year);
+          if (cm !== null && cm >= 0 && cm <= 11 && cm < endMonth) {
+            startMonth = cm;
+          }
+        }
+        if (startMonth > endMonth) startMonth = endMonth;
       }
-      if (form.created_at) {
-        const m = monthOf(form.created_at, year);
-        if (m !== null && m >= 0 && m <= 11 && m < endMonth) startMonth = m;
-      }
-    } else if (
-      form.status === "draft" ||
-      form.status === "submitted" ||
-      form.status === "in_review"
-    ) {
+    }
+    if (!hasRealCompletion) {
+      // Sin evidencia real de cierre: la barra muestra "en proceso" desde
+      // el arranque (created_at si cae este año, default.start si no) hasta
+      // hoy. Si el arranque quedó en el futuro, es "pendiente" (span por
+      // default, sin capar — se ve gris a futuro).
       state = "in_progress";
-      endMonth = clampMonth(Math.max(today.month, startMonth + 1));
+      endMonth = clampMonth(today.month);
+      if (form.created_at) {
+        const cm = monthOf(form.created_at, year);
+        if (cm !== null && cm >= 0 && cm <= 11) {
+          startMonth = cm;
+        } else {
+          // created_at en otro año: arrastrar el default al mes actual para
+          // que la barra no apunte a futuro.
+          startMonth = Math.min(defaults.start, endMonth);
+        }
+      }
+      if (startMonth > today.month) {
+        // Actividad aún en el futuro (nunca arrancó en este año) → pendiente.
+        state = "pending";
+        startMonth = defaults.start;
+        endMonth = defaults.end;
+      } else if (endMonth < startMonth) {
+        endMonth = startMonth;
+      }
     }
   }
 
@@ -207,7 +234,7 @@ function buildStageRow(
 function buildLtpRows(
   forms: Form[],
   year: number,
-  today: { month: number },
+  today: { month: number; iso: string },
 ): { ltp: TimelineRow; planAnual: TimelineRow } {
   const periodMatches = (f: Form): boolean => {
     if (!f.ltp_period) return false;
@@ -229,6 +256,14 @@ function buildLtpRows(
     let state: TimelineState = "in_progress";
     if (isFormApproved(form)) state = "completed";
     if (form.status === "draft" && !form.submitted_at) state = "in_progress";
+    // Si el "approved_at" es posterior a hoy, todavía no está completado.
+    if (
+      state === "completed" &&
+      !!form.approved_at &&
+      form.approved_at > today.iso
+    ) {
+      state = "pending";
+    }
 
     let startMonth = defaults.start;
     let endMonth = defaults.end;
@@ -245,9 +280,34 @@ function buildLtpRows(
         }
       }
     }
-    if (state === "in_progress" && today.month >= startMonth) {
-      endMonth = clampMonth(Math.max(today.month, endMonth));
+    if (state === "completed") {
+      // Solo quedan como "completed" si hay approved_at real en el pasado
+      // y cae en este año. Si no, se degrada: pendiente si arranca en futuro,
+      // en curso si arranca hoy/antes (y la barra termina en hoy).
+      let hasRealCompletion = false;
+      if (form.approved_at && form.approved_at <= today.iso) {
+        const m = monthOf(form.approved_at, year);
+        if (m !== null && m >= 0 && m <= 11) {
+          endMonth = m;
+          hasRealCompletion = true;
+        }
+      }
+      if (!hasRealCompletion) {
+        if (startMonth > today.month) {
+          state = "pending";
+          // Mantener defaults (futuro) → gris.
+        } else {
+          state = "in_progress";
+          endMonth = clampMonth(today.month);
+        }
+      }
     }
+    if (state === "in_progress") {
+      // No adelantar la barra más allá del mes actual.
+      if (startMonth > today.month) startMonth = clampMonth(today.month);
+      endMonth = clampMonth(today.month);
+    }
+    if (endMonth < startMonth) endMonth = startMonth;
     return {
       key,
       label,
@@ -364,7 +424,7 @@ export function getInitiativeTimeline(
     initiativeForms.find((f) => f.form_type === "F1"),
     initiativeGateways.find((g) => g.gateway_number === 1),
     year,
-    { month: today.month },
+    { month: today.month, iso: today.iso },
   );
   const etapa2 = buildStageRow(
     "etapa2",
@@ -373,7 +433,7 @@ export function getInitiativeTimeline(
     initiativeForms.find((f) => f.form_type === "F2"),
     initiativeGateways.find((g) => g.gateway_number === 2),
     year,
-    { month: today.month },
+    { month: today.month, iso: today.iso },
   );
   const etapa3 = buildStageRow(
     "etapa3",
@@ -382,11 +442,12 @@ export function getInitiativeTimeline(
     initiativeForms.find((f) => f.form_type === "F3"),
     initiativeGateways.find((g) => g.gateway_number === 3),
     year,
-    { month: today.month },
+    { month: today.month, iso: today.iso },
   );
 
   const { ltp, planAnual } = buildLtpRows(initiativeForms, year, {
     month: today.month,
+    iso: today.iso,
   });
   const { segQ, sprint, adhoc } = buildDotRows(events, year);
 

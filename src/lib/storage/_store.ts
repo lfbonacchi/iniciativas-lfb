@@ -45,7 +45,16 @@ export interface Store {
   mesa_bloqueantes: MesaBloqueante[];
   mesa_temas_pendientes: MesaTemaPendiente[];
   mesa_brainstorm_notes: MesaBrainstormNote[];
+  form_comments: FormComment[];
   current_user_id: Id | null;
+}
+
+export interface FormComment {
+  id: Id;
+  form_id: Id;
+  user_id: Id;
+  text: string;
+  created_at: string;
 }
 
 function emptyStore(): Store {
@@ -69,6 +78,7 @@ function emptyStore(): Store {
     mesa_bloqueantes: [],
     mesa_temas_pendientes: [],
     mesa_brainstorm_notes: [],
+    form_comments: [],
     current_user_id: null,
   };
 }
@@ -104,6 +114,7 @@ export function seedStore(): Store {
     mesa_bloqueantes: current.mesa_bloqueantes,
     mesa_temas_pendientes: current.mesa_temas_pendientes,
     mesa_brainstorm_notes: current.mesa_brainstorm_notes,
+    form_comments: current.form_comments ?? [],
     current_user_id: current.current_user_id,
   };
   writeStore(next);
@@ -129,6 +140,7 @@ function normalizeStore(raw: Partial<Store>): Store {
   merged.mesa_bloqueantes = merged.mesa_bloqueantes ?? [];
   merged.mesa_temas_pendientes = merged.mesa_temas_pendientes ?? [];
   merged.mesa_brainstorm_notes = merged.mesa_brainstorm_notes ?? [];
+  merged.form_comments = merged.form_comments ?? [];
   return merged;
 }
 

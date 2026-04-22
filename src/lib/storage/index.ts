@@ -2,6 +2,8 @@ export * from "./auth";
 export * from "./initiatives";
 export * from "./initiative_detail";
 export * from "./forms";
+export * from "./form_comments";
+export * from "./form_editors";
 export * from "./forms_tab";
 export * from "./gateways";
 export * from "./notifications";

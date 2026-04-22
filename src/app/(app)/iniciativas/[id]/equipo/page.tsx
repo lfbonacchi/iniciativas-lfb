@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { AddTeamMemberModal } from "@/components/team/AddTeamMemberModal";
+import { DelegatedEditorsPanel } from "@/components/team/DelegatedEditorsPanel";
 import type { InitiativeMemberRole } from "@/types";
 import type {
   InitiativeTeam,
@@ -328,6 +329,7 @@ export default function EquipoTab() {
         onAddClick={() => setModalOpen(true)}
         onRemove={handleRemove}
       />
+      <DelegatedEditorsPanel initiativeId={detail.initiative.id} />
       <StrategicAlignmentTable rows={team.strategic_alignment} />
       <StakeholdersTable rows={team.stakeholders} />
 

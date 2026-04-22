@@ -261,6 +261,17 @@ const users: User[] = [
     global_role: "user",
     is_vp: false,
   },
+  {
+    id: "u11",
+    azure_oid: null,
+    email: "scrum@pae.com",
+    display_name: "Scrum",
+    job_title: "Scrum Master",
+    department: "Transformación Digital",
+    vicepresidencia: "VP Transformación",
+    global_role: "user",
+    is_vp: false,
+  },
 ];
 
 // ============================================================================
@@ -280,6 +291,7 @@ const ini001: Initiative = {
 };
 
 const ini001_members: InitiativeMember[] = [
+  mkMember("u11", "ini-001", "sm"),
   mkMember("u3", "ini-001", "promotor"),
   mkMember("u3", "ini-001", "po"),
   mkMember("u2", "ini-001", "ld"),
@@ -735,6 +747,7 @@ const ini002: Initiative = {
 };
 
 const ini002_members: InitiativeMember[] = [
+  mkMember("u11", "ini-002", "sm"),
   mkMember("u5", "ini-002", "promotor"),
   mkMember("u5", "ini-002", "po"),
   mkMember("u2", "ini-002", "ld"),
@@ -1131,6 +1144,7 @@ const ini003: Initiative = {
 };
 
 const ini003_members: InitiativeMember[] = [
+  mkMember("u11", "ini-003", "sm"),
   mkMember("u6", "ini-003", "promotor"),
   mkMember("u6", "ini-003", "po"),
   mkMember("u7", "ini-003", "bo"),
@@ -1427,6 +1441,7 @@ const ini004: Initiative = {
 };
 
 const ini004_members: InitiativeMember[] = [
+  mkMember("u11", "ini-004", "sm"),
   mkMember("u3", "ini-004", "po"),
   mkMember("u4", "ini-004", "bo"),
   mkMember("u1", "ini-004", "sponsor"),
@@ -1457,6 +1472,558 @@ const ini004_F1_responses: FormResponse[] = [
     "seccion_2_proposito",
     "Para los operadores de bombeo y supervisores de producción quienes necesitan optimizar la operación de +300 bombas de extracción que hoy se ajustan manualmente cada 2-4 semanas.\n\nEl sistema de automatización de bombeo es una plataforma de control basada en PLCs inteligentes y algoritmos de optimización.\n\nQue ajusta parámetros de operación (velocidad de bombeo, presión de inyección, ciclos) en tiempo real basándose en condiciones de pozo, minimizando consumo energético y maximizando producción.\n\nA diferencia del ajuste manual periódico que depende de la disponibilidad y experiencia del operador, nuestro producto optimiza continuamente las 24 horas y reacciona en minutos a cambios de condición del pozo.",
   ),
+  mkResp(ini004_F1.id, "seccion_3_necesidad_oportunidad", [
+    {
+      stakeholder: "Usuario",
+      dolor:
+        "Operadores deben recorrer campo cada 2-4 semanas para ajustar manualmente cada bomba; la ventana óptima de ajuste queda desalineada con condiciones reales del pozo.",
+      metrica: "Frecuencia de ajuste óptimo",
+      dato_inicio: "Cada 2-4 semanas",
+      target: "Continuo (24/7)",
+      prioridad: "Alta",
+    },
+    {
+      stakeholder: "Interesado",
+      dolor:
+        "Alto consumo energético por operación sub-óptima: bombas girando a régimen fijo aunque la demanda del pozo varíe.",
+      metrica: "kWh / m3 producido",
+      dato_inicio: "Base 2023",
+      target: "-20% kWh/m3",
+      prioridad: "Alta",
+    },
+    {
+      stakeholder: "Interesado",
+      dolor:
+        "Intervenciones de mantenimiento correctivo por bombas operando fuera de rango; genera pérdidas de producción y costos de cuadrilla.",
+      metrica: "Intervenciones/mes",
+      dato_inicio: "18/mes",
+      target: "10/mes",
+      prioridad: "Media",
+    },
+    {
+      stakeholder: "Sponsor",
+      dolor:
+        "No hay trazabilidad ni tablero consolidado de desempeño por bomba; imposible comparar áreas y priorizar intervenciones.",
+      metrica: "Bombas con telemetría",
+      dato_inicio: "0%",
+      target: "100%",
+      prioridad: "Media",
+    },
+  ]),
+  mkResp(
+    ini004_F1.id,
+    "seccion_4_alineacion_estrategica",
+    "Se alinea con el desafío estratégico de Excelencia Operativa (reducción de OPEX) y con el proyecto transversal de Digitalización de Operaciones de Upstream. La iniciativa toma como base la plataforma de datos de producción (ini-005), que aporta el histórico por pozo, y se integra con el roadmap de eficiencia energética de la compañía.",
+  ),
+  mkResp(ini004_F1.id, "seccion_5_descripcion", {
+    estrategia_y_beneficios:
+      "Instalar PLCs Siemens S7-1500 en cabezales de pozos con bombeo electrosumergible (ESP) y bombas de varilla, conectados a un motor de optimización que ajusta set-points en tiempo real. Beneficios: +4-5% producción por operación óptima, -20% consumo energético, -35% intervenciones correctivas y liberación de HH de campo para tareas de mayor valor.",
+    alcance:
+      "MVP sobre 30 bombas del sector Norte-2 (variedad de ESP y bombas de varilla). No incluye bombas de transferencia ni inyección de agua en esta etapa.",
+    interdependencias:
+      "Depende de la plataforma de datos de producción (ini-005) como fuente de histórico por pozo. Coordinación con el área de Eficiencia Energética por los KPIs compartidos de kWh/m3.",
+    escalabilidad:
+      "Potencial de extensión a las +300 bombas del portfolio Upstream Norte, Central y Sur. A mediano plazo, extensión a bombas de inyección de agua y compresores, con la misma plataforma de PLCs y motor de optimización.",
+  }),
+  mkResp(ini004_F1.id, "seccion_6_impacto_economico_corrientes", [
+    {
+      corriente: "PRODUCCIÓN (m3)",
+      con_impacto: "S",
+      detalle: "Operación continuamente optimizada: +4-5% m3/año vs base.",
+    },
+    {
+      corriente: "OPEX (M$ USD)",
+      con_impacto: "S",
+      detalle:
+        "Ahorro en energía (-20%) y mantenimiento correctivo (-35%). Estimado USD 3.1M/año al escalar.",
+    },
+    {
+      corriente: "CAPEX (M$ USD)",
+      con_impacto: "S",
+      detalle:
+        "Inversión inicial de USD 620K para 100 bombas (PLCs, cableado, software).",
+    },
+    {
+      corriente: "PRODUCTIVIDAD (HH)",
+      con_impacto: "S",
+      detalle:
+        "Liberación de -4,200 HH/año en ajustes manuales y rondas de campo.",
+    },
+    {
+      corriente: "EXP AL RIESGO (%)",
+      con_impacto: "N",
+      detalle: "",
+    },
+    {
+      corriente: "EMISIONES (MTnCO2 Eq)",
+      con_impacto: "S",
+      detalle:
+        "Menor consumo energético → -1,800 TnCO2/año al escalar a 300 bombas.",
+    },
+    {
+      corriente: "CONS ENERGÍA (MW)",
+      con_impacto: "S",
+      detalle: "-22% vs base en las bombas automatizadas.",
+    },
+  ]),
+  mkResp(ini004_F1.id, "seccion_7_gestion_cambio", {
+    desafios:
+      "Principales desafíos: (1) integración con SCADA legacy que no tiene API abierta; (2) resistencia inicial de operadores de campo ante percepción de pérdida de control; (3) disponibilidad de conectividad en áreas remotas para telemetría continua; (4) dependencia de proveedor único (Siemens) para soporte. Acciones: desarrollo custom del bridge SCADA, programa de change management con entrenamiento in-situ y visualización compartida, relevamiento de enlaces satelitales para áreas sin fibra, contrato marco con proveedor alternativo para continuidad.",
+    participacion: [
+      { area: "Operaciones Upstream Norte", tipo: "Involucrada" },
+      { area: "Mantenimiento e Integridad", tipo: "Involucrada" },
+      { area: "Ingeniería de Producción", tipo: "Involucrada" },
+      { area: "Eficiencia Energética", tipo: "Interesada" },
+      { area: "HSE", tipo: "Interesada" },
+      { area: "Control de Gestión", tipo: "Interesada" },
+    ],
+  }),
+  mkResp(ini004_F1.id, "seccion_8_journey_hitos", [
+    { hito: "Kick-off y relevamiento de pozos candidatos", fecha: "Mar 2024" },
+    { hito: "Gate 1 · Aprobación de propuesta", fecha: "Jul 2024" },
+    { hito: "Gate 2 · Dimensionamiento aprobado", fecha: "Nov 2024" },
+    { hito: "MVP 30 bombas Norte-2", fecha: "Abr 2025" },
+    { hito: "Gate 3 · MVP aprobado", fecha: "Abr 2025" },
+    { hito: "Rollout 100 bombas", fecha: "Dic 2025" },
+    { hito: "Rollout a áreas Central y Sur", fecha: "Dic 2026" },
+  ]),
+  mkResp(ini004_F1.id, "seccion_9_equipo", {
+    propuesta: [
+      {
+        rol: "Promotor",
+        nombre: "Juan García",
+        posicion: "Ing. de Producción Sr.",
+        vp: "Upstream",
+      },
+      {
+        rol: "Líder de dimensión",
+        nombre: "Laura Fernández",
+        posicion: "Jefa de Operaciones Norte",
+        vp: "Upstream",
+      },
+      {
+        rol: "Referente técnico",
+        nombre: "Pablo Díaz",
+        posicion: "Especialista en Control",
+        vp: "Upstream",
+      },
+    ],
+    gate_1: [
+      {
+        rol: "Sponsor",
+        nombre: "Martín Rodríguez",
+        posicion: "VP Upstream",
+        area: "Upstream",
+      },
+      {
+        rol: "Business Owner",
+        nombre: "Carolina Méndez",
+        posicion: "Gerente de Producción",
+        area: "Upstream",
+      },
+      {
+        rol: "Área Transformación",
+        nombre: "Sofía Paz",
+        posicion: "Líder PMO Transformación",
+        area: "Transformación Digital",
+      },
+    ],
+    metodologia: [
+      {
+        rol: "Scrum Master",
+        nombre: "Diego Álvarez",
+        posicion: "SM Sr.",
+        vp: "Transformación Digital",
+      },
+      {
+        rol: "Coach ágil",
+        nombre: "Valentina Ruiz",
+        posicion: "Coach",
+        vp: "Transformación Digital",
+      },
+    ],
+  }),
+];
+
+const ini004_F2 = mkForm({
+  id: "form_ini-004_F2",
+  initiative_id: "ini-004",
+  form_type: "F2",
+  status: "final",
+  created_by: "u3",
+  created_at: "2024-08-01T10:00:00.000Z",
+  submitted_at: "2024-10-15T10:00:00.000Z",
+  approved_at: "2024-11-20T16:00:00.000Z",
+});
+
+const ini004_F2_responses: FormResponse[] = [
+  mkResp(ini004_F2.id, "seccion_1_info_general", {
+    nombre: "Automatización de sistemas de bombeo",
+    unidad_gestion: "Upstream Norte",
+    areas_involucradas: "Operaciones, Mantenimiento, Ingeniería, TI/OT",
+    tipo: "Resultado",
+  }),
+  mkResp(
+    ini004_F2.id,
+    "seccion_2_proposito",
+    "Para los operadores de bombeo y supervisores de producción quienes necesitan optimizar la operación de +300 bombas de extracción que hoy se ajustan manualmente cada 2-4 semanas.\n\nEl sistema de automatización de bombeo es una plataforma de control basada en PLCs inteligentes y algoritmos de optimización.\n\nQue ajusta parámetros de operación (velocidad, presión, ciclos) en tiempo real basándose en condiciones de pozo, minimizando consumo energético y maximizando producción.\n\nA diferencia del ajuste manual periódico, nuestro producto optimiza 24/7 y reacciona en minutos a cambios de condición del pozo.",
+  ),
+  mkResp(
+    ini004_F2.id,
+    "seccion_3_sintesis_necesidad",
+    "Tangible: ajustar 300+ bombas manualmente consume ~4,200 HH/año, genera operación sub-óptima (+3-5% producción perdida) y consumo energético elevado. Intangible: dependencia de experiencia individual del operador, falta de trazabilidad de decisiones, y saturación del equipo de campo que no puede dedicarse a tareas de mayor valor. La oportunidad es construir una capa de control digital que homologue el criterio de ajuste, libere HH y mejore la ventana de optimización.",
+  ),
+  mkResp(ini004_F2.id, "seccion_3_necesidad_oportunidad", [
+    {
+      stakeholder: "Usuario",
+      dolor:
+        "Operadores recorren campo cada 2-4 semanas; ventana de ajuste desalineada con condiciones reales.",
+      metrica: "Frecuencia de ajuste",
+      dato_inicio: "Cada 2-4 semanas",
+      target: "Continuo 24/7",
+      prioridad: "Alta",
+    },
+    {
+      stakeholder: "Interesado",
+      dolor:
+        "Alto consumo energético por operación sub-óptima a régimen fijo.",
+      metrica: "kWh / m3",
+      dato_inicio: "Base 2023",
+      target: "-20% kWh/m3",
+      prioridad: "Alta",
+    },
+    {
+      stakeholder: "Interesado",
+      dolor:
+        "Intervenciones correctivas por operación fuera de rango óptimo.",
+      metrica: "Intervenciones/mes",
+      dato_inicio: "18/mes",
+      target: "10/mes",
+      prioridad: "Media",
+    },
+    {
+      stakeholder: "Sponsor",
+      dolor:
+        "Falta de trazabilidad y tablero consolidado por bomba/área.",
+      metrica: "Bombas con telemetría",
+      dato_inicio: "0%",
+      target: "100%",
+      prioridad: "Media",
+    },
+  ]),
+  mkResp(
+    ini004_F2.id,
+    "seccion_4_alineacion_estrategica",
+    "Excelencia Operativa (reducción de OPEX) + Digitalización de Operaciones Upstream. Depende de la plataforma de datos de producción (ini-005). Contribuye al programa de Eficiencia Energética en su KPI de kWh/m3. Capacidad escalable a compresores e inyección.",
+  ),
+  mkResp(ini004_F2.id, "seccion_5_descripcion", {
+    estrategia_y_beneficios:
+      "PLCs Siemens S7-1500 en cabezales + motor de optimización (reglas + modelo de decisión). Ajuste continuo de set-points (frecuencia variable, stroke/velocidad, ciclos on/off). Beneficios validados en piloto: +4.8% producción, -22% energía, -35% intervenciones.",
+    procesos_as_is_to_be:
+      "AS IS: operador recorre pozo → mide con pinza amperométrica y manómetro → ajusta set-points manualmente en panel local → registra en planilla. Ciclo 2-4 semanas por pozo.\n\nTO BE: telemetría continua → motor de optimización calcula set-points óptimos cada 5 min → PLC ejecuta ajuste dentro de límites de seguridad → operador supervisa desde sala central y valida alertas por excepción.",
+    alcance:
+      "100 bombas en Upstream Norte (sectores Norte-1 a Norte-4). No incluye bombas de transferencia ni inyección en esta etapa.",
+    escalabilidad:
+      "+200 bombas adicionales en Upstream Central y Sur (2026-2027). A mediano plazo: compresores de gaslift e inyección de agua con la misma arquitectura de PLC + motor.",
+    alternativas:
+      "Alt A: SCADA expandido con lógica de control centralizada (descartada — licenciamiento alto, dependencia de red central, sin soporte de modelos avanzados). Alt B: PLCs con lógica local distribuida + motor de optimización en edge (elegida — autonomía por pozo, resiliencia ante caída de enlace, soporte de modelos). Alt C: retrofit de variadores propietarios del fabricante de la bomba (descartada — lock-in y alcance limitado).",
+  }),
+  mkResp(ini004_F2.id, "seccion_6_planificacion_implementacion", {
+    topologia_equipo:
+      "Equipo mixto de producto integrado al backlog de la dimensión Operaciones Digitales. PO dedicado, SM compartido con otras iniciativas de la dimensión. Desarrollo de firmware/algoritmos tercerizado con Siemens bajo contrato de especialidad; integración SCADA y visualización desarrollo interno.",
+    equipo_necesario: [
+      {
+        rol: "Product Owner",
+        conocimiento: "Ing. producción + negocio",
+        nombre: "Juan García",
+        porcentaje: "60%",
+        vp: "Upstream",
+      },
+      {
+        rol: "Líder técnico",
+        conocimiento: "Control de procesos",
+        nombre: "Pablo Díaz",
+        porcentaje: "80%",
+        vp: "Upstream",
+      },
+      {
+        rol: "Ing. automatización",
+        conocimiento: "PLC Siemens S7",
+        nombre: "Externo (Siemens)",
+        porcentaje: "100%",
+        vp: "-",
+      },
+      {
+        rol: "Desarrollador SCADA",
+        conocimiento: "iFIX / Ignition / OPC-UA",
+        nombre: "Por definir",
+        porcentaje: "80%",
+        vp: "TI/OT",
+      },
+      {
+        rol: "Data Engineer",
+        conocimiento: "Pipelines + time series",
+        nombre: "Equipo plataforma de datos",
+        porcentaje: "30%",
+        vp: "Transformación Digital",
+      },
+      {
+        rol: "Técnico de campo",
+        conocimiento: "Instrumentación",
+        nombre: "Equipo Mantenimiento (3)",
+        porcentaje: "50%",
+        vp: "Upstream",
+      },
+    ],
+    equipo_alineacion: [
+      { rol: "Sponsor", nombre: "Martín Rodríguez", vp: "Upstream" },
+      { rol: "Business Owner", nombre: "Carolina Méndez", vp: "Upstream" },
+      {
+        rol: "Portfolio",
+        nombre: "Sofía Paz",
+        vp: "Transformación Digital",
+      },
+      {
+        rol: "Referente Eficiencia Energética",
+        nombre: "Ana Torres",
+        vp: "Sustentabilidad",
+      },
+    ],
+  }),
+  mkResp(ini004_F2.id, "seccion_7_consideraciones_digitales", {
+    tipo_solucion:
+      "Híbrido: PLCs Siemens S7-1500 comerciales (enlatado) + motor de optimización con lógica propia (desarrollo interno + consultoría). Ventaja: evitamos lock-in en la capa de decisión (podemos cambiar de proveedor de PLC sin rehacer modelos). Desventaja: mayor esfuerzo de integración inicial que una solución 100% propietaria.",
+    desafios_digitales:
+      "Madurez digital media en OT: red industrial segmentada pero con visibilidad limitada desde IT. Disponibilidad de datos buena en superficie, intermitente en fondo de pozo. Seguridad OT: segmentar control de red corporativa con DMZ industrial. Modelado: requiere calibración por tipo de bomba (ESP vs varilla) y por régimen de pozo.",
+    integracion:
+      "OPC-UA como protocolo estándar entre PLC y SCADA. Bridge custom SCADA legacy ↔ plataforma de datos (ini-005) para histórico. API REST del motor de optimización expuesta al SCADA para supervisión. Integración con CMMS para disparar órdenes de trabajo ante alertas.",
+  }),
+  mkResp(ini004_F2.id, "seccion_8_gestion_cambio_detallada", {
+    areas_relacionadas: [
+      { area: "Operaciones Upstream Norte", tipo: "Involucrada" },
+      { area: "Mantenimiento e Integridad", tipo: "Involucrada" },
+      { area: "TI/OT", tipo: "Involucrada" },
+      { area: "Eficiencia Energética", tipo: "Interesada" },
+      { area: "HSE", tipo: "Interesada" },
+      { area: "Control de Gestión", tipo: "Interesada" },
+    ],
+    interdependencias: [
+      {
+        nombre: "Plataforma de datos de producción (ini-005)",
+        referente: "Lucía Benítez",
+      },
+      {
+        nombre: "Programa Eficiencia Energética",
+        referente: "Ana Torres",
+      },
+      { nombre: "Proyecto segmentación OT", referente: "Esteban Salas" },
+    ],
+    desafios_riesgos:
+      "Principales riesgos: (1) resistencia operativa al cambio; (2) integración SCADA legacy sin API abierta; (3) conectividad intermitente en sectores remotos; (4) dependencia de proveedor único (Siemens) para firmware; (5) posible pérdida de producción durante primera calibración. Aprendizajes previos: cambios similares en compresores requirieron 6 meses de convivencia manual/automático antes del corte completo — replicamos ese patrón.",
+    plan_accion: [
+      {
+        riesgo: "Resistencia de operadores de campo",
+        accion:
+          "Programa de change management con champions por sector + visualización compartida + mantener control manual como override.",
+        resultado:
+          "≥80% de operadores capacitados y con acceso a dashboard antes del go-live.",
+        fecha: "Jul 2024",
+        responsable: "Juan García",
+      },
+      {
+        riesgo: "Integración SCADA legacy",
+        accion:
+          "Desarrollo custom del bridge OPC-UA ↔ SCADA con vendor externo especializado.",
+        resultado: "Bridge en producción con lag < 5 seg.",
+        fecha: "Oct 2024",
+        responsable: "Pablo Díaz",
+      },
+      {
+        riesgo: "Conectividad en áreas remotas",
+        accion:
+          "Relevamiento de enlaces satelitales + cache local en PLC para seguir operando sin red.",
+        resultado: "Tolerancia a caída de hasta 4 h sin intervención.",
+        fecha: "Nov 2024",
+        responsable: "Externo (Siemens)",
+      },
+      {
+        riesgo: "Lock-in con proveedor único",
+        accion:
+          "Contrato marco con proveedor alternativo + abstracción de capa de optimización fuera del PLC.",
+        resultado: "Capacidad de migrar PLC en < 6 meses si fuera necesario.",
+        fecha: "Dic 2024",
+        responsable: "Carolina Méndez",
+      },
+    ],
+  }),
+  mkResp(ini004_F2.id, "seccion_9_costos", {
+    costos_desarrollo:
+      "CAPEX MVP (30 bombas): USD 195K (PLCs + instrumentación + cableado) + USD 60K (desarrollo bridge SCADA e integración) + USD 45K (contingencia). CAPEX full rollout 100 bombas: USD 620K total.",
+    costos_operacion:
+      "OPEX anual para 100 bombas: USD 75K (licencias software de control + soporte Siemens) + USD 40K (operador de consola centralizada 50%) + USD 15K (mantenimiento preventivo PLC). Total: USD 130K/año. Recupero: USD 3.1M/año en ahorro de energía y mantenimiento = payback < 4 meses sobre CAPEX.",
+  }),
+  mkResp(ini004_F2.id, "seccion_8_journey_hitos", [
+    { hito: "Gate 1 · Aprobación de propuesta", fecha: "Jul 2024" },
+    { hito: "Kick-off dimensionamiento", fecha: "Ago 2024" },
+    { hito: "Diseño detallado + selección proveedor", fecha: "Oct 2024" },
+    { hito: "Gate 2 · Dimensionamiento aprobado", fecha: "Nov 2024" },
+    { hito: "MVP 30 bombas Norte-2", fecha: "Abr 2025" },
+    { hito: "Gate 3 · MVP aprobado", fecha: "Abr 2025" },
+    { hito: "Rollout 100 bombas", fecha: "Dic 2025" },
+    { hito: "Expansión Central + Sur", fecha: "Dic 2026" },
+  ]),
+  mkResp(ini004_F2.id, "seccion_10_impacto_corrientes_5anios", {
+    corrientes_valor: [
+      {
+        corriente: "PRODUCCIÓN (m3)",
+        anio_1: "+1,800",
+        anio_2: "+3,200",
+        anio_3: "+5,200",
+        anio_4: "+5,500",
+        anio_5: "+5,500",
+      },
+      {
+        corriente: "OPEX (M$ USD)",
+        anio_1: "-0.9",
+        anio_2: "-1.8",
+        anio_3: "-3.1",
+        anio_4: "-3.3",
+        anio_5: "-3.3",
+      },
+      {
+        corriente: "CAPEX (M$ USD)",
+        anio_1: "-0.26",
+        anio_2: "-0.34",
+        anio_3: "-0.28",
+        anio_4: "-0.10",
+        anio_5: "-0.05",
+      },
+      {
+        corriente: "PRODUCTIVIDAD (HH)",
+        anio_1: "-1,400",
+        anio_2: "-2,800",
+        anio_3: "-4,200",
+        anio_4: "-4,500",
+        anio_5: "-4,500",
+      },
+      {
+        corriente: "EMISIONES (MTnCO2 Eq)",
+        anio_1: "-600",
+        anio_2: "-1,100",
+        anio_3: "-1,800",
+        anio_4: "-1,900",
+        anio_5: "-1,900",
+      },
+      {
+        corriente: "CONS ENERGÍA (MW)",
+        anio_1: "-0.8",
+        anio_2: "-1.5",
+        anio_3: "-2.4",
+        anio_4: "-2.5",
+        anio_5: "-2.5",
+      },
+    ],
+    palancas_valor: [
+      {
+        corriente: "PRODUCCIÓN (m3)",
+        palanca: "Mejora del tiempo efectivo de bombeo",
+        anio_1: "+1.5%",
+        anio_2: "+2.5%",
+        anio_3: "+3.5%",
+        anio_4: "+4.0%",
+        anio_5: "+4.0%",
+      },
+      {
+        corriente: "OPEX (M$ USD)",
+        palanca: "Ahorro energético (kWh/m3)",
+        anio_1: "-8%",
+        anio_2: "-15%",
+        anio_3: "-20%",
+        anio_4: "-22%",
+        anio_5: "-22%",
+      },
+      {
+        corriente: "OPEX (M$ USD)",
+        palanca: "Reducción de intervenciones correctivas",
+        anio_1: "-15%",
+        anio_2: "-25%",
+        anio_3: "-35%",
+        anio_4: "-35%",
+        anio_5: "-35%",
+      },
+      {
+        corriente: "PRODUCTIVIDAD (HH)",
+        palanca: "Rondas y ajustes manuales evitados",
+        anio_1: "-30%",
+        anio_2: "-55%",
+        anio_3: "-80%",
+        anio_4: "-85%",
+        anio_5: "-85%",
+      },
+    ],
+  }),
+  mkResp(ini004_F2.id, "seccion_11_equipo_dimensionamiento", {
+    dimensionamiento: [
+      {
+        rol: "Promotor",
+        nombre: "Juan García",
+        posicion: "Ing. Producción Sr.",
+        vp: "Upstream",
+      },
+      {
+        rol: "Líder técnico",
+        nombre: "Pablo Díaz",
+        posicion: "Especialista en Control",
+        vp: "Upstream",
+      },
+      {
+        rol: "Arquitecto OT",
+        nombre: "Externo (Siemens)",
+        posicion: "Sr. consultor",
+        vp: "-",
+      },
+      {
+        rol: "Referente SCADA",
+        nombre: "Esteban Salas",
+        posicion: "Líder TI/OT",
+        vp: "TI/OT",
+      },
+    ],
+    sponsors_gate_2: [
+      {
+        rol: "Sponsor",
+        nombre: "Martín Rodríguez",
+        posicion: "VP Upstream",
+        area: "Upstream",
+      },
+      {
+        rol: "Business Owner",
+        nombre: "Carolina Méndez",
+        posicion: "Gerente de Producción",
+        area: "Upstream",
+      },
+      {
+        rol: "Área Transformación",
+        nombre: "Sofía Paz",
+        posicion: "Líder PMO Transformación",
+        area: "Transformación Digital",
+      },
+    ],
+    metodologia: [
+      {
+        rol: "Scrum Master",
+        nombre: "Diego Álvarez",
+        posicion: "SM Sr.",
+        vp: "Transformación Digital",
+      },
+      {
+        rol: "Coach ágil",
+        nombre: "Valentina Ruiz",
+        posicion: "Coach",
+        vp: "Transformación Digital",
+      },
+    ],
+  }),
 ];
 
 const ini004_G1 = mkGateway({
@@ -1471,17 +2038,6 @@ const ini004_G1_votes: GatewayVote[] = [
   mkVote(ini004_G1.id, "u4", "approved", null),
   mkVote(ini004_G1.id, "u2", "approved", null),
 ];
-
-const ini004_F2 = mkForm({
-  id: "form_ini-004_F2",
-  initiative_id: "ini-004",
-  form_type: "F2",
-  status: "final",
-  created_by: "u3",
-  created_at: "2024-08-01T10:00:00.000Z",
-  submitted_at: "2024-10-15T10:00:00.000Z",
-  approved_at: "2024-11-20T16:00:00.000Z",
-});
 
 const ini004_G2 = mkGateway({
   initiative_id: "ini-004",
@@ -1508,30 +2064,285 @@ const ini004_F3 = mkForm({
 });
 
 const ini004_F3_responses: FormResponse[] = [
-  mkResp(ini004_F3.id, "seccion_descripcion_mvp", {
-    descripcion:
-      "MVP en 30 bombas del sector Norte-2. Resultados en 6 meses: producción +4.8% vs bombas sin automatizar, consumo energético -22%, intervenciones de mantenimiento -35%.",
-    aprendizajes:
-      "Los PLCs Siemens S7-1500 funcionan bien pero la integración con SCADA legacy requirió desarrollo custom. Para el rollout se recomienda actualizar el SCADA en paralelo.",
+  mkResp(ini004_F3.id, "seccion_1_info_general", {
+    nombre: "Automatización de sistemas de bombeo",
+    unidad_gestion: "Upstream Norte",
+    areas_involucradas: "Operaciones, Mantenimiento, Ingeniería, TI/OT",
+    tipo: "Resultado",
   }),
-  mkResp(ini004_F3.id, "seccion_impacto_economico_consolidado", [
-    {
-      corriente: "PRODUCCIÓN",
-      impacto: "+5,200 m3/año por operación continuamente optimizada",
-    },
-    {
-      corriente: "OPEX",
-      impacto: "-3,100,000 USD/año en energía y mantenimiento de bombas",
-    },
-    {
-      corriente: "CAPEX",
-      impacto: "USD 620K inversión total (PLCs, cableado, software)",
-    },
-    {
-      corriente: "HH",
-      impacto: "-4,200 HH/año en ajustes manuales y monitoreo",
-    },
-  ]),
+  mkResp(
+    ini004_F3.id,
+    "seccion_2_proposito",
+    "Para los operadores y supervisores de producción que necesitan optimizar +300 bombas hoy ajustadas manualmente, el sistema de automatización es una plataforma de control basada en PLCs inteligentes y algoritmos que ajusta parámetros en tiempo real, minimizando consumo energético y maximizando producción. A diferencia del ajuste manual periódico, opera 24/7 y reacciona en minutos.",
+  ),
+  mkResp(ini004_F3.id, "seccion_3_necesidad_oportunidad", {
+    sintesis:
+      "MVP validó la hipótesis: la optimización continua mejora producción, reduce consumo energético y baja intervenciones correctivas. Con los resultados obtenidos se confirma el caso de negocio para el escalado.",
+    detalle: [
+      {
+        stakeholder: "Usuario",
+        dolor: "Ajustes manuales cada 2-4 semanas",
+        metrica: "Frecuencia de ajuste",
+        dato_inicio: "2-4 semanas",
+        target: "Continuo",
+        prioridad: "Alta",
+      },
+      {
+        stakeholder: "Interesado",
+        dolor: "Alto consumo energético",
+        metrica: "kWh/m3",
+        dato_inicio: "Base 2023",
+        target: "-22%",
+        prioridad: "Alta",
+      },
+      {
+        stakeholder: "Interesado",
+        dolor: "Intervenciones correctivas",
+        metrica: "Intervenciones/mes",
+        dato_inicio: "18/mes",
+        target: "10/mes",
+        prioridad: "Media",
+      },
+    ],
+  }),
+  mkResp(
+    ini004_F3.id,
+    "seccion_4_alineacion_estrategica",
+    "El MVP confirmó la contribución a Excelencia Operativa (OPEX) y a los KPIs de Eficiencia Energética. Se incorpora al roadmap de la dimensión Operaciones Digitales y al programa corporativo de sustentabilidad por la reducción de emisiones.",
+  ),
+  mkResp(ini004_F3.id, "seccion_5_descripcion_solucion", {
+    estrategia_y_beneficios:
+      "Arquitectura validada: PLCs Siemens S7-1500 en cabezales + motor de optimización en edge + bridge OPC-UA a SCADA. Beneficios medidos sobre 30 bombas en 6 meses: +4.8% producción, -22% energía, -35% intervenciones.",
+    procesos:
+      "AS IS: ronda manual 2-4 semanas. TO BE: telemetría continua → motor calcula set-points cada 5 min → PLC ajusta en rango de seguridad → operador supervisa por excepción desde consola. Probado en campo con convivencia manual/auto durante 3 meses.",
+    escalabilidad:
+      "De 30 a 100 bombas en 2025 (áreas Norte-1 a Norte-4). De 100 a 300 bombas 2026-2027 (Central y Sur). A mediano plazo: compresores gaslift e inyección de agua con la misma arquitectura.",
+    areas_usuarias: [
+      { area: "Operaciones Upstream Norte", tipo: "Usuaria" },
+      { area: "Sala de control central", tipo: "Usuaria" },
+      { area: "Mantenimiento e Integridad", tipo: "Impactada" },
+      { area: "Eficiencia Energética", tipo: "Beneficiada" },
+    ],
+  }),
+  mkResp(ini004_F3.id, "seccion_6_mvp", {
+    descripcion:
+      "MVP sobre 30 bombas del sector Norte-2 (mix ESP + bomba de varilla). PLCs + motor de optimización + dashboard de supervisión. 6 meses de operación en modo auto con convivencia manual/auto los primeros 3 meses.",
+    indicadores_medicion:
+      "Producción incremental vs gemela sin automatizar, kWh/m3, intervenciones correctivas/mes, uptime del sistema automatizado, falsos positivos de alerta.",
+    resultados_esperados:
+      "Esperado: +3% producción, -15% energía, -25% intervenciones, uptime >95%.",
+    resultados_obtenidos:
+      "Obtenido: +4.8% producción, -22% energía, -35% intervenciones, uptime 98.7%. Resultados por encima del objetivo en todas las dimensiones clave.",
+    aprendizajes_bloqueantes:
+      "Aprendizajes: (1) PLCs Siemens S7-1500 cumplen expectativas; (2) integración SCADA legacy requirió más desarrollo custom que lo presupuestado (+30%); (3) operadores adoptaron rápido el dashboard con visualización por excepción; (4) modelo de optimización necesita recalibración mensual los primeros 3 meses de cada rollout. Bloqueante resuelto: falta de conectividad en 2 pozos del sector → resuelto con enlace satelital y cache local.",
+    conclusiones:
+      "Recomendación: escalar a 100 bombas en 2025. Actualizar SCADA en paralelo para reducir esfuerzo de integración. Prever 2 FTE adicionales durante los primeros 6 meses del rollout para calibración y change management.",
+    journey_proximos_pasos:
+      "Q2 2025: rollout lote 1 (23 bombas Norte-1). Q3 2025: lote 2 (23 bombas Norte-3). Q4 2025: lote 3 (24 bombas Norte-4). Q1 2026: lote 4 (25 bombas Central). Q2-Q4 2026: Central y Sur completas.",
+  }),
+  mkResp(ini004_F3.id, "seccion_7_equipo_desarrollo", {
+    eficiencia_estructuracion:
+      "Se incorpora al backlog de la dimensión Operaciones Digitales con PO dedicado (Juan García) para garantizar foco y velocidad. Se mantiene SM compartido con otras iniciativas de la dimensión para apalancar buenas prácticas.",
+    roles_conocimientos:
+      "Roles core cubiertos: PO, líder técnico, ing. automatización (Siemens), desarrollador SCADA, data engineer, técnicos de campo. Plan de mitigación para brecha en SCADA: ingreso de 1 FTE externo con contrato anual renovable.",
+    equipo_execute_operate: [
+      {
+        rol: "Product Owner",
+        nombre: "Juan García",
+        asignacion: "60%",
+        posicion: "Ing. Producción Sr.",
+        area: "Upstream",
+      },
+      {
+        rol: "Líder técnico",
+        nombre: "Pablo Díaz",
+        asignacion: "80%",
+        posicion: "Especialista en Control",
+        area: "Upstream",
+      },
+      {
+        rol: "Ing. automatización",
+        nombre: "Externo (Siemens)",
+        asignacion: "100%",
+        posicion: "Sr. consultor",
+        area: "-",
+      },
+      {
+        rol: "Desarrollador SCADA",
+        nombre: "Por definir (externo)",
+        asignacion: "100%",
+        posicion: "Sr.",
+        area: "TI/OT",
+      },
+      {
+        rol: "Data Engineer",
+        nombre: "Lucía Benítez",
+        asignacion: "30%",
+        posicion: "Data Eng. Sr.",
+        area: "Transformación Digital",
+      },
+      {
+        rol: "Supervisor sala control",
+        nombre: "A contratar",
+        asignacion: "100%",
+        posicion: "Operador Sr.",
+        area: "Upstream",
+      },
+    ],
+  }),
+  mkResp(ini004_F3.id, "seccion_8_consideraciones_digitales", {
+    tipo_solucion:
+      "Estrategia híbrida confirmada: PLC comercial (Siemens S7-1500) + motor de optimización con lógica propia en edge. Para el delivery: estandarizar configuración como template replicable por tipo de bomba, reduciendo lead time de comisionamiento de 3 semanas a 1 semana por bomba.",
+    desafios_digitales:
+      "Desafíos identificados en MVP: calidad de datos de fondo de pozo variable, recalibración mensual del modelo, segmentación OT/IT todavía parcial en algunas estaciones. Plan: programa de calidad de datos con ini-005, recalibración automatizada, completar segmentación OT antes del Q3 2025.",
+    integracion:
+      "OPC-UA entre PLC y SCADA consolidado como estándar. Plataforma de datos (ini-005) consume histórico por bomba. CMMS recibe órdenes automáticas ante alertas de mantenimiento predictivo.",
+  }),
+  mkResp(ini004_F3.id, "seccion_9_gestion_cambio", {
+    desafios_riesgos:
+      "Riesgos clave del rollout: (1) curva de aprendizaje del equipo externo SCADA; (2) variación de condiciones entre sectores Norte-1/Norte-3/Norte-4 que requerirá re-calibración; (3) dependencia del contrato Siemens; (4) coordinación con mantenimiento programado para no solapar paradas.",
+    plan_gestion_cambio:
+      "Plan validado en MVP: champions por sector, convivencia manual/auto los primeros 2 meses, dashboard compartido con operadores, sesiones semanales de revisión. Aprendizajes del caso compresores (2022): mantuvimos control manual override los primeros 6 meses — replicamos.",
+    interdependencias: [
+      {
+        nombre: "Plataforma de datos de producción (ini-005)",
+        referente: "Lucía Benítez",
+      },
+      { nombre: "Programa Eficiencia Energética", referente: "Ana Torres" },
+      { nombre: "Proyecto segmentación OT", referente: "Esteban Salas" },
+      {
+        nombre: "Plan de mantenimiento programado 2025",
+        referente: "Ricardo Molina",
+      },
+    ],
+  }),
+  mkResp(ini004_F3.id, "seccion_10_costos", {
+    costos_desarrollo:
+      "MVP ejecutado: USD 310K CAPEX (levemente superior a USD 300K presupuestado por sobrecosto en bridge SCADA). Rollout 100 bombas 2025: USD 340K CAPEX. Total acumulado al cierre 2025: USD 650K.",
+    costos_operacion:
+      "OPEX anual 100 bombas: USD 75K (licencias + soporte Siemens) + USD 40K (operador de consola) + USD 15K (mantto preventivo PLC) = USD 130K/año. Con 300 bombas se estima USD 220K/año.",
+  }),
+  mkResp(ini004_F3.id, "seccion_11_impacto_economico", {
+    corrientes_valor: [
+      {
+        corriente: "PRODUCCIÓN (m3)",
+        anio_1: "+1,800",
+        anio_2: "+3,200",
+        anio_3: "+5,200",
+        anio_4: "+5,500",
+        anio_5: "+5,500",
+      },
+      {
+        corriente: "OPEX (M$ USD)",
+        anio_1: "-0.9",
+        anio_2: "-1.8",
+        anio_3: "-3.1",
+        anio_4: "-3.3",
+        anio_5: "-3.3",
+      },
+      {
+        corriente: "PRODUCTIVIDAD (HH)",
+        anio_1: "-1,400",
+        anio_2: "-2,800",
+        anio_3: "-4,200",
+        anio_4: "-4,500",
+        anio_5: "-4,500",
+      },
+      {
+        corriente: "EMISIONES (MTnCO2 Eq)",
+        anio_1: "-600",
+        anio_2: "-1,100",
+        anio_3: "-1,800",
+        anio_4: "-1,900",
+        anio_5: "-1,900",
+      },
+    ],
+    palancas_valor: [
+      {
+        corriente: "PRODUCCIÓN (m3)",
+        palanca: "Tiempo efectivo de bombeo",
+        anio_1: "+1.5%",
+        anio_2: "+2.5%",
+        anio_3: "+3.5%",
+        anio_4: "+4.0%",
+        anio_5: "+4.0%",
+      },
+      {
+        corriente: "OPEX (M$ USD)",
+        palanca: "Ahorro energético",
+        anio_1: "-8%",
+        anio_2: "-15%",
+        anio_3: "-20%",
+        anio_4: "-22%",
+        anio_5: "-22%",
+      },
+      {
+        corriente: "OPEX (M$ USD)",
+        palanca: "Reducción de correctivos",
+        anio_1: "-15%",
+        anio_2: "-25%",
+        anio_3: "-35%",
+        anio_4: "-35%",
+        anio_5: "-35%",
+      },
+    ],
+  }),
+  mkResp(ini004_F3.id, "seccion_12_equipo", {
+    equipo_mvp: [
+      {
+        rol: "Product Owner",
+        nombre: "Juan García",
+        posicion: "Ing. Producción Sr.",
+        vp: "Upstream",
+      },
+      {
+        rol: "Líder técnico",
+        nombre: "Pablo Díaz",
+        posicion: "Esp. Control",
+        vp: "Upstream",
+      },
+      {
+        rol: "Consultor Siemens",
+        nombre: "Externo",
+        posicion: "Sr.",
+        vp: "-",
+      },
+      {
+        rol: "Técnico de campo",
+        nombre: "Equipo Mantto (3)",
+        posicion: "Técnicos",
+        vp: "Upstream",
+      },
+    ],
+    sponsors_gate_3: [
+      {
+        rol: "Sponsor",
+        nombre: "Martín Rodríguez",
+        posicion: "VP Upstream",
+        area: "Upstream",
+      },
+      {
+        rol: "Business Owner",
+        nombre: "Carolina Méndez",
+        posicion: "Gerente Producción",
+        area: "Upstream",
+      },
+      {
+        rol: "Área Transformación",
+        nombre: "Sofía Paz",
+        posicion: "Líder PMO",
+        area: "Transformación Digital",
+      },
+    ],
+    equipo_metodologia: [
+      {
+        rol: "Scrum Master",
+        nombre: "Diego Álvarez",
+        posicion: "SM Sr.",
+        vp: "Transformación Digital",
+      },
+    ],
+  }),
 ];
 
 const ini004_G3 = mkGateway({
@@ -1814,6 +2625,7 @@ const ini005: Initiative = {
 };
 
 const ini005_members: InitiativeMember[] = [
+  mkMember("u11", "ini-005", "sm"),
   mkMember("u9", "ini-005", "po"),
   mkMember("u1", "ini-005", "bo"),
   mkMember("u1", "ini-005", "sponsor"),
@@ -2167,6 +2979,7 @@ const ini006: Initiative = {
 };
 
 const ini006_members: InitiativeMember[] = [
+  mkMember("u11", "ini-006", "sm"),
   mkMember("u10", "ini-006", "po"),
   mkMember("u7", "ini-006", "bo"),
   mkMember("u7", "ini-006", "sponsor"),
@@ -2491,6 +3304,7 @@ const ini007: Initiative = {
 };
 
 const ini007_members: InitiativeMember[] = [
+  mkMember("u11", "ini-007", "sm"),
   mkMember("u5", "ini-007", "po"),
   mkMember("u7", "ini-007", "bo"),
   mkMember("u7", "ini-007", "sponsor"),
@@ -2714,6 +3528,7 @@ const ini008: Initiative = {
 };
 
 const ini008_members: InitiativeMember[] = [
+  mkMember("u11", "ini-008", "sm"),
   mkMember("u8", "ini-008", "po"),
   mkMember("u1", "ini-008", "bo"),
   mkMember("u1", "ini-008", "sponsor"),
@@ -3103,6 +3918,7 @@ export function getSeedData(): SeedData {
       ...ini003_F3_responses,
       ...ini003_F4_2026_responses,
       ...ini004_F1_responses,
+      ...ini004_F2_responses,
       ...ini004_F3_responses,
       ...ini004_F4_2025_responses,
       ...ini004_F5_2025_responses,

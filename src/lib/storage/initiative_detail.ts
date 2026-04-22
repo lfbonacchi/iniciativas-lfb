@@ -80,6 +80,11 @@ export interface InitiativeDetail {
   }[];
   is_stage_4_unlocked: boolean;
   is_vp_or_at: boolean;
+  is_area_transformacion: boolean;
+  /** True cuando la iniciativa aún no tiene respuestas cargadas en ningún formulario. */
+  has_form_data: boolean;
+  /** True cuando la iniciativa tiene al menos un formulario abierto (cualquier estado). */
+  has_any_form: boolean;
   vp_at_extras: {
     objectives: ObjectiveLink[];
     cross_streams: CrossStream[];
@@ -305,13 +310,20 @@ export function getInitiativeDetail(
     return err("FORBIDDEN", "No tenés acceso a esta iniciativa");
   }
 
-  const summary = getInitiativeSummary(initiativeId);
-  if (!summary) {
-    return err(
-      "NOT_FOUND",
-      "No hay resumen disponible para esta iniciativa",
-    );
-  }
+  // Si no hay summary (iniciativa recién creada o importada sin data) devolvemos
+  // uno vacío para que la UI pueda renderizar el estado vacío con sus CTAs.
+  const summary = getInitiativeSummary(initiativeId) ?? {
+    initiative_id: initiativeId,
+    purpose: "",
+    value_streams_5y: [],
+    impact_indicators: [],
+    challenges: [],
+    interdependencies: [],
+    deliverables: [],
+    adoption_indicators: [],
+    budget_opex: [],
+    budget_capex: [],
+  };
 
   const header_roles: InitiativeHeaderRole[] = [];
   for (const key of HEADER_ROLE_ORDER) {
@@ -355,6 +367,16 @@ export function getInitiativeDetail(
     resolved_interdependencies,
     is_stage_4_unlocked: stage4Unlocked,
     is_vp_or_at: showVpAt,
+    is_area_transformacion: isAreaTransformacion(user),
+    has_form_data: (() => {
+      const formIds = new Set(
+        store.forms
+          .filter((f) => f.initiative_id === initiativeId)
+          .map((f) => f.id),
+      );
+      return store.form_responses.some((r) => formIds.has(r.form_id));
+    })(),
+    has_any_form: store.forms.some((f) => f.initiative_id === initiativeId),
     vp_at_extras: showVpAt
       ? buildVpAtExtras(initiative, store, user)
       : null,

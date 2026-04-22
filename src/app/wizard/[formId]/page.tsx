@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { use, useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
@@ -25,6 +26,7 @@ import type { FormChangeLog, FormFieldValue, FormType, User } from "@/types";
 import { SectionHistory } from "./components/SectionHistory";
 import { SectionRenderer } from "./components/SectionRenderer";
 import { WizardBottomBar } from "./WizardBottomBar";
+import { FormCommentsPanel } from "@/components/forms/FormCommentsPanel";
 import { WizardStepper } from "./WizardStepper";
 import { useWizardAutoSave } from "./useWizardAutoSave";
 
@@ -98,6 +100,7 @@ export default function WizardPage({
     Record<string, FormChangeLog[]>
   >({});
   const [submitting, setSubmitting] = useState(false);
+  const [canEdit, setCanEdit] = useState(true);
 
   const autosave = useWizardAutoSave(formId);
 
@@ -121,6 +124,7 @@ export default function WizardPage({
     setInitiativeId(res.data.form.initiative_id);
     setFormType(ft);
     setFormStatus(res.data.form.status);
+    setCanEdit(res.data.can_edit);
 
     const ownResponses = res.data.responses;
 
@@ -291,6 +295,7 @@ export default function WizardPage({
   }
 
   const isReadOnly =
+    !canEdit ||
     formStatus === "approved" ||
     formStatus === "final" ||
     formStatus === "closed" ||
@@ -306,7 +311,7 @@ export default function WizardPage({
   return (
     <div className="flex min-h-screen flex-col bg-pae-bg">
       <header className="flex h-14 shrink-0 items-center gap-4 border-b border-pae-border bg-pae-surface px-6">
-        <div className="flex items-center gap-3">
+        <Link href="/dashboard" className="flex items-center gap-3">
           <Image
             src="/logo-pae.svg"
             alt="Pan American Energy"
@@ -318,13 +323,15 @@ export default function WizardPage({
           <span className="hidden text-[14px] font-medium text-pae-text-secondary sm:inline">
             Gestión de Portfolio
           </span>
-        </div>
+        </Link>
         <span className="ml-2 text-[11px] text-pae-text-tertiary">
           Wizard · {FORM_LABEL[formType]}
         </span>
         {isReadOnly && (
           <span className="ml-auto rounded-full bg-pae-amber/10 px-2.5 py-0.5 text-[10px] font-semibold text-pae-amber">
-            Read-only — formulario {formStatus}
+            {!canEdit
+              ? "Solo lectura — podés comentar al pie"
+              : `Read-only — formulario ${formStatus}`}
           </span>
         )}
       </header>
@@ -434,6 +441,17 @@ export default function WizardPage({
               >
                 Siguiente sección →
               </button>
+            </div>
+
+            <div className="mt-6">
+              <FormCommentsPanel
+                formId={formId}
+                canComment={
+                  formStatus === "draft" ||
+                  formStatus === "submitted" ||
+                  formStatus === "in_review"
+                }
+              />
             </div>
 
             <div className="h-16" aria-hidden />

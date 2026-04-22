@@ -234,6 +234,99 @@ export function applyStatusChangeInStore(
   });
 }
 
+export interface DeleteInitiativeInput {
+  initiative_id: Id;
+  /** Nombre exacto de la iniciativa, para confirmar que el usuario sabe qué está borrando. */
+  confirmation_name: string;
+  /** Razón del borrado (ej: "creada por error", "duplicada"). Mínimo 5 chars. */
+  reason: string;
+}
+
+export function deleteInitiative(
+  input: DeleteInitiativeInput,
+): Result<{ id: Id; name: string }> {
+  const store = readStore();
+  const user = getCurrentUserFromStore(store);
+  if (!user) return err("AUTH_REQUIRED", "No hay un usuario autenticado");
+  if (!isAreaTransformacion(user)) {
+    return err(
+      "FORBIDDEN",
+      "Solo el Área de Transformación puede borrar iniciativas",
+    );
+  }
+
+  const initiative = store.initiatives.find((i) => i.id === input.initiative_id);
+  if (!initiative) return err("NOT_FOUND", "Iniciativa no encontrada");
+
+  const confirmation = (input.confirmation_name ?? "").trim();
+  if (confirmation !== initiative.name) {
+    return err(
+      "VALIDATION_ERROR",
+      "El nombre de confirmación no coincide con el nombre de la iniciativa",
+    );
+  }
+  const reason = (input.reason ?? "").trim();
+  if (reason.length < 5) {
+    return err(
+      "VALIDATION_ERROR",
+      "Ingresá una razón (mínimo 5 caracteres) para registrar el borrado",
+    );
+  }
+
+  const iniId = initiative.id;
+  const deletedSnapshot = { name: initiative.name, reason };
+
+  const formIds = new Set(
+    store.forms.filter((f) => f.initiative_id === iniId).map((f) => f.id),
+  );
+  const gatewayIds = new Set(
+    store.gateways.filter((g) => g.initiative_id === iniId).map((g) => g.id),
+  );
+
+  store.initiatives = store.initiatives.filter((i) => i.id !== iniId);
+  store.initiative_members = store.initiative_members.filter(
+    (m) => m.initiative_id !== iniId,
+  );
+  store.forms = store.forms.filter((f) => f.initiative_id !== iniId);
+  store.form_responses = store.form_responses.filter(
+    (r) => !formIds.has(r.form_id),
+  );
+  store.form_change_log = store.form_change_log.filter(
+    (l) => !formIds.has(l.form_id),
+  );
+  store.form_snapshots = store.form_snapshots.filter(
+    (s) => !formIds.has(s.form_id),
+  );
+  store.gateways = store.gateways.filter((g) => g.initiative_id !== iniId);
+  store.gateway_votes = store.gateway_votes.filter(
+    (v) => !gatewayIds.has(v.gateway_id),
+  );
+  store.notifications = store.notifications.filter(
+    (n) => n.initiative_id !== iniId,
+  );
+  store.documents = store.documents.filter((d) => d.initiative_id !== iniId);
+  store.initiative_folders = store.initiative_folders.filter(
+    (f) => f.initiative_id !== iniId,
+  );
+  store.file_uploads = store.file_uploads.filter(
+    (f) => f.initiative_id !== iniId,
+  );
+  store.portfolio_events = store.portfolio_events.filter(
+    (e) => e.initiative_id !== iniId,
+  );
+
+  appendAudit(store, {
+    user_id: user.id,
+    action: "initiative_deleted",
+    entity_type: "initiative",
+    entity_id: iniId,
+    old_data: deletedSnapshot,
+    new_data: null,
+  });
+  writeStore(store);
+  return ok({ id: iniId, name: deletedSnapshot.name });
+}
+
 export function getInitiative(id: Id): Result<Initiative> {
   const store = readStore();
   const user = getCurrentUserFromStore(store);
@@ -434,8 +527,11 @@ const OWNER_ROLES: ReadonlySet<string> = new Set([
   "ld",
   "bo",
   "sponsor",
+  // El Scrum Master toma las iniciativas donde participa como propias: edita
+  // formularios igual que el PO y el PO puede sumarlo a su equipo.
+  "sm",
 ]);
-const IMPACTING_ROLES: ReadonlySet<string> = new Set(["sm", "equipo"]);
+const IMPACTING_ROLES: ReadonlySet<string> = new Set(["equipo"]);
 
 const ROLE_ABBR: Record<IniciativaRoleKey, string> = {
   po: "PO",
