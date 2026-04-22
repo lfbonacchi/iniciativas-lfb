@@ -19,6 +19,8 @@ import {
   generateFormularioPPTX,
 } from "@/lib/generators/pptx-formulario";
 import { buildPptxInputFromFormId } from "@/lib/generators/pptx-formulario-build";
+import { buildNotaPrensaBlob } from "@/lib/generators/nota-prensa";
+import { buildNotaPrensaInputFromFormId } from "@/lib/generators/nota-prensa-build";
 
 import { useInitiativeDetail } from "../DetailContext";
 import { DocumentPreviewModal } from "./DocumentPreviewModal";
@@ -173,6 +175,31 @@ function FileRow({
       return;
     }
 
+    // Caso especial: Nota de prensa (DOCX Working Backwards).
+    if (
+      (file.source.kind === "form_current" ||
+        file.source.kind === "form_snapshot") &&
+      file.source.format === "press_docx"
+    ) {
+      setDownloading(true);
+      try {
+        const input = buildNotaPrensaInputFromFormId(file.source.form_id);
+        if (!input) {
+          setError("No se pudo leer el formulario para generar la nota de prensa.");
+          return;
+        }
+        const blob = await buildNotaPrensaBlob(input);
+        downloadBlob(blob, file.name);
+      } catch (e) {
+        setError(
+          e instanceof Error ? e.message : "Error al generar la nota de prensa",
+        );
+      } finally {
+        setDownloading(false);
+      }
+      return;
+    }
+
     const res = resolveFormDoc(file.source, initiativeName, file.author_name);
     if (!res.success) {
       setError(res.error.message);
@@ -183,14 +210,19 @@ function FileRow({
       // Derivamos el formato de descarga de la extensión del filename para
       // los kinds que soportan múltiples formatos (gateway_feedback / minuta).
       const ext = file.name.split(".").pop()?.toLowerCase();
-      const format: "xlsx" | "pdf" | "docx" =
+      const srcFormat =
         file.source.kind === "form_current" || file.source.kind === "form_snapshot"
-          ? (file.source.format === "pptx" ? "xlsx" : file.source.format)
-          : ext === "docx"
-            ? "docx"
-            : ext === "pdf"
-              ? "pdf"
-              : "xlsx";
+          ? file.source.format
+          : null;
+      const format: "xlsx" | "pdf" | "docx" = srcFormat
+        ? srcFormat === "xlsx" || srcFormat === "pdf"
+          ? srcFormat
+          : "xlsx"
+        : ext === "docx"
+          ? "docx"
+          : ext === "pdf"
+            ? "pdf"
+            : "xlsx";
       if (format === "pdf") {
         await downloadPdf(res.data, file.name);
       } else if (format === "docx") {

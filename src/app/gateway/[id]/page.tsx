@@ -260,11 +260,28 @@ export default function GatewayPage({
         setPreviewFile(fileNode);
         return;
       }
-      alert(
-        kind === "pptx"
-          ? "Generación de PPTX pendiente."
-          : "Generación de nota de prensa pendiente.",
-      );
+      // PPTX y Nota de prensa: armamos un DocFileNode "current" y delegamos al
+      // DocumentPreviewModal que ya sabe generarlos con los datos actuales del form.
+      if (kind === "pptx" || kind === "press") {
+        const formId = detail.form.id;
+        const format: "pptx" | "press_docx" = kind === "pptx" ? "pptx" : "press_docx";
+        const ext = kind === "pptx" ? "pptx" : "docx";
+        const suffix = kind === "pptx" ? "" : "_NotaDePrensa";
+        const nameBase = `${detail.form.form_type}_formulario${suffix}`;
+        const fileNode: DocFileNode = {
+          kind: "file",
+          id: `gw-${kind}-${formId}`,
+          name: `${nameBase}.${ext}`,
+          icon: kind === "pptx" ? "📊" : "📝",
+          origin: "auto",
+          created_at: detail.form.updated_at,
+          author_name: detail.promotor_name,
+          can_regenerate: true,
+          source: { kind: "form_current", form_id: formId, format },
+        };
+        setPreviewFile(fileNode);
+        return;
+      }
     },
     [detail],
   );

@@ -191,7 +191,15 @@ function extractEquipo(responses: Responses): {
   return { promotor, sponsor };
 }
 
-function derivarBajada(dolores: Row[], proposito: string): string {
+// Working Backwards (estilo AWS): toda la narrativa se escribe como si la
+// iniciativa ya estuviera en producción y hubiera generado valor. Tiempos
+// verbales en pretérito ("lanzó", "logró", "redujo"), no en futuro.
+
+function derivarBajada(
+  initiativeName: string,
+  dolores: Row[],
+  proposito: string,
+): string {
   if (dolores.length > 0) {
     const sorted = [...dolores].sort(
       (a, b) =>
@@ -199,29 +207,34 @@ function derivarBajada(dolores: Row[], proposito: string): string {
         prioridadOrder(asString(b.prioridad)),
     );
     const top = sorted[0]!;
-    const dolor = asString(top.dolor);
     const inicio = asString(top.dato_inicio);
     const target = asString(top.target);
     const metrica = asString(top.metrica);
-    if (dolor && (inicio || target)) {
-      return `${dolor}: mejora de ${inicio || "—"} a ${target || "—"}${metrica ? ` en ${metrica}` : ""}.`;
+    if (inicio && target) {
+      return `${initiativeName} llevó ${metrica || "su indicador clave"} de ${inicio} a ${target}, transformando la forma en que PAE resuelve este desafío.`;
     }
-    if (dolor) return dolor;
+    const dolor = asString(top.dolor);
+    if (dolor) {
+      return `${initiativeName} resolvió un desafío que antes impactaba la operación: ${dolor.toLowerCase()}.`;
+    }
   }
   const first = proposito.split(/[.!?]/)[0]?.trim();
-  return first ? `${first}.` : "";
+  if (first) return `${first}. Hoy, ese objetivo es una realidad.`;
+  return `${initiativeName} entró en producción y empezó a generar valor para la operación.`;
 }
 
 function derivarProblema(dolores: Row[]): string {
   const textos = dolores.map((d) => asString(d.dolor)).filter(Boolean);
-  if (textos.length === 0) return "";
+  if (textos.length === 0) {
+    return "Antes de esta iniciativa, la operación convivía con procesos manuales y decisiones basadas en información parcial que limitaban el desempeño del equipo.";
+  }
   if (textos.length === 1) {
-    return `El principal desafío identificado es: ${textos[0]!.toLowerCase()}.`;
+    return `Antes de esta iniciativa, el equipo convivía con un desafío concreto: ${textos[0]!.toLowerCase()}. Ese problema impactaba la eficiencia operativa y limitaba el valor que podíamos entregar.`;
   }
   const ultimo = textos.pop()!;
-  return `Los principales desafíos identificados son: ${textos
+  return `Durante años, el equipo enfrentó varios desafíos que limitaban el rendimiento de la operación: ${textos
     .map((t) => t.toLowerCase())
-    .join(", ")} y ${ultimo.toLowerCase()}. Estos generan un impacto negativo medible en las operaciones que esta iniciativa busca resolver.`;
+    .join(", ")} y ${ultimo.toLowerCase()}. Cada uno, por separado, generaba costos e ineficiencias; combinados, frenaban la capacidad de escalar.`;
 }
 
 function derivarImpacto(dolores: Row[]): string[] {
@@ -231,10 +244,13 @@ function derivarImpacto(dolores: Row[]): string[] {
       const inicio = asString(d.dato_inicio);
       const target = asString(d.target);
       const metrica = asString(d.metrica);
-      if (!dolor) return "";
-      const rango = inicio && target ? `: de ${inicio} a ${target}` : "";
-      const m = metrica ? ` (${metrica})` : "";
-      return `${dolor}${rango}${m}`;
+      if (!dolor && !metrica) return "";
+      const label = dolor || metrica;
+      if (inicio && target) {
+        return `${label}: pasó de ${inicio} a ${target}${metrica && dolor ? ` (${metrica})` : ""}.`;
+      }
+      if (target) return `${label}: alcanzó ${target}${metrica && dolor ? ` (${metrica})` : ""}.`;
+      return label;
     })
     .filter(Boolean);
 }
@@ -243,16 +259,40 @@ function derivarCita(formType: FormType, initiativeName: string): string {
   const nombre = initiativeName || "esta iniciativa";
   switch (formType) {
     case "F1":
-      return `Esta iniciativa representa un paso importante en nuestra estrategia de transformación digital. ${nombre} nos permite abordar un desafío operativo clave con un enfoque basado en datos y orientado al valor.`;
+      return `Cuando propusimos ${nombre}, teníamos claro el problema pero no todavía la solución. Hoy vemos que la apuesta valió la pena: pasamos de un modelo reactivo a uno proactivo, con decisiones basadas en datos y con el equipo realmente empoderado.`;
     case "F2":
-      return `Tras el análisis de dimensionamiento, estamos convencidos de que ${nombre} es técnicamente viable y genera un retorno significativo. El siguiente paso es validarlo con un MVP controlado.`;
+      return `El dimensionamiento nos dio la confianza para avanzar y los resultados confirmaron la tesis. ${nombre} no solo fue técnicamente viable, sino que entregó valor antes de lo que esperábamos.`;
     case "F3":
-      return `Los resultados del MVP de ${nombre} nos dan la confianza para avanzar con el despliegue completo. Los aprendizajes obtenidos nos permiten escalar con menor riesgo y mayor impacto.`;
+      return `El MVP de ${nombre} superó lo que habíamos planificado. Los aprendizajes que dejó nos permitieron escalar con menos riesgo y más impacto, y marcaron una nueva forma de trabajar en la compañía.`;
     case "F4":
-      return `Para este año, ${nombre} es una prioridad estratégica. Los entregables planificados nos acercan a los objetivos de eficiencia y transformación que nos hemos propuesto.`;
+      return `Este año, ${nombre} fue una prioridad estratégica y los entregables se cumplieron. Cerramos el ciclo habiendo movido la aguja en los indicadores que nos habíamos propuesto.`;
     case "F5":
-      return `La planificación anual de ${nombre} define entregables concretos y medibles. El seguimiento periódico nos permite ajustar el rumbo y asegurar el valor entregado.`;
+      return `La planificación se transformó en resultados concretos. ${nombre} entregó lo que comprometió y dejó la base para el próximo ciclo con aprendizajes claros y métricas medibles.`;
   }
+}
+
+function lead(
+  initiativeName: string,
+  dimension: string,
+  fechaLabel: string,
+): string {
+  const where = dimension ? ` en el área de ${dimension}` : "";
+  return `Buenos Aires, ${fechaLabel} — Pan American Energy anunció hoy el lanzamiento de ${initiativeName}${where}. La iniciativa, desarrollada por el equipo de Transformación Digital junto a los referentes operativos, ya está generando resultados medibles y marca un nuevo estándar en cómo la compañía resuelve este tipo de desafíos.`;
+}
+
+function solucionLanzada(proposito: string, estrategia: string): string {
+  const parts: string[] = [];
+  if (proposito) {
+    parts.push(
+      `La solución, que hoy está en producción, fue concebida así: ${proposito}`,
+    );
+  }
+  if (estrategia) {
+    parts.push(
+      `En la práctica, ${estrategia.charAt(0).toLowerCase()}${estrategia.slice(1)}`,
+    );
+  }
+  return parts.join(" ");
 }
 
 export function buildNotaPrensaInputFromFormId(formId: Id): NotaPrensaInput | null {
@@ -297,9 +337,14 @@ export function buildNotaPrensaInputFromFormId(formId: Id): NotaPrensaInput | nu
     version_label: versionLabel(form),
 
     proposito,
-    bajada: derivarBajada(dolores, proposito),
+    lead: lead(
+      iniRes.data.name,
+      dimension,
+      fechaLabel.charAt(0).toUpperCase() + fechaLabel.slice(1),
+    ),
+    bajada: derivarBajada(iniRes.data.name, dolores, proposito),
     problema: derivarProblema(dolores),
-    solucion_descripcion: estrategia,
+    solucion_descripcion: solucionLanzada(proposito, estrategia),
     impacto_esperado: derivarImpacto(dolores),
     alcance: [alcance, escalabilidad].filter(Boolean).join(" "),
     corrientes_impactadas: extractCorrientes(formType, responses),

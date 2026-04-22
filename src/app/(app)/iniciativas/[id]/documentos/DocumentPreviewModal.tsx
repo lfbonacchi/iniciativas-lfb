@@ -10,6 +10,8 @@ import { downloadPdf } from "@/lib/documents/pdf_form";
 import { downloadDocx } from "@/lib/documents/docx_form";
 import { generateFormularioPPTX } from "@/lib/generators/pptx-formulario";
 import { buildPptxInputFromFormId } from "@/lib/generators/pptx-formulario-build";
+import { buildNotaPrensaBlob } from "@/lib/generators/nota-prensa";
+import { buildNotaPrensaInputFromFormId } from "@/lib/generators/nota-prensa-build";
 import { getCurrentUser } from "@/lib/storage/auth";
 import {
   getGatewayMinuta,
@@ -26,7 +28,7 @@ interface Props {
   onClose: () => void;
 }
 
-type Format = "xlsx" | "pdf" | "docx" | "pptx";
+type Format = "xlsx" | "pdf" | "docx" | "pptx" | "press_docx";
 
 type EditorKind = "feedback" | "minuta" | null;
 
@@ -47,9 +49,14 @@ export function DocumentPreviewModal({ file, initiativeName, onClose }: Props) {
       file.source.kind === "form_snapshot") &&
     file.source.format === "pptx";
 
+  const isPressDocx =
+    (file.source.kind === "form_current" ||
+      file.source.kind === "form_snapshot") &&
+    file.source.format === "press_docx";
+
   useEffect(() => {
-    // PPTX no tiene preview HTML: se ofrece solo descarga.
-    if (isPptx) {
+    // PPTX / Nota de prensa no tienen preview HTML: solo descarga.
+    if (isPptx || isPressDocx) {
       setHtml(null);
       setError(null);
       return;
@@ -62,7 +69,7 @@ export function DocumentPreviewModal({ file, initiativeName, onClose }: Props) {
     }
     setHtml(renderDocAsHtml(res.data));
     setError(null);
-  }, [file, initiativeName, previewTick, isPptx]);
+  }, [file, initiativeName, previewTick, isPptx, isPressDocx]);
 
   const availableFormats = useMemo<Format[]>(() => {
     const src = file.source;
@@ -116,9 +123,39 @@ export function DocumentPreviewModal({ file, initiativeName, onClose }: Props) {
           return;
         }
         const blob = await generateFormularioPPTX(input);
-        downloadBlob(blob, filenameFor(fmt));
+        downloadBlob(blob, filenameFor("pptx"));
       } catch (e) {
         setError(e instanceof Error ? e.message : "Error al generar el PPTX");
+      } finally {
+        setDownloading(null);
+      }
+      return;
+    }
+
+    // Nota de prensa (Working Backwards DOCX).
+    if (fmt === "press_docx") {
+      if (
+        file.source.kind !== "form_current" &&
+        file.source.kind !== "form_snapshot"
+      ) {
+        setError("La nota de prensa solo está disponible para formularios.");
+        return;
+      }
+      setDownloading(fmt);
+      try {
+        const input = buildNotaPrensaInputFromFormId(file.source.form_id);
+        if (!input) {
+          setError(
+            "No se pudo leer el formulario para generar la nota de prensa.",
+          );
+          return;
+        }
+        const blob = await buildNotaPrensaBlob(input);
+        downloadBlob(blob, file.name);
+      } catch (e) {
+        setError(
+          e instanceof Error ? e.message : "Error al generar la nota de prensa",
+        );
       } finally {
         setDownloading(null);
       }
@@ -182,17 +219,20 @@ export function DocumentPreviewModal({ file, initiativeName, onClose }: Props) {
                 ✎ Editar
               </button>
             )}
-            {availableFormats.map((fmt) => (
-              <button
-                key={fmt}
-                type="button"
-                onClick={() => handleDownload(fmt)}
-                disabled={downloading !== null}
-                className="rounded-lg bg-pae-blue px-3 py-2 text-[12px] font-semibold text-white transition hover:bg-pae-blue/90 disabled:opacity-50"
-              >
-                {downloading === fmt ? "Generando…" : `↓ ${fmt.toUpperCase()}`}
-              </button>
-            ))}
+            {availableFormats.map((fmt) => {
+              const label = fmt === "press_docx" ? "DOCX" : fmt.toUpperCase();
+              return (
+                <button
+                  key={fmt}
+                  type="button"
+                  onClick={() => handleDownload(fmt)}
+                  disabled={downloading !== null}
+                  className="rounded-lg bg-pae-blue px-3 py-2 text-[12px] font-semibold text-white transition hover:bg-pae-blue/90 disabled:opacity-50"
+                >
+                  {downloading === fmt ? "Generando…" : `↓ ${label}`}
+                </button>
+              );
+            })}
             <button
               type="button"
               onClick={onClose}
@@ -220,7 +260,20 @@ export function DocumentPreviewModal({ file, initiativeName, onClose }: Props) {
               </p>
             </div>
           )}
-          {!error && !html && !isPptx && (
+          {!error && !html && isPressDocx && (
+            <div className="rounded-lg border border-pae-border bg-pae-surface px-6 py-10 text-center">
+              <p className="text-[28px]">📝</p>
+              <p className="mt-2 text-[14px] font-semibold text-pae-text">
+                Nota de prensa — Working Backwards
+              </p>
+              <p className="mx-auto mt-2 max-w-md text-[12px] text-pae-text-secondary">
+                Documento editable en Word / Google Docs. Descargalo con ↓ DOCX y
+                compartilo con el PO o Scrum Master para ajustar el texto antes
+                del gateway. Al regenerarse se sobreescribe.
+              </p>
+            </div>
+          )}
+          {!error && !html && !isPptx && !isPressDocx && (
             <p className="text-[12px] text-pae-text-secondary">
               Cargando vista previa…
             </p>

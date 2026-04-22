@@ -39,6 +39,7 @@ export interface NotaPrensaInput {
   version_label: string;
 
   proposito: string;
+  lead: string;
   bajada: string;
   problema: string;
   solucion_descripcion: string;
@@ -204,9 +205,26 @@ export async function buildNotaPrensaBlob(input: NotaPrensaInput): Promise<Blob>
     );
   }
 
-  // ─── El desafío ─────────────────────────────────────────────
+  // ─── Lead (dateline + anuncio) ──────────────────────────────
+  if (input.lead) {
+    children.push(
+      new Paragraph({
+        spacing: { after: 200, line: 360 },
+        children: [
+          new TextRun({
+            text: input.lead,
+            font: PAE.FONT,
+            size: 22,
+            color: PAE.TEXT_PRIMARY,
+          }),
+        ],
+      }),
+    );
+  }
+
+  // ─── El desafío que resolvimos ──────────────────────────────
   if (input.problema) {
-    children.push(makeSectionHeader("El desafío", PAE.RED));
+    children.push(makeSectionHeader("El desafío que resolvimos", PAE.RED));
     children.push(
       new Paragraph({
         spacing: { after: 200, line: 360 },
@@ -222,44 +240,27 @@ export async function buildNotaPrensaBlob(input: NotaPrensaInput): Promise<Blob>
     );
   }
 
-  // ─── La solución ────────────────────────────────────────────
-  if (input.proposito || input.solucion_descripcion) {
-    children.push(makeSectionHeader("La solución", PAE.BLUE));
-    if (input.proposito) {
-      children.push(
-        new Paragraph({
-          spacing: { after: 120, line: 360 },
-          children: [
-            new TextRun({
-              text: input.proposito,
-              font: PAE.FONT,
-              size: 22,
-              color: PAE.TEXT_PRIMARY,
-            }),
-          ],
-        }),
-      );
-    }
-    if (input.solucion_descripcion) {
-      children.push(
-        new Paragraph({
-          spacing: { after: 200, line: 360 },
-          children: [
-            new TextRun({
-              text: input.solucion_descripcion,
-              font: PAE.FONT,
-              size: 22,
-              color: PAE.TEXT_PRIMARY,
-            }),
-          ],
-        }),
-      );
-    }
+  // ─── La solución en producción ──────────────────────────────
+  if (input.solucion_descripcion) {
+    children.push(makeSectionHeader("La solución en producción", PAE.BLUE));
+    children.push(
+      new Paragraph({
+        spacing: { after: 200, line: 360 },
+        children: [
+          new TextRun({
+            text: input.solucion_descripcion,
+            font: PAE.FONT,
+            size: 22,
+            color: PAE.TEXT_PRIMARY,
+          }),
+        ],
+      }),
+    );
   }
 
-  // ─── Impacto esperado ───────────────────────────────────────
+  // ─── Impacto alcanzado ──────────────────────────────────────
   if (input.impacto_esperado.length > 0) {
-    children.push(makeSectionHeader("Impacto esperado", PAE.GREEN));
+    children.push(makeSectionHeader("Impacto alcanzado", PAE.GREEN));
     for (const item of input.impacto_esperado) {
       children.push(
         new Paragraph({
@@ -279,9 +280,9 @@ export async function buildNotaPrensaBlob(input: NotaPrensaInput): Promise<Blob>
     children.push(emptyP(120));
   }
 
-  // ─── Alcance ────────────────────────────────────────────────
+  // ─── Alcance y próximos pasos ───────────────────────────────
   if (input.alcance) {
-    children.push(makeSectionHeader("Alcance", PAE.BLUE));
+    children.push(makeSectionHeader("Alcance y próximos pasos", PAE.BLUE));
     children.push(
       new Paragraph({
         spacing: { after: 200, line: 360 },
@@ -448,9 +449,9 @@ export async function buildNotaPrensaBlob(input: NotaPrensaInput): Promise<Blob>
     );
   }
 
-  // ─── Próximos hitos ─────────────────────────────────────────
+  // ─── Hitos del recorrido ────────────────────────────────────
   if (input.proximos_hitos.length > 0) {
-    children.push(makeSectionHeader("Próximos hitos", PAE.BLUE));
+    children.push(makeSectionHeader("Hitos del recorrido", PAE.BLUE));
     for (const h of input.proximos_hitos) {
       children.push(
         new Paragraph({
@@ -534,7 +535,7 @@ export async function buildNotaPrensaBlob(input: NotaPrensaInput): Promise<Blob>
       children: [
         new TextRun({
           text:
-            "Este documento es un ejercicio de Working Backwards: describe el resultado esperado de la iniciativa como si ya se hubiera implementado. No constituye un compromiso de ejecución ni un comunicado oficial. Su propósito es alinear la visión del equipo y facilitar la toma de decisiones en el proceso de aprobación.",
+            "Working Backwards (Amazon): esta nota está escrita como si la iniciativa ya hubiera sido lanzada y estuviera generando los resultados descritos. Es un ejercicio de visión, no un comunicado oficial ni un compromiso de ejecución. Sirve para alinear al equipo sobre qué éxito esperamos antes de construir.",
           font: PAE.FONT,
           size: 16,
           color: PAE.TEXT_SECONDARY,
