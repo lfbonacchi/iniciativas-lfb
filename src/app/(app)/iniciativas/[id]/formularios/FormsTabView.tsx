@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
 import type { FormType } from "@/types";
@@ -206,6 +207,7 @@ function ExpandedFolder({
   selectedYear: number | null;
   onYearChange: (year: number) => void;
 }) {
+  const router = useRouter();
   const isLocked = folder.state === "locked";
 
   if (isLocked) {
@@ -225,9 +227,17 @@ function ExpandedFolder({
   if (!instance) return null;
 
   function handleEditar() {
-    alert(
-      `Abriendo wizard para ${instance?.full_title ?? folder.short_title} (pendiente integración).`,
-    );
+    if (folder.form_type !== "F1") {
+      alert(
+        `El wizard de ${folder.form_type} se habilitará próximamente. Por ahora solo está disponible F1.`,
+      );
+      return;
+    }
+    if (!instance?.form_id) {
+      alert("Este formulario todavía no fue creado.");
+      return;
+    }
+    router.push(`/wizard/${instance.form_id}`);
   }
 
   function handleYaTengo() {

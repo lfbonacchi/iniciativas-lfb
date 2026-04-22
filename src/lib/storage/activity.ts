@@ -55,6 +55,30 @@ function displayNameFor(
   };
 }
 
+// Devuelve entradas crudas del form_change_log para una sección concreta.
+// A diferencia de getSectionChangeHistory, NO requiere que la sección esté
+// declarada en form_definitions (útil para el wizard F1, que mantiene su
+// estructura en src/data/form_definitions/f1.ts).
+export function getRawSectionChangeLog(
+  formId: Id,
+  sectionKey: string,
+): Result<FormChangeLog[]> {
+  const store = readStore();
+  const user = getCurrentUserFromStore(store);
+  if (!user) return err("AUTH_REQUIRED", "No hay un usuario autenticado");
+
+  const form = store.forms.find((f) => f.id === formId);
+  if (!form) return err("NOT_FOUND", "Formulario no encontrado");
+  if (!userCanAccessInitiative(user, form.initiative_id, store)) {
+    return err("FORBIDDEN", "No tenés acceso a esta iniciativa");
+  }
+
+  const entries = store.form_change_log.filter(
+    (c) => c.form_id === formId && c.field_key === sectionKey,
+  );
+  return ok(entries);
+}
+
 // Últimos N cambios de una sección concreta de un formulario.
 export function getSectionChangeHistory(
   formId: Id,

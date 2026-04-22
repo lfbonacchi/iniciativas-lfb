@@ -86,9 +86,7 @@ export default function NuevaPropuestaPage() {
       setError(result.error.message);
       return;
     }
-    router.push(
-      `/iniciativas/${result.data.initiative.id}/formularios/F1`,
-    );
+    router.push(`/wizard/${result.data.form.id}`);
   }
 
   if (loading) {
