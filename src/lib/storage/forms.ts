@@ -207,14 +207,20 @@ export function getForm(formId: Id): Result<FormDetail> {
     form.status === "draft" ||
     form.status === "submitted" ||
     form.status === "in_review";
+  const isDraft = form.status === "draft";
   return ok({
     form,
     definition,
     responses,
     completeness: computeCompleteness(definition, responses),
-    can_edit: userCanEditInitiativeForms(user, form.initiative_id, store),
+    // Edición solo mientras esté en draft. Una vez enviado a aprobación queda
+    // bloqueado en todo espacio hasta que el gateway habilite una nueva versión.
+    can_edit:
+      isDraft && userCanEditInitiativeForms(user, form.initiative_id, store),
+    // Comentarios sobre el formulario solo en draft. Post-envío el canal pasa
+    // al gateway (feedback por sección + DOCX de feedback).
     can_comment:
-      formOpen &&
+      isDraft &&
       userCanCommentInitiativeForms(user, form.initiative_id, store),
   });
 }
@@ -242,8 +248,11 @@ export function saveFormResponses(
       "Solo el PO, Promotor, LD, Scrum Master o el equipo con edición pueden modificar el formulario. VP, BO, Sponsor y AT pueden dejar comentarios.",
     );
   }
-  if (form.status === "approved" || form.status === "final" || form.status === "closed") {
-    return err("CONFLICT", "El formulario ya fue cerrado y no se puede editar");
+  if (form.status !== "draft") {
+    return err(
+      "CONFLICT",
+      "El formulario ya fue enviado a aprobación y quedó bloqueado. Si el gateway pide cambios, se habilitará una nueva versión.",
+    );
   }
 
   const now = nowIso();

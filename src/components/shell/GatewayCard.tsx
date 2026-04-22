@@ -30,8 +30,9 @@ const STAGE_CHIP: Record<InitiativeStage, { bg: string; text: string }> = {
 const STATUS_LABEL: Record<GatewayStatus, string> = {
   pending: "Esperando votos",
   approved: "Aprobado",
-  feedback: "Con feedback",
-  pause: "Pausado",
+  approved_with_changes: "Aprobado c/ cambios",
+  feedback: "Necesita cambios",
+  pause: "On hold",
   reject: "Rechazado",
   area_change: "Cambio de área",
 };
@@ -39,6 +40,7 @@ const STATUS_LABEL: Record<GatewayStatus, string> = {
 const STATUS_CHIP: Record<GatewayStatus, { bg: string; text: string }> = {
   pending: { bg: "bg-pae-amber/10", text: "text-pae-amber" },
   approved: { bg: "bg-pae-green/10", text: "text-pae-green" },
+  approved_with_changes: { bg: "bg-pae-green/10", text: "text-pae-green" },
   feedback: { bg: "bg-pae-blue/10", text: "text-pae-blue" },
   pause: { bg: "bg-pae-amber/10", text: "text-pae-amber" },
   reject: { bg: "bg-pae-red/10", text: "text-pae-red" },

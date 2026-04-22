@@ -7,6 +7,7 @@ import { resolveFormDoc } from "@/lib/documents/resolve";
 import { renderDocAsHtml } from "@/lib/documents/html_form";
 import { buildXlsxBlob, downloadBlob } from "@/lib/documents/xlsx_form";
 import { downloadPdf } from "@/lib/documents/pdf_form";
+import { downloadDocx } from "@/lib/documents/docx_form";
 
 interface Props {
   file: DocFileNode;
@@ -14,10 +15,16 @@ interface Props {
   onClose: () => void;
 }
 
+// Determina los formatos disponibles para descarga según el source. Para
+// archivos de feedback (gateway_feedback) siempre habilitamos los tres (docx,
+// pdf, xlsx) porque la misma estructura intermedia alimenta los tres
+// generadores.
+type Format = "xlsx" | "pdf" | "docx";
+
 export function DocumentPreviewModal({ file, initiativeName, onClose }: Props) {
   const [html, setHtml] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [downloading, setDownloading] = useState(false);
+  const [downloading, setDownloading] = useState<Format | null>(null);
 
   useEffect(() => {
     const res = resolveFormDoc(file.source, initiativeName, file.author_name);
@@ -28,32 +35,49 @@ export function DocumentPreviewModal({ file, initiativeName, onClose }: Props) {
     setHtml(renderDocAsHtml(res.data));
   }, [file, initiativeName]);
 
-  const format = useMemo<"xlsx" | "pdf" | null>(() => {
-    if (file.source.kind === "form_current" || file.source.kind === "form_snapshot") {
-      return file.source.format;
+  const availableFormats = useMemo<Format[]>(() => {
+    const src = file.source;
+    if (src.kind === "gateway_feedback" || src.kind === "gateway_minuta") {
+      // Feedback y minuta: los tres formatos tienen sentido.
+      return ["docx", "pdf", "xlsx"];
     }
-    return null;
+    if (src.kind === "form_current" || src.kind === "form_snapshot") {
+      return [src.format];
+    }
+    return [];
   }, [file]);
 
-  async function handleDownload() {
+  const filenameFor = useMemo(
+    () =>
+      (fmt: Format): string => {
+        // Reemplaza la extensión del nombre del archivo por la seleccionada.
+        return file.name.replace(/\.[^.]+$/, `.${fmt}`);
+      },
+    [file.name],
+  );
+
+  async function handleDownload(fmt: Format) {
     if (downloading) return;
     const res = resolveFormDoc(file.source, initiativeName, file.author_name);
     if (!res.success) {
       setError(res.error.message);
       return;
     }
-    setDownloading(true);
+    setDownloading(fmt);
     try {
-      if (format === "pdf") {
-        await downloadPdf(res.data, file.name);
-      } else {
+      const outName = filenameFor(fmt);
+      if (fmt === "pdf") {
+        await downloadPdf(res.data, outName);
+      } else if (fmt === "xlsx") {
         const blob = buildXlsxBlob(res.data);
-        downloadBlob(blob, file.name);
+        downloadBlob(blob, outName);
+      } else if (fmt === "docx") {
+        await downloadDocx(res.data, outName);
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Error al generar el archivo");
     } finally {
-      setDownloading(false);
+      setDownloading(null);
     }
   }
 
@@ -78,14 +102,17 @@ export function DocumentPreviewModal({ file, initiativeName, onClose }: Props) {
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={handleDownload}
-              disabled={downloading || !format}
-              className="rounded-lg bg-pae-blue px-3 py-2 text-[12px] font-semibold text-white transition hover:bg-pae-blue/90 disabled:opacity-50"
-            >
-              {downloading ? "Generando…" : `↓ Descargar ${format ?? ""}`}
-            </button>
+            {availableFormats.map((fmt) => (
+              <button
+                key={fmt}
+                type="button"
+                onClick={() => handleDownload(fmt)}
+                disabled={downloading !== null}
+                className="rounded-lg bg-pae-blue px-3 py-2 text-[12px] font-semibold text-white transition hover:bg-pae-blue/90 disabled:opacity-50"
+              >
+                {downloading === fmt ? "Generando…" : `↓ ${fmt.toUpperCase()}`}
+              </button>
+            ))}
             <button
               type="button"
               onClick={onClose}

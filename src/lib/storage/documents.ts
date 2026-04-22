@@ -128,7 +128,21 @@ export type DocFileSource =
       format: "xlsx" | "pdf";
     }
   | { kind: "manual"; document_id: Id } // upload de usuario (stub en Fase 2-4)
-  | { kind: "stub" };                    // minutas/notas de prensa pendientes
+  | {
+      // DOCX de feedback de gateway: agrega todos los comentarios publicados
+      // inline + bloque libre (feedback doc) del usuario.
+      kind: "gateway_feedback";
+      gateway_id: Id;
+      user_id: Id;
+      format: "xlsx" | "pdf";
+    }
+  | {
+      // Minuta de reunión del gateway (editable por PO/Scrum).
+      kind: "gateway_minuta";
+      gateway_id: Id;
+      format: "xlsx" | "pdf";
+    }
+  | { kind: "stub" };                    // notas de prensa pendientes
 
 export interface DocFileNode {
   kind: "file";
@@ -470,17 +484,25 @@ function buildStageFolder(
   );
   const additionalChildren: DocFileNode[] = [
     ...history,
-    ...manualDocs.map<DocFileNode>((d) => ({
-      kind: "file",
-      id: d.id,
-      name: d.file_path.split("/").pop() ?? "archivo",
-      icon: iconForPath(d.file_path),
-      origin: "manual",
-      created_at: d.created_at,
-      author_name: userName(store, d.generated_by),
-      can_regenerate: false,
-      source: { kind: "manual", document_id: d.id },
-    })),
+    // Docs generados dinámicamente: feedback inline (por aprobador) y
+    // feedback doc libre (por usuario) del gateway de esta etapa.
+    ...buildStageFeedbackNodes(store, initiativeId, stage, gatewayNumber),
+    ...manualDocs
+      // Excluimos los registros que ya generamos dinámicamente arriba para
+      // no duplicarlos (el publishSectionComments también los agrega a
+      // store.documents como manual_upload con el mismo file_path).
+      .filter((d) => !isFeedbackFilePath(d.file_path))
+      .map<DocFileNode>((d) => ({
+        kind: "file",
+        id: d.id,
+        name: d.file_path.split("/").pop() ?? "archivo",
+        icon: iconForPath(d.file_path),
+        origin: "manual",
+        created_at: d.created_at,
+        author_name: userName(store, d.generated_by),
+        can_regenerate: false,
+        source: { kind: "manual", document_id: d.id },
+      })),
   ];
 
   children.push({
@@ -711,6 +733,81 @@ export function getDocumentTree(
   });
 
   return ok({ tree, initiative_name: initiative.name });
+}
+
+function isFeedbackFilePath(path: string): boolean {
+  return /_feedback(E\d+)?\.docx$/i.test(path) ||
+    /_feedbackform\.pdf$/i.test(path);
+}
+
+// Archivos de feedback (DOCX) de todos los aprobadores que comentaron,
+// para el gateway de esta etapa. Se generan on-the-fly desde el store:
+// - gateway_inline_comments (published) → un DOCX por usuario con todos sus
+//   comentarios publicados
+// - gateway_feedback_docs → el contenido libre que el usuario escribió en
+//   el popup "Agregar feedback" del panel de documentos del gateway
+function buildStageFeedbackNodes(
+  store: Store,
+  initiativeId: Id,
+  stage: InitiativeStage,
+  gatewayNumber: 1 | 2 | 3,
+): DocFileNode[] {
+  const gateway = store.gateways.find(
+    (g) =>
+      g.initiative_id === initiativeId && g.gateway_number === gatewayNumber,
+  );
+  if (!gateway) return [];
+
+  const out: DocFileNode[] = [];
+
+  // Un archivo por usuario que haya publicado comentarios inline. Agrupamos
+  // por user_id. Filename: {nombre}_feedbackE{N}.docx
+  const publishedByUser = new Map<
+    Id,
+    { latest: string; count: number }
+  >();
+  for (const c of store.gateway_inline_comments) {
+    if (c.gateway_id !== gateway.id) continue;
+    if (c.status !== "published") continue;
+    const entry = publishedByUser.get(c.user_id);
+    const latest = c.published_at ?? c.updated_at;
+    if (!entry) {
+      publishedByUser.set(c.user_id, { latest, count: 1 });
+    } else {
+      entry.count += 1;
+      if (latest > entry.latest) entry.latest = latest;
+    }
+  }
+  for (const [userId, info] of publishedByUser.entries()) {
+    const u = store.users.find((uu) => uu.id === userId);
+    const displayName = u?.display_name ?? "Usuario";
+    const slug = displayName
+      .normalize("NFD")
+      .replace(/[̀-ͯ]/g, "")
+      .replace(/[^a-zA-Z0-9]+/g, "_")
+      .replace(/^_+|_+$/g, "")
+      .toLowerCase();
+    const fileName = `${slug || "usuario"}_feedbackE${gatewayNumber}.docx`;
+    out.push({
+      kind: "file",
+      id: `fb-inline-${gateway.id}-${userId}`,
+      name: fileName,
+      icon: "📝",
+      origin: "auto",
+      created_at: info.latest,
+      author_name: displayName,
+      can_regenerate: true,
+      source: {
+        kind: "gateway_feedback",
+        gateway_id: gateway.id,
+        user_id: userId,
+        format: "pdf",
+      },
+    });
+  }
+
+  void stage;
+  return out;
 }
 
 function buildGatewayFeedbackNodes(

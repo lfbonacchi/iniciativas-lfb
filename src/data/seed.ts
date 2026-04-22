@@ -3851,8 +3851,21 @@ const documents: Document[] = [
 // ASSEMBLER
 // ============================================================================
 
+// Completa respuestas faltantes para todo form × sección al leer la seed.
+// Se importa dentro de la función para evitar ciclo con las form_definitions.
+function applyResponseFiller(seed: SeedData): SeedData {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { generateMissingResponses } = require("./seed_filler") as typeof import("./seed_filler");
+  const extras = generateMissingResponses(
+    seed.forms,
+    seed.initiatives,
+    seed.form_responses,
+  );
+  return { ...seed, form_responses: [...seed.form_responses, ...extras] };
+}
+
 export function getSeedData(): SeedData {
-  return {
+  const base: SeedData = {
     users,
     initiatives: [
       ini001,
@@ -3975,4 +3988,5 @@ export function getSeedData(): SeedData {
     audit_log: [],
     default_user_id: "u3", // Juan García (PO en ini-001 y ini-004) — usuario por defecto al abrir
   };
+  return applyResponseFiller(base);
 }

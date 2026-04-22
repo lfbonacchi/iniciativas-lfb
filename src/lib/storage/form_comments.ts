@@ -15,9 +15,11 @@ import {
 } from "./_store";
 
 function formIsInProgress(status: string): boolean {
-  // Formularios "en proceso": se puede comentar.
-  // Cerrados o aprobados (approved/final/reviewed/closed): solo histórico.
-  return status === "draft" || status === "submitted" || status === "in_review";
+  // Solo en draft se pueden agregar nuevos comentarios al formulario.
+  // Una vez enviado a aprobación (submitted/in_review) el canal pasa al
+  // gateway: feedback por sección y documentos de feedback. El formulario
+  // ya no admite comentarios nuevos acá.
+  return status === "draft";
 }
 
 export interface FormCommentWithAuthor {

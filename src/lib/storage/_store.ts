@@ -46,7 +46,90 @@ export interface Store {
   mesa_temas_pendientes: MesaTemaPendiente[];
   mesa_brainstorm_notes: MesaBrainstormNote[];
   form_comments: FormComment[];
+  gateway_extra_approvers: GatewayExtraApprover[];
+  gateway_feedback_docs: GatewayFeedbackDoc[];
+  gateway_decisions: GatewayDecisionPending[];
+  gateway_inline_comments: GatewayInlineComment[];
+  gateway_minutas: GatewayMinuta[];
+  gateway_revisions: GatewayRevision[];
   current_user_id: Id | null;
+}
+
+// Comentario inline a nivel de campo en la vista read-only del gateway.
+// status="draft" → solo lo ve el autor. status="published" → lo ven todos.
+// Un usuario puede tener un comentario por campo; re-guardar reemplaza.
+export interface GatewayInlineComment {
+  id: Id;
+  gateway_id: Id;
+  user_id: Id;
+  section_key: string;
+  field_key: string;
+  text: string;
+  status: "draft" | "published";
+  created_at: string;
+  updated_at: string;
+  published_at: string | null;
+}
+
+// Minuta de reunión de gateway, editable por PO y Scrum.
+// deadline_at = submitted_at (o approved_at) + 3 días.
+export interface GatewayMinuta {
+  id: Id;
+  gateway_id: Id;
+  initiative_id: Id;
+  content: string;
+  created_by: Id;
+  created_at: string;
+  updated_at: string;
+  deadline_at: string;
+}
+
+// Tracking de revisiones: si el gateway pidió "necesita cambios" se
+// encadena un nuevo gateway de la misma etapa con revision_number++.
+export interface GatewayRevision {
+  id: Id;
+  initiative_id: Id;
+  gateway_number: 1 | 2 | 3;
+  revision_number: number;
+  gateway_id: Id;
+  created_at: string;
+}
+
+// Aprobadores agregados al gateway por AT/VP/PO/SM además de los
+// aprobadores naturales (sponsor/bo/ld). Required = true suma al total
+// de votos requerido para unanimidad; required = false es opcional
+// (puede votar pero su voto no bloquea).
+export interface GatewayExtraApprover {
+  id: Id;
+  gateway_id: Id;
+  user_id: Id;
+  required: boolean;
+  added_by: Id;
+  added_at: string;
+}
+
+// Documento de feedback que un usuario genera desde el gateway.
+// Se guarda como DOCX lógico en "archivos adicionales" de la etapa/mes.
+export interface GatewayFeedbackDoc {
+  id: Id;
+  gateway_id: Id;
+  initiative_id: Id;
+  user_id: Id;
+  content: string;
+  created_at: string;
+  updated_at: string;
+}
+
+// Decisión de voto en ventana de 60 segundos para permitir undo.
+// Si no se confirma/deshace en ese tiempo, al leerse se materializa.
+export interface GatewayDecisionPending {
+  id: Id;
+  gateway_id: Id;
+  user_id: Id;
+  vote: string; // GatewayVoteValue
+  feedback_text: string | null;
+  created_at: string;
+  expires_at: string;
 }
 
 export interface FormComment {
@@ -79,6 +162,12 @@ function emptyStore(): Store {
     mesa_temas_pendientes: [],
     mesa_brainstorm_notes: [],
     form_comments: [],
+    gateway_extra_approvers: [],
+    gateway_feedback_docs: [],
+    gateway_decisions: [],
+    gateway_inline_comments: [],
+    gateway_minutas: [],
+    gateway_revisions: [],
     current_user_id: null,
   };
 }
@@ -115,6 +204,12 @@ export function seedStore(): Store {
     mesa_temas_pendientes: current.mesa_temas_pendientes,
     mesa_brainstorm_notes: current.mesa_brainstorm_notes,
     form_comments: current.form_comments ?? [],
+    gateway_extra_approvers: current.gateway_extra_approvers ?? [],
+    gateway_feedback_docs: current.gateway_feedback_docs ?? [],
+    gateway_decisions: current.gateway_decisions ?? [],
+    gateway_inline_comments: current.gateway_inline_comments ?? [],
+    gateway_minutas: current.gateway_minutas ?? [],
+    gateway_revisions: current.gateway_revisions ?? [],
     current_user_id: current.current_user_id,
   };
   writeStore(next);
@@ -141,6 +236,12 @@ function normalizeStore(raw: Partial<Store>): Store {
   merged.mesa_temas_pendientes = merged.mesa_temas_pendientes ?? [];
   merged.mesa_brainstorm_notes = merged.mesa_brainstorm_notes ?? [];
   merged.form_comments = merged.form_comments ?? [];
+  merged.gateway_extra_approvers = merged.gateway_extra_approvers ?? [];
+  merged.gateway_feedback_docs = merged.gateway_feedback_docs ?? [];
+  merged.gateway_decisions = merged.gateway_decisions ?? [];
+  merged.gateway_inline_comments = merged.gateway_inline_comments ?? [];
+  merged.gateway_minutas = merged.gateway_minutas ?? [];
+  merged.gateway_revisions = merged.gateway_revisions ?? [];
   return merged;
 }
 

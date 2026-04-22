@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { use, useCallback, useEffect, useMemo, useState } from "react";
+import { use, useCallback, useEffect, useState } from "react";
 
 import type {
   FormDefinition,
@@ -11,10 +11,17 @@ import type {
   User,
 } from "@/types";
 import {
-  generateMinuta,
+  cancelPendingDecision,
+  enqueuePendingDecision,
+  flushExpiredDecisions,
   getGatewayFullDetail,
+  getGatewayMinuta,
+  getGatewayRevision,
+  getPendingDecision,
   submitVote,
   type GatewayFullDetail,
+  type GatewayMinutaDetail,
+  type PendingDecision,
 } from "@/lib/storage/gateways";
 import { getForm } from "@/lib/storage/forms";
 import { getCurrentUser, getAvailableUsers } from "@/lib/storage/auth";
@@ -22,13 +29,28 @@ import { addTeamMember } from "@/lib/storage/team";
 
 import { VotersPanel } from "./VotersPanel";
 import { ReadOnlySections } from "./ReadOnlySections";
-import { FormCommentsPanel } from "@/components/forms/FormCommentsPanel";
+import { FeedbackDocsPanel } from "./FeedbackDocsPanel";
+import { DecisionConfirmPopup } from "./DecisionConfirmPopup";
+import { MinutaPanel } from "./MinutaPanel";
+import { VFPanel } from "./VFPanel";
+import {
+  buildSyntheticFormDefinition,
+  normalizeResponsesForSections,
+} from "./form_definition_bridge";
+import { DocumentPreviewModal } from "@/app/(app)/iniciativas/[id]/documentos/DocumentPreviewModal";
+import type { DocFileNode, DocFileSource } from "@/lib/storage/documents";
+import { listFormSnapshots } from "@/lib/storage/form_snapshots";
 
 const STATUS_PILL: Record<GatewayStatus, { bg: string; text: string; label: string }> = {
   pending: { bg: "bg-pae-amber/15", text: "text-pae-amber", label: "Esperando votos" },
   approved: { bg: "bg-pae-green/15", text: "text-pae-green", label: "Aprobado" },
-  feedback: { bg: "bg-pae-blue/15", text: "text-pae-blue", label: "Con feedback" },
-  pause: { bg: "bg-pae-amber/15", text: "text-pae-amber", label: "Pausado" },
+  approved_with_changes: {
+    bg: "bg-pae-green/15",
+    text: "text-pae-green",
+    label: "Aprobado con cambios",
+  },
+  feedback: { bg: "bg-pae-blue/15", text: "text-pae-blue", label: "Necesita cambios" },
+  pause: { bg: "bg-pae-amber/15", text: "text-pae-amber", label: "On hold" },
   reject: { bg: "bg-pae-red/15", text: "text-pae-red", label: "Rechazado" },
   area_change: {
     bg: "bg-pae-text-tertiary/15",
@@ -51,28 +73,55 @@ function formatDate(iso: string | null): string {
   }
 }
 
-const DECISION_BUTTONS: {
+interface DecisionDef {
   vote: GatewayVoteValue;
   label: string;
+  description: string;
   className: string;
-}[] = [
-  { vote: "approved", label: "Aprobar", className: "bg-pae-green hover:bg-pae-green/90" },
-  { vote: "feedback", label: "Feedback", className: "bg-pae-blue hover:bg-pae-blue/90" },
-  { vote: "pause", label: "Pausa", className: "bg-pae-amber hover:bg-pae-amber/90" },
-  { vote: "reject", label: "Rechazar", className: "bg-pae-red hover:bg-pae-red/90" },
+}
+
+const DECISIONS: DecisionDef[] = [
   {
-    vote: "area_change",
-    label: "Cambio de área",
-    className: "bg-pae-text-secondary hover:bg-pae-text-secondary/90",
+    vote: "approved",
+    label: "Aprobar sin cambios",
+    description: "Se aprueba el gateway y la iniciativa avanza a la siguiente etapa.",
+    className: "bg-pae-green hover:bg-pae-green/90",
+  },
+  {
+    vote: "approved_with_changes",
+    label: "Aprobar con cambios",
+    description:
+      "Se aprueba, pero el PO debe incorporar los cambios acordados (minuta + feedback) en la VF.",
+    className: "bg-pae-green/80 hover:bg-pae-green",
+  },
+  {
+    vote: "feedback",
+    label: "Necesita cambios",
+    description:
+      "El PO arma una nueva versión y se genera un nuevo gateway para la misma etapa.",
+    className: "bg-pae-blue hover:bg-pae-blue/90",
+  },
+  {
+    vote: "pause",
+    label: "On hold",
+    description:
+      "La iniciativa queda en espera. Sponsor o AT pueden reactivarla más adelante.",
+    className: "bg-pae-amber hover:bg-pae-amber/90",
+  },
+  {
+    vote: "reject",
+    label: "Rechazar",
+    description: "La iniciativa queda cerrada en el log como rechazada.",
+    className: "bg-pae-red hover:bg-pae-red/90",
   },
 ];
 
-type DownloadKind = "pptx" | "pdf" | "xlsx" | "press";
-const DOWNLOADS: { kind: DownloadKind; label: string }[] = [
-  { kind: "pptx", label: "PPTX estándar" },
-  { kind: "pdf", label: "PDF formulario" },
-  { kind: "xlsx", label: "XLSX" },
-  { kind: "press", label: "Nota de prensa" },
+type DownloadKind = "raw_xlsx" | "form_pdf" | "pptx" | "press";
+const DOWNLOADS: { kind: DownloadKind; label: string; icon: string }[] = [
+  { kind: "raw_xlsx", label: "Formulario raw data (xlsx)", icon: "📋" },
+  { kind: "form_pdf", label: "Formulario (pdf)", icon: "📄" },
+  { kind: "pptx", label: "PPTX estándar", icon: "📊" },
+  { kind: "press", label: "Nota de prensa", icon: "📝" },
 ];
 
 export default function GatewayPage({
@@ -86,12 +135,22 @@ export default function GatewayPage({
   const [definition, setDefinition] = useState<FormDefinition | null>(null);
   const [responses, setResponses] = useState<Record<string, FormFieldValue>>({});
   const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [feedbackBySection, setFeedbackBySection] = useState<Record<string, string>>({});
-  const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [reloadTick, setReloadTick] = useState(0);
+  const [pendingDecision, setPendingDecision] = useState<PendingDecision | null>(
+    null,
+  );
+  const [minutaDetail, setMinutaDetail] = useState<GatewayMinutaDetail | null>(
+    null,
+  );
+  const [revisionNumber, setRevisionNumber] = useState(1);
+  const [previewFile, setPreviewFile] = useState<DocFileNode | null>(null);
+
+  const reload = useCallback(() => setReloadTick((x) => x + 1), []);
 
   useEffect(() => {
+    flushExpiredDecisions(id);
+
     const u = getCurrentUser();
     setCurrentUser(u.success ? u.data : null);
 
@@ -103,38 +162,127 @@ export default function GatewayPage({
     setDetail(res.data);
     const formRes = getForm(res.data.form.id);
     if (formRes.success) {
-      setDefinition(formRes.data.definition);
-      setResponses(formRes.data.responses);
+      // Si el store no trae la definición (caso típico en Fase 2-4 donde las
+      // definiciones viven en módulos TS y no en form_definitions), sintetizamos
+      // una mínima desde las WizardSection correspondientes al form_type.
+      const storeDef = formRes.data.definition;
+      const finalDef =
+        storeDef ??
+        buildSyntheticFormDefinition(
+          formRes.data.form.form_type,
+          formRes.data.form.id,
+          formRes.data.form.version,
+        );
+      setDefinition(finalDef);
+      // Normalizamos las respuestas para que cada section.key tenga el blob
+      // agregado correspondiente, aún cuando el seed use keys alternativas
+      // (ej. F3 con `descripcion_mvp` dentro de `seccion_6_mvp`).
+      setResponses(
+        normalizeResponsesForSections(
+          formRes.data.form.form_type,
+          formRes.data.responses,
+        ),
+      );
     }
+    const pend = getPendingDecision(id);
+    setPendingDecision(pend.success ? pend.data : null);
+
+    const m = getGatewayMinuta(id);
+    setMinutaDetail(m.success ? m.data : null);
+
+    const rev = getGatewayRevision(id);
+    setRevisionNumber(rev.success ? rev.data.revision_number : 1);
   }, [id, reloadTick]);
 
-  const handleFeedbackChange = useCallback((sectionKey: string, value: string) => {
-    setFeedbackBySection((prev) => ({ ...prev, [sectionKey]: value }));
-  }, []);
-
-  const handleVote = useCallback(
+  const startDecision = useCallback(
     (vote: GatewayVoteValue) => {
       if (!detail) return;
-      setSubmitting(true);
       setError(null);
-      const cleanFeedback: Record<string, string> = {};
-      for (const [k, v] of Object.entries(feedbackBySection)) {
-        if (v.trim()) cleanFeedback[k] = v.trim();
-      }
-      const feedbackStr =
-        Object.keys(cleanFeedback).length > 0
-          ? JSON.stringify(cleanFeedback)
-          : null;
-      const result = submitVote(detail.gateway.id, vote, feedbackStr);
-      setSubmitting(false);
-      if (!result.success) {
-        setError(result.error.message);
+      const res = enqueuePendingDecision(detail.gateway.id, vote, null);
+      if (!res.success) {
+        setError(res.error.message);
         return;
       }
-      setReloadTick((x) => x + 1);
+      setPendingDecision(res.data);
     },
-    [detail, feedbackBySection],
+    [detail],
   );
+
+  const handleUndoDecision = useCallback(() => {
+    if (!detail) return;
+    cancelPendingDecision(detail.gateway.id);
+    setPendingDecision(null);
+  }, [detail]);
+
+  const handleOpenDownload = useCallback(
+    (kind: DownloadKind) => {
+      if (!detail) return;
+      // Para XLSX y PDF: buscamos el último snapshot "submitted" (PRE-GATEWAY)
+      // del formulario y armamos un DocFileNode que consume el preview modal.
+      if (kind === "raw_xlsx" || kind === "form_pdf") {
+        const format = kind === "raw_xlsx" ? "xlsx" : "pdf";
+        const snapsRes = listFormSnapshots(detail.form.id);
+        const snaps = snapsRes.success ? snapsRes.data : [];
+        const submitted = [...snaps]
+          .reverse()
+          .find((s) => s.snapshot_type === "submitted");
+        const formId = detail.form.id;
+
+        const source: DocFileSource = submitted
+          ? {
+              kind: "form_snapshot",
+              form_id: formId,
+              snapshot_id: submitted.id,
+              snapshot_type: "submitted",
+              format,
+            }
+          : { kind: "form_current", form_id: formId, format };
+
+        const nameBase =
+          kind === "raw_xlsx"
+            ? `${detail.form.form_type}_formulario_raw_data`
+            : `${detail.form.form_type}_formulario`;
+        const fileNode: DocFileNode = {
+          kind: "file",
+          id: `gw-${kind}-${formId}`,
+          name: `${nameBase}.${format}`,
+          icon: format === "xlsx" ? "📋" : "📄",
+          origin: "auto",
+          created_at:
+            submitted?.created_at ??
+            detail.form.submitted_at ??
+            detail.form.updated_at,
+          author_name: detail.promotor_name,
+          can_regenerate: true,
+          source,
+        };
+        setPreviewFile(fileNode);
+        return;
+      }
+      alert(
+        kind === "pptx"
+          ? "Generación de PPTX pendiente."
+          : "Generación de nota de prensa pendiente.",
+      );
+    },
+    [detail],
+  );
+
+  const handleApplyDecision = useCallback(() => {
+    if (!detail || !pendingDecision) return;
+    cancelPendingDecision(detail.gateway.id);
+    const res = submitVote(
+      detail.gateway.id,
+      pendingDecision.vote,
+      pendingDecision.feedback_text,
+    );
+    setPendingDecision(null);
+    if (!res.success) {
+      setError(res.error.message);
+      return;
+    }
+    reload();
+  }, [detail, pendingDecision, reload]);
 
   if (error && !detail) {
     return (
@@ -162,11 +310,10 @@ export default function GatewayPage({
   const isPending = detail.gateway.status === "pending";
   const canVote =
     isPending && detail.current_user_is_approver && !detail.current_user_vote;
-  const isApproved = detail.gateway.status === "approved";
-  const showVFBox =
-    isApproved && currentUser &&
-    // PO o Promotor pueden subir VF
-    true;
+  const gatewayResolved = !isPending;
+  const pendingDecisionDef = pendingDecision
+    ? DECISIONS.find((d) => d.vote === pendingDecision.vote) ?? null
+    : null;
 
   return (
     <main className="mx-auto max-w-5xl px-6 py-8">
@@ -177,12 +324,13 @@ export default function GatewayPage({
         ← Aprobaciones pendientes
       </Link>
 
-      {/* Header rojo sutil */}
       <div className="mt-4 rounded-[10px] border border-pae-red/20 bg-pae-red/[0.04] p-5">
         <div className="flex items-start justify-between gap-4">
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-wide text-pae-red">
-              Gateway {detail.gateway.gateway_number} — {detail.form.form_type}
+              Gateway {detail.gateway.gateway_number}
+              {revisionNumber > 1 ? ` · Revisión ${revisionNumber}` : ""} —{" "}
+              {detail.form.form_type}
             </p>
             <h1 className="mt-1 text-[20px] font-semibold text-pae-text">
               {detail.initiative.name}
@@ -205,16 +353,18 @@ export default function GatewayPage({
         </div>
       </div>
 
-      {/* Panel votos */}
       <div className="mt-6">
         <VotersPanel
+          gatewayId={detail.gateway.id}
+          gatewayNumber={detail.gateway.gateway_number}
           approvers={detail.approvers}
           votesReceived={detail.votes_received}
           votesTotal={detail.votes_total}
+          canManageApprovers={detail.current_user_can_manage_approvers}
+          canReload={reload}
         />
       </div>
 
-      {/* Downloads */}
       <div className="mt-6 rounded-[10px] border border-pae-border bg-pae-surface p-4">
         <p className="text-[13px] font-semibold text-pae-text">
           Documentos del formulario
@@ -224,81 +374,86 @@ export default function GatewayPage({
             <button
               key={d.kind}
               type="button"
-              onClick={() => alert(`Descarga ${d.label} — generación pendiente`)}
+              onClick={() => handleOpenDownload(d.kind)}
               className="inline-flex h-8 items-center gap-1 rounded-md border border-pae-border bg-pae-bg px-3 text-[11px] font-medium text-pae-text-secondary transition hover:bg-pae-surface"
             >
-              📎 {d.label}
+              {d.icon} {d.label}
             </button>
           ))}
         </div>
+
+        <FeedbackDocsPanel
+          gatewayId={detail.gateway.id}
+          currentUserId={currentUser?.id ?? null}
+          gatewayResolved={gatewayResolved}
+        />
       </div>
 
-      {/* Read-only sections */}
       <div className="mt-6">
         <p className="mb-3 text-[13px] font-semibold text-pae-text">
           Formulario {detail.form.form_type} (read-only)
         </p>
         <ReadOnlySections
+          gatewayId={detail.gateway.id}
           definition={definition}
           responses={responses}
-          approvers={detail.approvers}
           currentUserId={currentUser?.id ?? null}
-          feedbackBySection={feedbackBySection}
-          onFeedbackChange={handleFeedbackChange}
-          inputDisabled={!canVote || submitting}
+          inputDisabled={!!pendingDecision || gatewayResolved}
         />
       </div>
 
-      {/* Decision buttons o Post-gateway */}
       {isPending ? (
         <DecisionPanel
           canVote={canVote}
           alreadyVoted={!!detail.current_user_vote}
           currentVote={detail.current_user_vote}
-          submitting={submitting}
+          hasPendingDecision={!!pendingDecision}
           error={error}
-          onVote={handleVote}
+          onVote={startDecision}
         />
       ) : (
-        <PostGatewayPanel
-          detail={detail}
-          onActionDone={() => setReloadTick((x) => x + 1)}
+        <PostGatewayPanel detail={detail} onActionDone={reload} />
+      )}
+
+      {/* Minuta: solo visible post-gateway */}
+      {gatewayResolved && minutaDetail && (
+        <MinutaPanel
+          gatewayId={detail.gateway.id}
+          detail={minutaDetail}
+          onSaved={reload}
         />
       )}
 
-      {/* Comentarios del formulario en proceso */}
-      <div className="mt-6">
-        <FormCommentsPanel
-          formId={detail.form.id}
-          canComment={
-            detail.form.status === "draft" ||
-            detail.form.status === "submitted" ||
-            detail.form.status === "in_review"
-          }
-        />
-      </div>
+      {/* VF + reenvío: solo si aprobaron con cambios o pidieron cambios */}
+      {gatewayResolved &&
+        (detail.gateway.status === "approved_with_changes" ||
+          detail.gateway.status === "feedback") && (
+          <VFPanel
+            gatewayId={detail.gateway.id}
+            formId={detail.form.id}
+            initiativeId={detail.initiative.id}
+            currentUserId={currentUser?.id ?? null}
+            onResubmitted={reload}
+          />
+        )}
 
-      {/* VF pendiente box */}
-      {showVFBox && (
-        <div className="mt-6 rounded-[10px] border border-pae-amber/30 bg-pae-amber/10 p-4">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <p className="text-[12px] font-semibold text-pae-text">
-                ⚠ Versión Final pendiente
-              </p>
-              <p className="mt-1 text-[11px] text-pae-text-secondary">
-                El gateway no se cierra hasta que subas la Versión Final del
-                formulario incorporando los acuerdos de la minuta.
-              </p>
-            </div>
-            <Link
-              href={`/wizard/${detail.form.id}`}
-              className="inline-flex h-8 shrink-0 items-center rounded-md bg-pae-amber px-3 text-[11px] font-semibold text-white transition hover:bg-pae-amber/90"
-            >
-              Ir al formulario (editar VF) →
-            </Link>
-          </div>
-        </div>
+      {pendingDecision && pendingDecisionDef && (
+        <DecisionConfirmPopup
+          vote={pendingDecision.vote}
+          label={pendingDecisionDef.label}
+          description={pendingDecisionDef.description}
+          totalSeconds={pendingDecision.seconds_remaining}
+          onUndo={handleUndoDecision}
+          onTimeout={handleApplyDecision}
+        />
+      )}
+
+      {previewFile && (
+        <DocumentPreviewModal
+          file={previewFile}
+          initiativeName={detail.initiative.name}
+          onClose={() => setPreviewFile(null)}
+        />
       )}
     </main>
   );
@@ -308,14 +463,14 @@ function DecisionPanel({
   canVote,
   alreadyVoted,
   currentVote,
-  submitting,
+  hasPendingDecision,
   error,
   onVote,
 }: {
   canVote: boolean;
   alreadyVoted: boolean;
   currentVote: GatewayVoteValue | null;
-  submitting: boolean;
+  hasPendingDecision: boolean;
   error: string | null;
   onVote: (v: GatewayVoteValue) => void;
 }) {
@@ -323,43 +478,45 @@ function DecisionPanel({
     <div className="mt-6 rounded-[10px] border border-pae-border bg-pae-surface p-4">
       <p className="text-[13px] font-semibold text-pae-text">Tu decisión</p>
       <p className="mt-1 text-[10px] text-pae-text-secondary">
-        Unanimidad: todos deben aprobar. Si uno da feedback, vuelve al PO y
-        todos re-votan.{" "}
-        <span className="text-pae-text-tertiary">
-          Prioridad: Rechazar › Pausa › Cambio de área › Feedback › Aprobar.
-        </span>
+        Unanimidad entre aprobadores requeridos. Prioridad: Rechazar › On hold ›
+        Necesita cambios › Aprobar con cambios › Aprobar sin cambios.
       </p>
 
-      {alreadyVoted && (
+      {alreadyVoted && !hasPendingDecision && (
         <div className="mt-3 rounded-md bg-pae-blue/10 px-3 py-2 text-[11px] text-pae-blue">
-          Ya emitiste tu voto ({currentVote}). No podés votar de nuevo salvo que
-          se resetee la ronda.
+          Ya emitiste tu voto ({currentVote}). No podés votar de nuevo salvo
+          que se reinicie la ronda.
         </div>
       )}
 
-      {!canVote && !alreadyVoted && (
+      {!canVote && !alreadyVoted && !hasPendingDecision && (
         <div className="mt-3 rounded-md bg-pae-bg px-3 py-2 text-[11px] text-pae-text-secondary">
           No sos aprobador de este gateway.
         </div>
       )}
 
+      {hasPendingDecision && (
+        <div className="mt-3 rounded-md bg-pae-amber/10 px-3 py-2 text-[11px] text-pae-amber">
+          Tenés una decisión pendiente. Esperá el popup de confirmación.
+        </div>
+      )}
+
       <div className="mt-4 flex flex-wrap gap-2">
-        {DECISION_BUTTONS.map((b) => (
+        {DECISIONS.map((b) => (
           <button
             key={b.vote}
             type="button"
-            disabled={!canVote || submitting}
+            disabled={!canVote || hasPendingDecision}
             onClick={() => onVote(b.vote)}
             className={`inline-flex h-9 items-center rounded-md px-4 text-[11px] font-semibold text-white transition disabled:cursor-not-allowed disabled:opacity-40 ${b.className}`}
+            title={b.description}
           >
             {b.label}
           </button>
         ))}
       </div>
 
-      {error && (
-        <p className="mt-3 text-[11px] text-pae-red">{error}</p>
-      )}
+      {error && <p className="mt-3 text-[11px] text-pae-red">{error}</p>}
     </div>
   );
 }
@@ -404,22 +561,12 @@ function PostGatewayPanel({
     onActionDone();
   }
 
-  function handleMinuta() {
-    const res = generateMinuta(detail.gateway.id);
-    if (!res.success) {
-      setActionErr(res.error.message);
-      return;
-    }
-    setActionMsg(`Minuta creada: ${res.data.file_path}`);
-    setActionErr(null);
-    onActionDone();
-  }
-
   return (
     <div className="mt-6 rounded-[10px] border border-pae-border bg-pae-surface p-4">
       <p className="text-[13px] font-semibold text-pae-text">Acciones post-gateway</p>
       <p className="mt-1 text-[10px] text-pae-text-secondary">
-        Gateway resuelto. Documentá los acuerdos y asigná los roles de la siguiente etapa.
+        Gateway resuelto. Asigná roles de la siguiente etapa. La minuta y el
+        VF tienen paneles propios debajo.
       </p>
 
       <div className="mt-4 flex flex-wrap gap-2">
@@ -442,13 +589,6 @@ function PostGatewayPanel({
           className="inline-flex h-8 items-center rounded-md border border-pae-border bg-pae-bg px-3 text-[11px] font-medium text-pae-text transition hover:bg-pae-surface"
         >
           Stakeholders
-        </button>
-        <button
-          type="button"
-          onClick={handleMinuta}
-          className="inline-flex h-8 items-center rounded-md border border-pae-border bg-pae-bg px-3 text-[11px] font-medium text-pae-text transition hover:bg-pae-surface"
-        >
-          📝 Minuta
         </button>
       </div>
 
@@ -534,3 +674,4 @@ function PostGatewayPanel({
     </div>
   );
 }
+

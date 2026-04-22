@@ -13,10 +13,16 @@ import type { FormType, Id } from "@/types";
 import { err, ok, type Result } from "@/lib/result";
 import { getForm } from "@/lib/storage/forms";
 import { getFormSnapshot } from "@/lib/storage/form_snapshots";
+import {
+  listGatewayFeedbackDocs,
+  listInlineComments,
+} from "@/lib/storage/gateways";
 import type { DocFileSource } from "@/lib/storage/documents";
 import {
   serializeForm,
+  type DocCell,
   type DocMeta,
+  type DocRow,
   type DocStructure,
 } from "./form_serializer";
 
@@ -115,10 +121,100 @@ export function resolveFormDoc(
     return ok(serializeForm(sections, snapRes.data.responses_data, meta));
   }
 
+  if (source.kind === "gateway_feedback") {
+    return resolveGatewayFeedback(source, initiative_name, author_name);
+  }
+
   return err(
     "VALIDATION_ERROR",
     "Este archivo aún no tiene generador (pendiente).",
   );
+}
+
+function cell(value: string, kind: DocCell["kind"], colspan?: number): DocCell {
+  return colspan ? { value, kind, colspan } : { value, kind };
+}
+
+function resolveGatewayFeedback(
+  source: Extract<DocFileSource, { kind: "gateway_feedback" }>,
+  initiative_name: string,
+  author_name: string | null,
+): Result<DocStructure> {
+  const inlineRes = listInlineComments(source.gateway_id);
+  if (!inlineRes.success) return err(inlineRes.error.code, inlineRes.error.message);
+  const freeRes = listGatewayFeedbackDocs(source.gateway_id);
+  if (!freeRes.success) return err(freeRes.error.code, freeRes.error.message);
+
+  const inline = inlineRes.data
+    .filter((c) => c.user_id === source.user_id && c.status === "published")
+    .sort((a, b) => a.section_key.localeCompare(b.section_key));
+  const freeDocs = freeRes.data.filter((d) => d.user_id === source.user_id);
+
+  if (inline.length === 0 && freeDocs.length === 0) {
+    return err(
+      "NOT_FOUND",
+      "Este usuario no publicó comentarios para este gateway",
+    );
+  }
+
+  const authorName = inline[0]?.author_name ?? freeDocs[0]?.author_name ?? author_name ?? "Usuario";
+  const latestIso =
+    inline
+      .map((c) => c.published_at ?? c.updated_at)
+      .concat(freeDocs.map((d) => d.updated_at))
+      .sort()
+      .reverse()[0] ?? new Date().toISOString();
+
+  const rows: DocRow[] = [];
+  rows.push([cell(initiative_name, "title", 2)]);
+  rows.push([cell(`Feedback de ${authorName}`, "subtitle", 2)]);
+  rows.push([
+    cell("Fecha", "question"),
+    cell(new Date(latestIso).toLocaleDateString("es-AR"), "answer"),
+  ]);
+  rows.push([{ value: "", kind: "empty" }]);
+
+  // Agrupar comentarios inline por sección.
+  const bySection = new Map<string, typeof inline>();
+  for (const c of inline) {
+    const arr = bySection.get(c.section_key) ?? [];
+    arr.push(c);
+    bySection.set(c.section_key, arr);
+  }
+
+  if (bySection.size > 0) {
+    rows.push([cell("Comentarios por sección", "section", 2)]);
+    let sectionN = 0;
+    for (const [sectionKey, comments] of bySection.entries()) {
+      sectionN++;
+      rows.push([cell(`${sectionN}. ${sectionKey}`, "section", 2)]);
+      for (const c of comments) {
+        rows.push([
+          cell(`Campo: ${c.field_key}`, "question"),
+          cell(c.text, "answer"),
+        ]);
+      }
+      rows.push([{ value: "", kind: "empty" }]);
+    }
+  }
+
+  if (freeDocs.length > 0) {
+    rows.push([cell("Feedback general", "section", 2)]);
+    for (const d of freeDocs) {
+      rows.push([cell("Contenido", "question"), cell(d.content, "answer")]);
+    }
+  }
+
+  const meta: DocMeta = {
+    initiative_name,
+    form_label: `Feedback de ${authorName}`,
+    etapa_label: "Gateway",
+    version_label: "Última actualización",
+    fecha: latestIso,
+    author_name: authorName,
+  };
+
+  return ok({ meta, rows });
 }
 
 export function suggestedFilename(

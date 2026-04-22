@@ -13,6 +13,7 @@ import { useUploadDocument } from "@/components/shell/UploadDocumentContext";
 import { resolveFormDoc } from "@/lib/documents/resolve";
 import { buildXlsxBlob, downloadBlob } from "@/lib/documents/xlsx_form";
 import { downloadPdf } from "@/lib/documents/pdf_form";
+import { downloadDocx } from "@/lib/documents/docx_form";
 
 import { useInitiativeDetail } from "../DetailContext";
 import { DocumentPreviewModal } from "./DocumentPreviewModal";
@@ -72,7 +73,10 @@ function FileRow({
     : formatDate(file.created_at);
 
   const canGenerate =
-    file.source.kind === "form_current" || file.source.kind === "form_snapshot";
+    file.source.kind === "form_current" ||
+    file.source.kind === "form_snapshot" ||
+    file.source.kind === "gateway_feedback" ||
+    file.source.kind === "gateway_minuta";
 
   async function handleDownload() {
     if (downloading) return;
@@ -88,12 +92,21 @@ function FileRow({
     }
     setDownloading(true);
     try {
-      const format =
+      // Derivamos el formato de descarga de la extensión del filename para
+      // los kinds que soportan múltiples formatos (gateway_feedback / minuta).
+      const ext = file.name.split(".").pop()?.toLowerCase();
+      const format: "xlsx" | "pdf" | "docx" =
         file.source.kind === "form_current" || file.source.kind === "form_snapshot"
           ? file.source.format
-          : "xlsx";
+          : ext === "docx"
+            ? "docx"
+            : ext === "pdf"
+              ? "pdf"
+              : "xlsx";
       if (format === "pdf") {
         await downloadPdf(res.data, file.name);
+      } else if (format === "docx") {
+        await downloadDocx(res.data, file.name);
       } else {
         const blob = buildXlsxBlob(res.data);
         downloadBlob(blob, file.name);
