@@ -147,9 +147,93 @@ export function saveFormResponses(
   }
   if (updated > 0) {
     form.updated_at = now;
+    appendAudit(store, {
+      user_id: user.id,
+      action: "form_response_changed",
+      entity_type: "form",
+      entity_id: form.id,
+      old_data: null,
+      new_data: {
+        form_type: form.form_type,
+        changed_count: updated,
+      },
+    });
   }
   writeStore(store);
   return ok({ updated });
+}
+
+// Aplica carry-over automático desde un formulario origen al destino.
+// Registra los cambios en form_change_log con changed_by: "system" y
+// un audit de alto nivel indicando la fuente del carry-over.
+export function applyCarryOverInStore(
+  store: Store,
+  destinationForm: Form,
+  sourceResponses: Readonly<Record<string, FormFieldValue>>,
+  sourceFormId: Id,
+): number {
+  const definition = store.form_definitions.find(
+    (d) =>
+      d.form_type === destinationForm.form_type &&
+      d.version === destinationForm.version,
+  );
+  if (!definition) return 0;
+
+  const now = nowIso();
+  let applied = 0;
+  for (const section of definition.sections_config) {
+    for (const field of section.fields) {
+      if (!field.carry_over_from) continue;
+      const sourceKey = field.carry_over_from;
+      const sourceValue = sourceResponses[sourceKey];
+      if (sourceValue === undefined) continue;
+
+      const existing = store.form_responses.find(
+        (r) => r.form_id === destinationForm.id && r.field_key === field.key,
+      );
+      const oldValue: FormFieldValue = existing?.value ?? null;
+      if (JSON.stringify(oldValue) === JSON.stringify(sourceValue)) continue;
+
+      if (existing) {
+        existing.value = sourceValue;
+      } else {
+        store.form_responses.push({
+          id: newId("resp"),
+          form_id: destinationForm.id,
+          field_key: field.key,
+          value: sourceValue,
+        });
+      }
+      store.form_change_log.push({
+        id: newId("fcl"),
+        form_id: destinationForm.id,
+        field_key: field.key,
+        old_value: oldValue,
+        new_value: sourceValue,
+        changed_by: "system",
+        changed_at: now,
+      });
+      applied++;
+    }
+  }
+
+  if (applied > 0) {
+    destinationForm.updated_at = now;
+    appendAudit(store, {
+      user_id: "system",
+      action: "form_response_changed",
+      entity_type: "form",
+      entity_id: destinationForm.id,
+      old_data: null,
+      new_data: {
+        form_type: destinationForm.form_type,
+        changed_count: applied,
+        source: "carry_over",
+        from_form_id: sourceFormId,
+      },
+    });
+  }
+  return applied;
 }
 
 export function submitForm(formId: Id): Result<{ form: Form; gateway: Gateway | null }> {

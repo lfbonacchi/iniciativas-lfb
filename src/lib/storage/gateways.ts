@@ -5,6 +5,7 @@ import type {
   GatewayVote,
   GatewayVoteValue,
   Id,
+  InitiativeStage,
 } from "@/types";
 import { err, ok, type Result } from "@/lib/result";
 import { firstZodErrorMessage } from "@/lib/validations/common";
@@ -20,6 +21,10 @@ import {
   userRolesInInitiative,
 } from "./_security";
 import { appendAudit } from "./_audit";
+import {
+  applyStageChangeInStore,
+  applyStatusChangeInStore,
+} from "./initiatives";
 
 export interface GatewayDetail {
   gateway: Gateway;
@@ -117,6 +122,15 @@ export function submitVote(
   const resolution = resolveStatusFromVotes(allVotes, Math.max(expected, 1));
 
   const oldStatus = gateway.status;
+  appendAudit(store, {
+    user_id: user.id,
+    action: "gateway_vote_cast",
+    entity_type: "gateway_vote",
+    entity_id: gateway.id,
+    old_data: { status: oldStatus },
+    new_data: { vote: parsed.data.vote, resolution },
+  });
+
   if (resolution !== "pending") {
     gateway.status = resolution;
 
@@ -126,43 +140,72 @@ export function submitVote(
     );
 
     if (resolution === "approved" && form) {
+      const oldFormStatus = form.status;
       form.status = "approved";
       form.approved_at = now;
       form.updated_at = now;
+      appendAudit(store, {
+        user_id: user.id,
+        action: "form_approved",
+        entity_type: "form",
+        entity_id: form.id,
+        old_data: { status: oldFormStatus },
+        new_data: { status: form.status },
+      });
+      if (initiative) {
+        const nextStage: InitiativeStage | null =
+          gateway.gateway_number === 1
+            ? "dimensioning"
+            : gateway.gateway_number === 2
+              ? "mvp"
+              : gateway.gateway_number === 3
+                ? "ltp_tracking"
+                : null;
+        if (nextStage) {
+          applyStageChangeInStore(store, user.id, initiative, nextStage);
+        }
+      }
     } else if (resolution === "feedback" && form) {
       // Resetear votos a pending → ronda limpia. Form vuelve a draft.
+      const votesReset = store.gateway_votes.filter(
+        (v) => v.gateway_id === gateway.id,
+      ).length;
       form.status = "draft";
       form.updated_at = now;
       gateway.status = "pending";
       store.gateway_votes = store.gateway_votes.filter(
         (v) => v.gateway_id !== gateway.id,
       );
+      appendAudit(store, {
+        user_id: user.id,
+        action: "gateway_resolved",
+        entity_type: "gateway",
+        entity_id: gateway.id,
+        old_data: { status: oldStatus },
+        new_data: {
+          status: "feedback",
+          reset_votes: votesReset,
+          returned_to: "draft",
+        },
+      });
     } else if (resolution === "pause" && initiative) {
-      initiative.status = "paused";
+      applyStatusChangeInStore(store, user.id, initiative, "paused");
     } else if (resolution === "reject" && initiative) {
-      initiative.status = "rejected";
+      applyStatusChangeInStore(store, user.id, initiative, "rejected");
     } else if (resolution === "area_change" && initiative) {
-      initiative.status = "area_change";
+      applyStatusChangeInStore(store, user.id, initiative, "area_change");
     }
-  }
 
-  appendAudit(store, {
-    user_id: user.id,
-    action: "gateway_vote_cast",
-    entity_type: "gateway_vote",
-    entity_id: gateway.id,
-    old_data: { status: oldStatus },
-    new_data: { vote: parsed.data.vote, resolution: gateway.status },
-  });
-  if (resolution !== "pending" && resolution !== "feedback") {
-    appendAudit(store, {
-      user_id: user.id,
-      action: "gateway_resolved",
-      entity_type: "gateway",
-      entity_id: gateway.id,
-      old_data: { status: oldStatus },
-      new_data: { status: gateway.status },
-    });
+    if (resolution !== "feedback") {
+      appendAudit(store, {
+        user_id: user.id,
+        action: "gateway_resolved",
+        entity_type: "gateway",
+        entity_id: gateway.id,
+        old_data: { status: oldStatus },
+        new_data: { status: gateway.status },
+      });
+    }
   }
 
   writeStore(store);

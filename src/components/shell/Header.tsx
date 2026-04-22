@@ -23,7 +23,8 @@ const PIPELINE_STAGES: {
   { key: "ltp_tracking", label: "Delivery" },
 ];
 
-const ZOOM_STORAGE_KEY = "pae-ui-zoom";
+const ZOOM_STORAGE_KEY = "mandarina-ui-zoom";
+const LEGACY_ZOOM_STORAGE_KEY = "pae-ui-zoom";
 const ZOOM_MIN = 0.85;
 const ZOOM_MAX = 1.4;
 
@@ -37,10 +38,18 @@ function FontSizeSlider() {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    const raw =
-      typeof window !== "undefined"
-        ? window.localStorage.getItem(ZOOM_STORAGE_KEY)
-        : null;
+    let raw: string | null = null;
+    if (typeof window !== "undefined") {
+      raw = window.localStorage.getItem(ZOOM_STORAGE_KEY);
+      if (raw === null) {
+        const legacy = window.localStorage.getItem(LEGACY_ZOOM_STORAGE_KEY);
+        if (legacy !== null) {
+          window.localStorage.setItem(ZOOM_STORAGE_KEY, legacy);
+          window.localStorage.removeItem(LEGACY_ZOOM_STORAGE_KEY);
+          raw = legacy;
+        }
+      }
+    }
     const parsed = raw ? parseFloat(raw) : NaN;
     const initial =
       Number.isFinite(parsed) && parsed >= ZOOM_MIN && parsed <= ZOOM_MAX

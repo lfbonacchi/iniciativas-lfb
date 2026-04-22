@@ -6,3 +6,4 @@ export * from "./gateways";
 export * from "./notifications";
 export * from "./documents";
 export * from "./events";
+export * from "./files";

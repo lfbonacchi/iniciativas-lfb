@@ -6,6 +6,8 @@ export * from "./gateways";
 export * from "./notifications";
 export * from "./documents";
 export * from "./events";
+export * from "./files";
+export * from "./activity";
 export * from "./dashboard";
 export * from "./timeline";
 export * from "./team";

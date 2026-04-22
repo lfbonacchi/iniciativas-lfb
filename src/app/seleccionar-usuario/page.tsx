@@ -5,11 +5,11 @@ import { useEffect, useMemo, useState } from "react";
 
 import type { Id, User } from "@/types";
 import {
-  clearAllData,
   getAvailableUsers,
   loadSeedData,
   switchUser,
 } from "@/lib/storage/auth";
+import { clearAllData } from "@/lib/storage/files";
 
 type RoleKey = "po" | "bo" | "vp" | "at";
 

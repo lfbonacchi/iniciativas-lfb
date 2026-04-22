@@ -2,7 +2,7 @@ import type { Id, User } from "@/types";
 import { err, ok, type Result } from "@/lib/result";
 import { firstZodErrorMessage } from "@/lib/validations/common";
 import { switchUserSchema } from "@/lib/validations/auth";
-import { readStore, resetStore, seedStore, writeStore } from "./_store";
+import { readStore, seedStore, writeStore } from "./_store";
 
 export function getCurrentUser(): Result<User> {
   const store = readStore();
@@ -23,11 +23,6 @@ export function getAvailableUsers(): Result<User[]> {
 export function loadSeedData(): Result<{ loaded: true }> {
   seedStore();
   return ok({ loaded: true });
-}
-
-export function clearAllData(): Result<{ cleared: true }> {
-  resetStore();
-  return ok({ cleared: true });
 }
 
 export function switchUser(userId: Id): Result<User> {

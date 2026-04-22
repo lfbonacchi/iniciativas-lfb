@@ -136,6 +136,104 @@ export function importInitiative(
   return ok(initiative);
 }
 
+export function changeInitiativeStage(
+  initiativeId: Id,
+  newStage: InitiativeStage,
+): Result<Initiative> {
+  const store = readStore();
+  const user = getCurrentUserFromStore(store);
+  if (!user) return err("AUTH_REQUIRED", "No hay un usuario autenticado");
+  if (!userCanAccessInitiative(user, initiativeId, store)) {
+    return err("FORBIDDEN", "No tenés acceso a esta iniciativa");
+  }
+  const initiative = store.initiatives.find((i) => i.id === initiativeId);
+  if (!initiative) return err("NOT_FOUND", "Iniciativa no encontrada");
+  const old = initiative.current_stage;
+  if (old === newStage) return ok(initiative);
+  initiative.current_stage = newStage;
+  if (newStage === "dimensioning") initiative.has_etapa2 = true;
+  if (newStage === "mvp") initiative.has_etapa3 = true;
+  appendAudit(store, {
+    user_id: user.id,
+    action: "initiative_stage_changed",
+    entity_type: "initiative",
+    entity_id: initiative.id,
+    old_data: { current_stage: old },
+    new_data: { current_stage: newStage },
+  });
+  writeStore(store);
+  return ok(initiative);
+}
+
+export function changeInitiativeStatus(
+  initiativeId: Id,
+  newStatus: InitiativeStatus,
+): Result<Initiative> {
+  const store = readStore();
+  const user = getCurrentUserFromStore(store);
+  if (!user) return err("AUTH_REQUIRED", "No hay un usuario autenticado");
+  if (!userCanAccessInitiative(user, initiativeId, store)) {
+    return err("FORBIDDEN", "No tenés acceso a esta iniciativa");
+  }
+  const initiative = store.initiatives.find((i) => i.id === initiativeId);
+  if (!initiative) return err("NOT_FOUND", "Iniciativa no encontrada");
+  const old = initiative.status;
+  if (old === newStatus) return ok(initiative);
+  initiative.status = newStatus;
+  appendAudit(store, {
+    user_id: user.id,
+    action: "initiative_status_changed",
+    entity_type: "initiative",
+    entity_id: initiative.id,
+    old_data: { status: old },
+    new_data: { status: newStatus },
+  });
+  writeStore(store);
+  return ok(initiative);
+}
+
+// Helpers internos para usar desde otros módulos (gateways/forms) SIN releer
+// el store. Reciben el store abierto y lo mutan + agregan el audit.
+export function applyStageChangeInStore(
+  store: Store,
+  actorUserId: Id,
+  initiative: Initiative,
+  newStage: InitiativeStage,
+): void {
+  if (initiative.current_stage === newStage) return;
+  const old = initiative.current_stage;
+  initiative.current_stage = newStage;
+  if (newStage === "dimensioning") initiative.has_etapa2 = true;
+  if (newStage === "mvp") initiative.has_etapa3 = true;
+  appendAudit(store, {
+    user_id: actorUserId,
+    action: "initiative_stage_changed",
+    entity_type: "initiative",
+    entity_id: initiative.id,
+    old_data: { current_stage: old },
+    new_data: { current_stage: newStage },
+  });
+}
+
+export function applyStatusChangeInStore(
+  store: Store,
+  actorUserId: Id,
+  initiative: Initiative,
+  newStatus: InitiativeStatus,
+): void {
+  if (initiative.status === newStatus) return;
+  const old = initiative.status;
+  initiative.status = newStatus;
+  appendAudit(store, {
+    user_id: actorUserId,
+    action: "initiative_status_changed",
+    entity_type: "initiative",
+    entity_id: initiative.id,
+    old_data: { status: old },
+    new_data: { status: newStatus },
+  });
+}
+
 export function getInitiative(id: Id): Result<Initiative> {
   const store = readStore();
   const user = getCurrentUserFromStore(store);

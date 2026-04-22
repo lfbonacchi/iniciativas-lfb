@@ -331,3 +331,54 @@ export function removeTeamMember(
   writeStore(store);
   return ok(null);
 }
+
+export function changeTeamMemberRole(
+  initiativeId: Id,
+  userId: Id,
+  oldRole: InitiativeMemberRole,
+  newRole: InitiativeMemberRole,
+): Result<InitiativeMember> {
+  const store = readStore();
+  const user = getCurrentUserFromStore(store);
+  if (!user) return err("AUTH_REQUIRED", "No hay un usuario autenticado");
+  if (!isAreaTransformacion(user)) {
+    return err(
+      "FORBIDDEN",
+      "Solo Área Transformación puede gestionar el equipo",
+    );
+  }
+
+  const member = store.initiative_members.find(
+    (m) =>
+      m.initiative_id === initiativeId &&
+      m.user_id === userId &&
+      m.role === oldRole,
+  );
+  if (!member) return err("NOT_FOUND", "Miembro no encontrado");
+  if (oldRole === newRole) return ok(member);
+
+  const conflict = store.initiative_members.some(
+    (m) =>
+      m.initiative_id === initiativeId &&
+      m.user_id === userId &&
+      m.role === newRole,
+  );
+  if (conflict) {
+    return err(
+      "VALIDATION_ERROR",
+      "El miembro ya tiene ese rol en esta iniciativa",
+    );
+  }
+
+  member.role = newRole;
+  appendAudit(store, {
+    user_id: user.id,
+    action: "initiative_member_role_changed",
+    entity_type: "initiative_member",
+    entity_id: initiativeId,
+    old_data: { user_id: userId, role: oldRole },
+    new_data: { user_id: userId, role: newRole },
+  });
+  writeStore(store);
+  return ok(member);
+}

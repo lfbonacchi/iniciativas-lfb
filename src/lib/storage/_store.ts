@@ -19,7 +19,8 @@ import type {
 } from "@/types";
 import { getSeedData } from "@/data/seed";
 
-const STORE_KEY = "pae-portfolio-v1";
+const STORE_KEY = "mandarina-portfolio-v1";
+const LEGACY_STORE_KEY = "pae-portfolio-v1";
 
 export interface Store {
   users: User[];
@@ -118,7 +119,16 @@ function normalizeStore(raw: Partial<Store>): Store {
 
 export function readStore(): Store {
   if (!isClient()) return emptyStore();
-  const raw = window.localStorage.getItem(STORE_KEY);
+  let raw = window.localStorage.getItem(STORE_KEY);
+  if (!raw) {
+    // Migración desde el prefijo anterior pae- → mandarina-
+    const legacy = window.localStorage.getItem(LEGACY_STORE_KEY);
+    if (legacy) {
+      window.localStorage.setItem(STORE_KEY, legacy);
+      window.localStorage.removeItem(LEGACY_STORE_KEY);
+      raw = legacy;
+    }
+  }
   if (!raw) {
     const seeded = bootstrapStore();
     writeStore(seeded);
@@ -145,4 +155,5 @@ export function writeStore(store: Store): void {
 export function resetStore(): void {
   if (!isClient()) return;
   window.localStorage.removeItem(STORE_KEY);
+  window.localStorage.removeItem(LEGACY_STORE_KEY);
 }
