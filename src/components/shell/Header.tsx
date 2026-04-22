@@ -23,11 +23,16 @@ interface HeaderProps {
 const PIPELINE_STAGES: {
   key: InitiativeStage;
   label: string;
+  tooltip: string;
 }[] = [
-  { key: "proposal", label: "Propuesta" },
-  { key: "dimensioning", label: "Dimensionamiento" },
-  { key: "mvp", label: "MVP" },
-  { key: "ltp_tracking", label: "Delivery" },
+  { key: "proposal", label: "Propuesta", tooltip: "Etapa 1 de 4 — Propuesta" },
+  {
+    key: "dimensioning",
+    label: "Dimensionamiento",
+    tooltip: "Etapa 2 de 4 — Dimensionamiento",
+  },
+  { key: "mvp", label: "MVP", tooltip: "Etapa 3 de 4 — MVP" },
+  { key: "ltp_tracking", label: "Delivery", tooltip: "Etapa 4 de 4 — Delivery" },
 ];
 
 const ZOOM_STORAGE_KEY = "mandarina-ui-zoom";
@@ -180,11 +185,12 @@ export function Header({ user, notificationCount }: HeaderProps) {
           return (
             <span key={s.key} className="flex items-center gap-2">
               <span
-                className={
+                title={s.tooltip}
+                className={`cursor-default transition-colors hover:text-pae-blue ${
                   isActive
                     ? "border-b-2 border-pae-blue pb-0.5 font-semibold text-pae-blue"
                     : "text-pae-text-tertiary"
-                }
+                }`}
               >
                 {s.label}
               </span>
@@ -234,8 +240,8 @@ export function Header({ user, notificationCount }: HeaderProps) {
 
         {user && accent && (
           <div
-            className={`grid h-8 w-8 place-items-center rounded-full text-[15px] font-semibold ${accent.bg} ${accent.fg}`}
-            title={user.display_name}
+            className={`avatar-interactive grid h-8 w-8 cursor-default place-items-center rounded-full text-[15px] font-semibold ring-1 ring-pae-border ${accent.bg} ${accent.fg}`}
+            title={`${user.display_name}${user.job_title ? ` — ${user.job_title}` : user.is_vp ? " — VP" : user.global_role === "area_transformacion" ? " — Área Transformación" : ""}`}
             aria-label={user.display_name}
           >
             {initials(user.display_name)}

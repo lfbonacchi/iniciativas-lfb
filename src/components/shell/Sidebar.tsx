@@ -25,9 +25,9 @@ const STATUS_TONE: Record<
   (typeof STATUS_CHIPS)[number]["tone"],
   string
 > = {
-  green: "bg-pae-green/10 text-pae-green",
-  red: "bg-pae-red/10 text-pae-red",
-  gray: "bg-pae-text-tertiary/10 text-pae-text-secondary",
+  green: "bg-pae-green/15 text-pae-green",
+  red: "bg-pae-red/15 text-pae-red",
+  gray: "bg-pae-text-tertiary/15 text-pae-text-secondary",
 };
 
 const SECTION_LABEL =
@@ -147,7 +147,8 @@ export function Sidebar({ user, pendingActions = 0 }: SidebarProps) {
               <button
                 key={chip.key}
                 type="button"
-                className={`rounded-full px-3 py-1.5 text-[12px] font-medium transition ${STATUS_TONE[chip.tone]}`}
+                title={`Filtrar por estado: ${chip.label}`}
+                className={`rounded-full px-3 py-1.5 text-[12px] font-medium transition-all duration-200 hover:scale-[1.04] hover:shadow-pill ${STATUS_TONE[chip.tone]}`}
               >
                 {chip.label}
               </button>

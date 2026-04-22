@@ -27,6 +27,13 @@ const STAGE_ACCENT: Record<InitiativeStage, string> = {
   ltp_tracking: "bg-pae-green",
 };
 
+const STAGE_TOOLTIP: Record<InitiativeStage, string> = {
+  proposal: "Etapa 1 de 4 — Propuesta",
+  dimensioning: "Etapa 2 de 4 — Dimensionamiento",
+  mvp: "Etapa 3 de 4 — MVP",
+  ltp_tracking: "Etapa 4 de 4 — Delivery",
+};
+
 const STAGE_CHIP: Record<InitiativeStage, { bg: string; text: string }> = {
   proposal: { bg: "bg-pae-blue/10", text: "text-pae-blue" },
   dimensioning: { bg: "bg-pae-blue/10", text: "text-pae-blue" },
@@ -39,14 +46,14 @@ function statusChipTone(
 ): { bg: string; text: string } {
   switch (status) {
     case "in_progress":
-      return { bg: "bg-pae-green/10", text: "text-pae-green" };
+      return { bg: "bg-pae-green/15", text: "text-pae-green" };
     case "pending":
-      return { bg: "bg-pae-red/10", text: "text-pae-red" };
+      return { bg: "bg-pae-red/15", text: "text-pae-red" };
     case "paused":
     case "rejected":
     case "area_change":
       return {
-        bg: "bg-pae-text-tertiary/10",
+        bg: "bg-pae-text-tertiary/15",
         text: "text-pae-text-secondary",
       };
   }
@@ -325,34 +332,36 @@ function InitiativeCard({ ini }: { ini: IniciativaCard }) {
     .join(" | ");
 
   return (
-    <div className="relative overflow-hidden rounded-xl bg-pae-surface p-5 shadow-sm">
+    <div className="card-initiative p-5">
       <span
-        className={`absolute left-0 top-0 h-full w-1 ${accent}`}
+        className={`absolute left-0 top-0 h-full w-[3px] ${accent}`}
         aria-hidden
       />
       <div className="pl-2">
         <Link
           href={`/iniciativas/${ini.id}`}
-          className="block text-[15px] font-semibold text-pae-text hover:text-pae-blue"
+          className="block text-[15px] font-medium text-pae-text transition-colors hover:text-pae-blue"
         >
           {ini.name}
         </Link>
 
         <div className="mt-2 flex flex-wrap gap-2">
           <span
-            className={`rounded-full px-2 py-[2px] text-[11px] font-medium ${stageChip.bg} ${stageChip.text}`}
+            title={STAGE_TOOLTIP[ini.current_stage]}
+            className={`pill-interactive ${stageChip.bg} ${stageChip.text}`}
           >
             {STAGE_LABEL[ini.current_stage]}
           </span>
           <span
-            className={`rounded-full px-2 py-[2px] text-[11px] font-medium ${statusTone.bg} ${statusTone.text}`}
+            title={`Estado: ${ini.status_label}`}
+            className={`pill-interactive ${statusTone.bg} ${statusTone.text}`}
           >
             {ini.status_label}
           </span>
         </div>
 
         {rolesText && (
-          <p className="mt-3 text-[12px] text-pae-text-secondary">
+          <p className="mt-3 text-[12px] font-normal text-pae-text-secondary">
             {rolesText}
           </p>
         )}
@@ -374,7 +383,7 @@ function InitiativeCard({ ini }: { ini: IniciativaCard }) {
           {ini.pending_action ? (
             <p className="flex items-center gap-1.5 text-[11px] font-medium text-pae-red">
               <span
-                className="inline-block h-2 w-2 rounded-full bg-pae-red"
+                className="inline-block h-2 w-2 animate-pulse rounded-full bg-pae-red"
                 aria-hidden
               />
               {ini.pending_action}
@@ -384,7 +393,7 @@ function InitiativeCard({ ini }: { ini: IniciativaCard }) {
           )}
           <Link
             href={`/iniciativas/${ini.id}`}
-            className="shrink-0 rounded-lg border border-pae-border bg-pae-surface px-3 py-1.5 text-[12px] font-medium text-pae-blue transition hover:bg-pae-blue/5"
+            className="shrink-0 rounded-lg border border-pae-border bg-pae-surface px-3 py-1.5 text-[12px] font-medium text-pae-blue hover:border-pae-blue/40 hover:bg-pae-blue/5"
           >
             Ir a iniciativa →
           </Link>
@@ -409,7 +418,7 @@ function Metric({
         {label}
       </p>
       <p
-        className={`mt-0.5 text-[13px] font-bold tabular-nums ${
+        className={`mt-0.5 text-[14px] font-medium tabular-nums ${
           muted ? "text-pae-text-tertiary" : "text-pae-text"
         }`}
       >

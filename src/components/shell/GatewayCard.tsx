@@ -21,10 +21,17 @@ const STAGE_LABEL: Record<InitiativeStage, string> = {
 };
 
 const STAGE_CHIP: Record<InitiativeStage, { bg: string; text: string }> = {
-  proposal: { bg: "bg-pae-blue/10", text: "text-pae-blue" },
-  dimensioning: { bg: "bg-pae-blue/10", text: "text-pae-blue" },
-  mvp: { bg: "bg-pae-green/10", text: "text-pae-green" },
-  ltp_tracking: { bg: "bg-pae-green/10", text: "text-pae-green" },
+  proposal: { bg: "bg-pae-blue/15", text: "text-pae-blue" },
+  dimensioning: { bg: "bg-pae-blue/15", text: "text-pae-blue" },
+  mvp: { bg: "bg-pae-green/15", text: "text-pae-green" },
+  ltp_tracking: { bg: "bg-pae-green/15", text: "text-pae-green" },
+};
+
+const STAGE_TOOLTIP: Record<InitiativeStage, string> = {
+  proposal: "Etapa 1 de 4 — Propuesta",
+  dimensioning: "Etapa 2 de 4 — Dimensionamiento",
+  mvp: "Etapa 3 de 4 — MVP",
+  ltp_tracking: "Etapa 4 de 4 — Delivery",
 };
 
 const STATUS_LABEL: Record<GatewayStatus, string> = {
@@ -38,13 +45,13 @@ const STATUS_LABEL: Record<GatewayStatus, string> = {
 };
 
 const STATUS_CHIP: Record<GatewayStatus, { bg: string; text: string }> = {
-  pending: { bg: "bg-pae-amber/10", text: "text-pae-amber" },
-  approved: { bg: "bg-pae-green/10", text: "text-pae-green" },
-  approved_with_changes: { bg: "bg-pae-green/10", text: "text-pae-green" },
-  feedback: { bg: "bg-pae-blue/10", text: "text-pae-blue" },
-  pause: { bg: "bg-pae-amber/10", text: "text-pae-amber" },
-  reject: { bg: "bg-pae-red/10", text: "text-pae-red" },
-  area_change: { bg: "bg-pae-text-tertiary/10", text: "text-pae-text-secondary" },
+  pending: { bg: "bg-pae-amber/15", text: "text-pae-amber-dark" },
+  approved: { bg: "bg-pae-green/15", text: "text-pae-green" },
+  approved_with_changes: { bg: "bg-pae-green/15", text: "text-pae-green" },
+  feedback: { bg: "bg-pae-blue/15", text: "text-pae-blue" },
+  pause: { bg: "bg-pae-amber/15", text: "text-pae-amber-dark" },
+  reject: { bg: "bg-pae-red/15", text: "text-pae-red" },
+  area_change: { bg: "bg-pae-text-tertiary/15", text: "text-pae-text-secondary" },
 };
 
 function formatDate(iso: string | null): string {
@@ -72,28 +79,30 @@ export function GatewayCard({
   const statusChip = STATUS_CHIP[item.gateway.status];
 
   return (
-    <div className="relative flex items-center gap-4 rounded-[10px] border border-pae-border bg-pae-surface p-4 pl-5">
+    <div className="card-initiative relative flex items-center gap-4 border border-pae-border p-4 pl-5">
       <span
-        className="absolute left-0 top-3 bottom-3 w-1 rounded-r bg-pae-red"
+        className="absolute left-0 top-0 bottom-0 w-[3px] bg-pae-red"
         aria-hidden
       />
       <div className="flex-1 min-w-0">
-        <p className="text-[12px] font-semibold text-pae-text">
+        <p className="text-[12px] font-semibold uppercase tracking-wide text-pae-text-tertiary">
           Gateway {item.gateway.gateway_number as GatewayNumber}
         </p>
         <p className="mt-0.5 text-[14px] font-medium text-pae-text truncate">
           {item.initiative.name}
         </p>
         <div className="mt-2 flex flex-wrap items-center gap-2">
-          {stageChip && (
+          {stageChip && stage && (
             <span
-              className={`rounded-full px-3 py-0.5 text-[10px] font-medium ${stageChip.bg} ${stageChip.text}`}
+              title={STAGE_TOOLTIP[stage]}
+              className={`pill-interactive ${stageChip.bg} ${stageChip.text}`}
             >
               {stageLabel}
             </span>
           )}
           <span
-            className={`rounded-full px-3 py-0.5 text-[10px] font-medium ${statusChip.bg} ${statusChip.text}`}
+            title={`Estado del gateway: ${STATUS_LABEL[item.gateway.status]}`}
+            className={`pill-interactive ${statusChip.bg} ${statusChip.text}`}
           >
             {STATUS_LABEL[item.gateway.status]}
           </span>
