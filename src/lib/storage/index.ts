@@ -8,6 +8,7 @@ export * from "./forms_tab";
 export * from "./gateways";
 export * from "./notifications";
 export * from "./documents";
+export * from "./form_snapshots";
 export * from "./events";
 export * from "./files";
 export * from "./activity";

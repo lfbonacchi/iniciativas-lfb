@@ -151,7 +151,7 @@ export function ReadOnlySections({
                       {field.label}
                     </p>
                     <div className="mt-1 rounded-md bg-pae-bg px-3 py-2 text-[11px] text-pae-text">
-                      {renderValue(field, responses[field.key])}
+                      {renderValue(field, responses[field.key] ?? null)}
                     </div>
                   </div>
                 ))}

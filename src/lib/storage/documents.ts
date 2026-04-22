@@ -115,15 +115,31 @@ export function getDocumentUrl(
 export type DocNodeKind = "folder" | "file";
 export type DocFileOrigin = "auto" | "manual";
 
+// Origen de datos del archivo, usado por la UI para generar el XLSX/PDF al
+// momento de descargar/previsualizar. Esta distinción reemplaza los binarios
+// físicos que no existen en Fase 2-4.
+export type DocFileSource =
+  | { kind: "form_current"; form_id: Id; format: "xlsx" | "pdf" }
+  | {
+      kind: "form_snapshot";
+      form_id: Id;
+      snapshot_id: Id;
+      snapshot_type: "submitted" | "final";
+      format: "xlsx" | "pdf";
+    }
+  | { kind: "manual"; document_id: Id } // upload de usuario (stub en Fase 2-4)
+  | { kind: "stub" };                    // minutas/notas de prensa pendientes
+
 export interface DocFileNode {
   kind: "file";
-  id: Id;
+  id: string;
   name: string;
   icon: string;
   origin: DocFileOrigin;
   created_at: string;
   author_name: string | null;
   can_regenerate: boolean;
+  source: DocFileSource;
 }
 
 export interface DocFolderNode {
@@ -215,6 +231,189 @@ function isoForForm(form: Form): string {
   return form.approved_at ?? form.submitted_at ?? form.updated_at;
 }
 
+function buildFormFiles(
+  store: Store,
+  form: Form | undefined,
+  fileStem: string, // "ETAPA_1_formulario" | "F4_formulario" ...
+): { vf: DocFileNode[]; preGateway: DocFileNode[]; current: DocFileNode[]; history: DocFileNode[] } {
+  if (!form) return { vf: [], preGateway: [], current: [], history: [] };
+
+  const authorName = userName(store, form.created_by);
+  const snapshots = store.form_snapshots
+    .filter((s) => s.form_id === form.id)
+    .sort((a, b) => b.created_at.localeCompare(a.created_at));
+
+  const latestFinal = snapshots.find((s) => s.snapshot_type === "final") ?? null;
+  const latestSubmitted =
+    snapshots.find((s) => s.snapshot_type === "submitted") ?? null;
+
+  const vf: DocFileNode[] = [];
+  if (latestFinal) {
+    const baseName = `VF${fileStem}`;
+    vf.push(
+      {
+        kind: "file",
+        id: `final-${latestFinal.id}-xlsx`,
+        name: `${baseName}.xlsx`,
+        icon: "📋",
+        origin: "auto",
+        created_at: latestFinal.created_at,
+        author_name: authorName,
+        can_regenerate: false,
+        source: {
+          kind: "form_snapshot",
+          form_id: form.id,
+          snapshot_id: latestFinal.id,
+          snapshot_type: "final",
+          format: "xlsx",
+        },
+      },
+      {
+        kind: "file",
+        id: `final-${latestFinal.id}-pdf`,
+        name: `${baseName}.pdf`,
+        icon: "📄",
+        origin: "auto",
+        created_at: latestFinal.created_at,
+        author_name: authorName,
+        can_regenerate: false,
+        source: {
+          kind: "form_snapshot",
+          form_id: form.id,
+          snapshot_id: latestFinal.id,
+          snapshot_type: "final",
+          format: "pdf",
+        },
+      },
+    );
+  }
+
+  const preGateway: DocFileNode[] = [];
+  if (latestSubmitted) {
+    const baseName = `${fileStem}_PRE-GATEWAY`;
+    preGateway.push(
+      {
+        kind: "file",
+        id: `submitted-${latestSubmitted.id}-xlsx`,
+        name: `${baseName}.xlsx`,
+        icon: "📋",
+        origin: "auto",
+        created_at: latestSubmitted.created_at,
+        author_name: authorName,
+        can_regenerate: false,
+        source: {
+          kind: "form_snapshot",
+          form_id: form.id,
+          snapshot_id: latestSubmitted.id,
+          snapshot_type: "submitted",
+          format: "xlsx",
+        },
+      },
+      {
+        kind: "file",
+        id: `submitted-${latestSubmitted.id}-pdf`,
+        name: `${baseName}.pdf`,
+        icon: "📄",
+        origin: "auto",
+        created_at: latestSubmitted.created_at,
+        author_name: authorName,
+        can_regenerate: false,
+        source: {
+          kind: "form_snapshot",
+          form_id: form.id,
+          snapshot_id: latestSubmitted.id,
+          snapshot_type: "submitted",
+          format: "pdf",
+        },
+      },
+    );
+  }
+
+  // Archivo activo: se genera on-demand con el estado actual del form.
+  const current: DocFileNode[] = [
+    {
+      kind: "file",
+      id: `current-${form.id}-xlsx`,
+      name: `${fileStem}.xlsx`,
+      icon: "📋",
+      origin: "auto",
+      created_at: form.updated_at,
+      author_name: authorName,
+      can_regenerate: true,
+      source: { kind: "form_current", form_id: form.id, format: "xlsx" },
+    },
+    {
+      kind: "file",
+      id: `current-${form.id}-pdf`,
+      name: `${fileStem}.pdf`,
+      icon: "📄",
+      origin: "auto",
+      created_at: form.updated_at,
+      author_name: authorName,
+      can_regenerate: true,
+      source: { kind: "form_current", form_id: form.id, format: "pdf" },
+    },
+  ];
+
+  // Historial: snapshots anteriores que ya no son "el último de su tipo".
+  const history: DocFileNode[] = [];
+  const olderFinals = snapshots
+    .filter((s) => s.snapshot_type === "final" && s.id !== latestFinal?.id)
+    .map((s) => ({
+      kind: "file" as const,
+      id: `final-${s.id}-xlsx`,
+      name: `VF${fileStem}_v${s.version_number}_${formatTimestampForFilename(s.created_at)}.xlsx`,
+      icon: "📋",
+      origin: "auto" as const,
+      created_at: s.created_at,
+      author_name: authorName,
+      can_regenerate: false,
+      source: {
+        kind: "form_snapshot" as const,
+        form_id: form.id,
+        snapshot_id: s.id,
+        snapshot_type: "final" as const,
+        format: "xlsx" as const,
+      },
+    }));
+  const olderSubmitted = snapshots
+    .filter(
+      (s) => s.snapshot_type === "submitted" && s.id !== latestSubmitted?.id,
+    )
+    .map((s) => ({
+      kind: "file" as const,
+      id: `submitted-${s.id}-xlsx`,
+      name: `${fileStem}_PRE-GATEWAY_v${s.version_number}_${formatTimestampForFilename(s.created_at)}.xlsx`,
+      icon: "📋",
+      origin: "auto" as const,
+      created_at: s.created_at,
+      author_name: authorName,
+      can_regenerate: false,
+      source: {
+        kind: "form_snapshot" as const,
+        form_id: form.id,
+        snapshot_id: s.id,
+        snapshot_type: "submitted" as const,
+        format: "xlsx" as const,
+      },
+    }));
+  history.push(...olderFinals, ...olderSubmitted);
+
+  return { vf, preGateway, current, history };
+}
+
+function formatTimestampForFilename(iso: string): string {
+  try {
+    const d = new Date(iso);
+    const pad = (n: number) => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}_${pad(
+      d.getHours(),
+    )}-${pad(d.getMinutes())}`;
+  } catch {
+    return iso.replace(/[:.]/g, "-");
+  }
+}
+
 function buildStageFolder(
   store: Store,
   initiativeId: Id,
@@ -226,10 +425,6 @@ function buildStageFolder(
   const form = store.forms.find(
     (f) => f.initiative_id === initiativeId && f.form_type === formType,
   );
-  const approved =
-    form?.status === "approved" ||
-    form?.status === "final" ||
-    form?.status === "closed";
   const gateway = store.gateways.find(
     (g) =>
       g.initiative_id === initiativeId &&
@@ -241,74 +436,17 @@ function buildStageFolder(
   const authorName = userName(store, authorId);
   const dateIso = form ? isoForForm(form) : new Date().toISOString();
 
+  const stageNumber = gatewayNumber; // 1 / 2 / 3
+  const fileStem = `ETAPA_${stageNumber}_formulario`;
+  const { vf, preGateway, current, history } = buildFormFiles(
+    store,
+    form,
+    fileStem,
+  );
+
   const children: DocTreeNode[] = [];
-
-  if (form) {
-    children.push({
-      kind: "file",
-      id: `auto-${form.id}-xlsx`,
-      name: `${formType}_formulario.xlsx`,
-      icon: "📋",
-      origin: "auto",
-      created_at: dateIso,
-      author_name: authorName,
-      can_regenerate: true,
-    });
-    children.push({
-      kind: "file",
-      id: `auto-${form.id}-pdf`,
-      name: `${formType}_formulario.pdf`,
-      icon: "📄",
-      origin: "auto",
-      created_at: dateIso,
-      author_name: authorName,
-      can_regenerate: true,
-    });
-  }
-
-  if (approved && form) {
-    const vfIso = form.approved_at ?? dateIso;
-    children.push({
-      kind: "file",
-      id: `vf-${form.id}-xlsx`,
-      name: `${formType}_formulario_VF.xlsx`,
-      icon: "📋",
-      origin: "auto",
-      created_at: vfIso,
-      author_name: authorName,
-      can_regenerate: true,
-    });
-    children.push({
-      kind: "file",
-      id: `vf-${form.id}-pdf`,
-      name: `${formType}_formulario_VF.pdf`,
-      icon: "📄",
-      origin: "auto",
-      created_at: vfIso,
-      author_name: authorName,
-      can_regenerate: true,
-    });
-    children.push({
-      kind: "file",
-      id: `vf-${form.id}-pptx`,
-      name: `Presentacion_${formType}_VF.pptx`,
-      icon: "📊",
-      origin: "auto",
-      created_at: vfIso,
-      author_name: authorName,
-      can_regenerate: true,
-    });
-    children.push({
-      kind: "file",
-      id: `vf-${form.id}-notaprensa`,
-      name: `Notadeprensa_${formType}_VF.docx`,
-      icon: "📰",
-      origin: "auto",
-      created_at: vfIso,
-      author_name: authorName,
-      can_regenerate: true,
-    });
-  }
+  // Orden: VF arriba, PRE-GATEWAY, archivo activo.
+  children.push(...vf, ...preGateway, ...current);
 
   if (gatewayDone && gateway) {
     children.push({
@@ -320,6 +458,7 @@ function buildStageFolder(
       created_at: dateIso,
       author_name: authorName,
       can_regenerate: true,
+      source: { kind: "stub" },
     });
   }
 
@@ -329,16 +468,20 @@ function buildStageFolder(
       d.stage === stage &&
       d.document_type === "manual_upload",
   );
-  const additionalChildren: DocFileNode[] = manualDocs.map((d) => ({
-    kind: "file",
-    id: d.id,
-    name: d.file_path.split("/").pop() ?? "archivo",
-    icon: iconForPath(d.file_path),
-    origin: "manual",
-    created_at: d.created_at,
-    author_name: userName(store, d.generated_by),
-    can_regenerate: false,
-  }));
+  const additionalChildren: DocFileNode[] = [
+    ...history,
+    ...manualDocs.map<DocFileNode>((d) => ({
+      kind: "file",
+      id: d.id,
+      name: d.file_path.split("/").pop() ?? "archivo",
+      icon: iconForPath(d.file_path),
+      origin: "manual",
+      created_at: d.created_at,
+      author_name: userName(store, d.generated_by),
+      can_regenerate: false,
+      source: { kind: "manual", document_id: d.id },
+    })),
+  ];
 
   children.push({
     kind: "folder",
@@ -443,7 +586,7 @@ function buildLtpFolder(store: Store, initiativeId: Id): DocFolderNode {
       name: "archivos adicionales",
       icon: "📁",
       default_open: true,
-      children: manualDocs.map((d) => ({
+      children: manualDocs.map<DocFileNode>((d) => ({
         kind: "file",
         id: d.id,
         name: d.file_path.split("/").pop() ?? "archivo",
@@ -452,6 +595,7 @@ function buildLtpFolder(store: Store, initiativeId: Id): DocFolderNode {
         created_at: d.created_at,
         author_name: userName(store, d.generated_by),
         can_regenerate: false,
+        source: { kind: "manual", document_id: d.id },
       })),
     });
   }
@@ -467,80 +611,28 @@ function buildLtpFolder(store: Store, initiativeId: Id): DocFolderNode {
 }
 
 function buildLtpFormFolder(store: Store, form: Form): DocFolderNode {
-  const authorName = userName(store, form.created_by);
-  const dateIso = isoForForm(form);
-  const approved =
-    form.status === "approved" ||
-    form.status === "final" ||
-    form.status === "reviewed" ||
-    form.status === "closed";
   const labelByType: Record<"F4" | "F5", string> = {
     F4: "F4 Visión Anual",
     F5: "F5 Planificación Anual",
   };
   const type = form.form_type as "F4" | "F5";
-  const children: DocTreeNode[] = [
-    {
-      kind: "file",
-      id: `auto-${form.id}-xlsx`,
-      name: `${type}_formulario.xlsx`,
-      icon: "📋",
-      origin: "auto",
-      created_at: dateIso,
-      author_name: authorName,
-      can_regenerate: true,
-    },
-    {
-      kind: "file",
-      id: `auto-${form.id}-pdf`,
-      name: `${type}_formulario.pdf`,
-      icon: "📄",
-      origin: "auto",
-      created_at: dateIso,
-      author_name: authorName,
-      can_regenerate: true,
-    },
-  ];
-  if (approved) {
+  const fileStem = `${type}_formulario`;
+  const { vf, preGateway, current, history } = buildFormFiles(
+    store,
+    form,
+    fileStem,
+  );
+
+  const children: DocTreeNode[] = [...vf, ...preGateway, ...current];
+
+  if (history.length > 0) {
     children.push({
-      kind: "file",
-      id: `vf-${form.id}-xlsx`,
-      name: `${type}_formulario_VF.xlsx`,
-      icon: "📋",
-      origin: "auto",
-      created_at: dateIso,
-      author_name: authorName,
-      can_regenerate: true,
-    });
-    children.push({
-      kind: "file",
-      id: `vf-${form.id}-pdf`,
-      name: `${type}_formulario_VF.pdf`,
-      icon: "📄",
-      origin: "auto",
-      created_at: dateIso,
-      author_name: authorName,
-      can_regenerate: true,
-    });
-    children.push({
-      kind: "file",
-      id: `vf-${form.id}-pptx`,
-      name: `Presentacion_${type}_VF.pptx`,
-      icon: "📊",
-      origin: "auto",
-      created_at: dateIso,
-      author_name: authorName,
-      can_regenerate: true,
-    });
-    children.push({
-      kind: "file",
-      id: `vf-${form.id}-notaprensa`,
-      name: `Notadeprensa_${type}_VF.docx`,
-      icon: "📰",
-      origin: "auto",
-      created_at: dateIso,
-      author_name: authorName,
-      can_regenerate: true,
+      kind: "folder",
+      id: `ltp-form-${form.id}-adicionales`,
+      name: "archivos adicionales",
+      icon: "📁",
+      default_open: false,
+      children: history,
     });
   }
 
@@ -628,7 +720,7 @@ function buildGatewayFeedbackNodes(
   const gateways = store.gateways.filter(
     (g) => g.initiative_id === initiativeId && g.status !== "pending",
   );
-  return gateways.map((g) => ({
+  return gateways.map<DocFileNode>((g) => ({
     kind: "file",
     id: `feedback-${g.id}`,
     name: `Feedback_gateway_${g.gateway_number}.docx`,
@@ -637,5 +729,6 @@ function buildGatewayFeedbackNodes(
     created_at: new Date().toISOString(),
     author_name: null,
     can_regenerate: true,
+    source: { kind: "stub" },
   }));
 }

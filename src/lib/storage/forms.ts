@@ -23,6 +23,7 @@ import {
 } from "@/lib/validations/forms";
 import { readStore, writeStore, type Store } from "./_store";
 import { newId, nowIso } from "./_ids";
+import { createSnapshotInStore } from "./form_snapshots";
 import {
   getCurrentUserFromStore,
   userCanAccessInitiative,
@@ -411,6 +412,10 @@ export function submitForm(formId: Id): Result<{ form: Form; gateway: Gateway | 
   form.status = form.form_type === "F4" || form.form_type === "F5" ? "submitted" : "in_review";
   form.submitted_at = now;
   form.updated_at = now;
+
+  // Snapshot PRE-GATEWAY: congela las respuestas enviadas a aprobación. Este
+  // archivo no se sobreescribe más — queda como registro de qué se envió.
+  createSnapshotInStore(store, form.id, "submitted", user.id, responses);
 
   let gateway: Gateway | null = null;
   if (form.form_type === "F1" || form.form_type === "F2" || form.form_type === "F3") {

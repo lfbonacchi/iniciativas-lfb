@@ -28,6 +28,7 @@ import {
   applyStageChangeInStore,
   applyStatusChangeInStore,
 } from "./initiatives";
+import { createSnapshotInStore } from "./form_snapshots";
 
 export interface GatewayDetail {
   gateway: Gateway;
@@ -349,6 +350,10 @@ export function submitVote(
       form.status = "approved";
       form.approved_at = now;
       form.updated_at = now;
+      // Snapshot VF automático: toma las responses vigentes al momento de
+      // aprobación como base. El PO puede crear luego una VF editada
+      // con los acuerdos de minuta vía createFinalVersionSnapshot.
+      createSnapshotInStore(store, form.id, "final", user.id);
       appendAudit(store, {
         user_id: user.id,
         action: "form_approved",

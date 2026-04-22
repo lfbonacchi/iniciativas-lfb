@@ -3,6 +3,7 @@ import type { Id, IsoDateString, JsonObject } from "./common";
 export type AuditAction =
   | "initiative_created"
   | "initiative_imported"
+  | "initiative_deleted"
   | "initiative_stage_changed"
   | "initiative_status_changed"
   | "initiative_member_added"
@@ -12,6 +13,9 @@ export type AuditAction =
   | "form_approved"
   | "form_reviewed"
   | "form_response_changed"
+  | "form_snapshot_created"
+  | "form_access_granted"
+  | "form_edit_access_revoked"
   | "gateway_vote_cast"
   | "gateway_resolved"
   | "document_uploaded"

@@ -51,6 +51,7 @@ const TYPE_LABEL: Record<PortfolioEventType, string> = {
 const ACTION_LABEL: Record<EventChangeLogEntry["action"], string> = {
   initiative_created: "",
   initiative_imported: "",
+  initiative_deleted: "",
   initiative_stage_changed: "",
   initiative_status_changed: "",
   initiative_member_added: "",
@@ -60,6 +61,9 @@ const ACTION_LABEL: Record<EventChangeLogEntry["action"], string> = {
   form_approved: "",
   form_reviewed: "",
   form_response_changed: "",
+  form_snapshot_created: "",
+  form_access_granted: "",
+  form_edit_access_revoked: "",
   gateway_vote_cast: "",
   gateway_resolved: "",
   document_uploaded: "",

@@ -79,6 +79,8 @@ function naturalEditorRole(
       return "LD";
     case "sm":
       return "Scrum Master";
+    default:
+      return null;
   }
 }
 

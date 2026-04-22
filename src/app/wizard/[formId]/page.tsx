@@ -21,6 +21,10 @@ import {
   submitForm,
 } from "@/lib/storage/forms";
 import { getRawSectionChangeLog } from "@/lib/storage/activity";
+import { getInitiative } from "@/lib/storage/initiatives";
+import { resolveFormDoc } from "@/lib/documents/resolve";
+import { buildXlsxBlob, downloadBlob } from "@/lib/documents/xlsx_form";
+import { downloadPdf } from "@/lib/documents/pdf_form";
 import type { FormChangeLog, FormFieldValue, FormType, User } from "@/types";
 
 import { SectionHistory } from "./components/SectionHistory";
@@ -241,13 +245,74 @@ export default function WizardPage({
     }
   }, [autosave, carriedOverKeys, formId, formType, initiativeId, responses, router]);
 
-  const handlePreview = useCallback(() => {
-    alert("Previsualización pendiente de integración.");
-  }, []);
+  const buildActiveDoc = useCallback(async () => {
+    await autosave.flushNow();
+    if (!initiativeId) return null;
+    const iniRes = getInitiative(initiativeId);
+    const initiativeName = iniRes.success ? iniRes.data.name : "Iniciativa";
+    const doc = resolveFormDoc(
+      { kind: "form_current", form_id: formId, format: "xlsx" },
+      initiativeName,
+      null,
+    );
+    if (!doc.success) {
+      alert(`No se pudo generar el archivo: ${doc.error.message}`);
+      return null;
+    }
+    return { doc: doc.data, initiativeName };
+  }, [autosave, formId, initiativeId]);
 
-  const handleGeneratePptx = useCallback(() => {
-    alert("Generación de PPTX pendiente de integración (pptxgenjs).");
-  }, []);
+  const handlePreview = useCallback(async () => {
+    const result = await buildActiveDoc();
+    if (!result) return;
+    const html = (await import("@/lib/documents/html_form")).renderDocAsHtml(
+      result.doc,
+    );
+    const w = window.open("", "_blank", "noopener,noreferrer");
+    if (!w) {
+      alert("Tu navegador bloqueó la ventana de previsualización.");
+      return;
+    }
+    w.document.open();
+    w.document.write(
+      `<!doctype html><html><head><meta charset="utf-8"><title>${result.doc.meta.form_label} — ${result.doc.meta.initiative_name}</title></head><body style="margin:0;background:#EBF0F7;">${html}</body></html>`,
+    );
+    w.document.close();
+  }, [buildActiveDoc]);
+
+  const handleDownloadXlsx = useCallback(async () => {
+    if (!formType) return;
+    const result = await buildActiveDoc();
+    if (!result) return;
+    const stem =
+      formType === "F1"
+        ? "ETAPA_1_formulario"
+        : formType === "F2"
+          ? "ETAPA_2_formulario"
+          : formType === "F3"
+            ? "ETAPA_3_formulario"
+            : `${formType}_formulario`;
+    downloadBlob(buildXlsxBlob(result.doc), `${stem}.xlsx`);
+  }, [buildActiveDoc, formType]);
+
+  const handleDownloadPdf = useCallback(async () => {
+    if (!formType) return;
+    const result = await buildActiveDoc();
+    if (!result) return;
+    const stem =
+      formType === "F1"
+        ? "ETAPA_1_formulario"
+        : formType === "F2"
+          ? "ETAPA_2_formulario"
+          : formType === "F3"
+            ? "ETAPA_3_formulario"
+            : `${formType}_formulario`;
+    try {
+      await downloadPdf(result.doc, `${stem}.pdf`);
+    } catch (e) {
+      alert(e instanceof Error ? e.message : "Error al generar el PDF");
+    }
+  }, [buildActiveDoc, formType]);
 
   if (loading) {
     return (
@@ -460,7 +525,8 @@ export default function WizardPage({
             submittingLabel={copy.submitting}
             disabledHint={`Completá todas las secciones (${completeness.percent}%) para ${copy.label.toLowerCase()}`}
             onPreview={handlePreview}
-            onGeneratePptx={handleGeneratePptx}
+            onDownloadXlsx={handleDownloadXlsx}
+            onDownloadPdf={handleDownloadPdf}
             onSubmit={handleSubmit}
             submitting={submitting}
           />

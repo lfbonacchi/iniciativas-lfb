@@ -12,7 +12,8 @@ export function WizardBottomBar({
   submittingLabel,
   disabledHint,
   onPreview,
-  onGeneratePptx,
+  onDownloadXlsx,
+  onDownloadPdf,
   onSubmit,
   submitting,
 }: {
@@ -23,7 +24,8 @@ export function WizardBottomBar({
   submittingLabel?: string;
   disabledHint?: string;
   onPreview: () => void;
-  onGeneratePptx: () => void;
+  onDownloadXlsx: () => void;
+  onDownloadPdf: () => void;
   onSubmit: () => void;
   submitting: boolean;
 }) {
@@ -75,14 +77,21 @@ export function WizardBottomBar({
             onClick={onPreview}
             className="rounded-lg border border-pae-border bg-pae-surface px-3 py-1.5 text-[12px] font-medium text-pae-text-secondary transition hover:border-pae-blue/40 hover:text-pae-blue"
           >
-            Previsualizar
+            👁 Previsualizar
           </button>
           <button
             type="button"
-            onClick={onGeneratePptx}
+            onClick={onDownloadXlsx}
+            className="rounded-lg border border-pae-green/40 bg-pae-green/5 px-3 py-1.5 text-[12px] font-medium text-pae-green transition hover:bg-pae-green/10"
+          >
+            ↓ XLSX
+          </button>
+          <button
+            type="button"
+            onClick={onDownloadPdf}
             className="rounded-lg border border-pae-red/30 bg-pae-red/5 px-3 py-1.5 text-[12px] font-medium text-pae-red transition hover:bg-pae-red/10"
           >
-            Generar PPTX
+            ↓ PDF
           </button>
           <button
             type="button"

@@ -10,8 +10,12 @@ import {
   type DocFileNode,
 } from "@/lib/storage/documents";
 import { useUploadDocument } from "@/components/shell/UploadDocumentContext";
+import { resolveFormDoc } from "@/lib/documents/resolve";
+import { buildXlsxBlob, downloadBlob } from "@/lib/documents/xlsx_form";
+import { downloadPdf } from "@/lib/documents/pdf_form";
 
 import { useInitiativeDetail } from "../DetailContext";
+import { DocumentPreviewModal } from "./DocumentPreviewModal";
 
 function collectDefaultOpen(nodes: DocTreeNode[], out: Set<string>): void {
   for (const node of nodes) {
@@ -50,19 +54,55 @@ function OriginBadge({ origin }: { origin: DocFileNode["origin"] }) {
   );
 }
 
-function FileRow({ file, depth }: { file: DocFileNode; depth: number }) {
+function FileRow({
+  file,
+  depth,
+  initiativeName,
+  onPreview,
+}: {
+  file: DocFileNode;
+  depth: number;
+  initiativeName: string;
+  onPreview: (file: DocFileNode) => void;
+}) {
+  const [downloading, setDownloading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const meta = file.author_name
     ? `${file.author_name} · ${formatDate(file.created_at)}`
     : formatDate(file.created_at);
 
-  function handleDownload() {
-    // STUB fase 2-4: no hay binarios reales.
-    // En fase 5 esto invoca getDocumentUrl o descarga el blob.
-    alert(`Descargando ${file.name} (simulado — sin binario real en MVP).`);
-  }
+  const canGenerate =
+    file.source.kind === "form_current" || file.source.kind === "form_snapshot";
 
-  function handleRegenerate() {
-    alert(`Regenerando ${file.name} (simulado — pendiente integración).`);
+  async function handleDownload() {
+    if (downloading) return;
+    if (!canGenerate) {
+      alert(`${file.name} aún no tiene generador asociado.`);
+      return;
+    }
+    setError(null);
+    const res = resolveFormDoc(file.source, initiativeName, file.author_name);
+    if (!res.success) {
+      setError(res.error.message);
+      return;
+    }
+    setDownloading(true);
+    try {
+      const format =
+        file.source.kind === "form_current" || file.source.kind === "form_snapshot"
+          ? file.source.format
+          : "xlsx";
+      if (format === "pdf") {
+        await downloadPdf(res.data, file.name);
+      } else {
+        const blob = buildXlsxBlob(res.data);
+        downloadBlob(blob, file.name);
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Error al generar el archivo");
+    } finally {
+      setDownloading(false);
+    }
   }
 
   return (
@@ -80,22 +120,29 @@ function FileRow({ file, depth }: { file: DocFileNode; depth: number }) {
         {meta}
       </span>
       <OriginBadge origin={file.origin} />
-      {file.origin === "auto" && file.can_regenerate && (
+      {canGenerate && (
         <button
           type="button"
-          onClick={handleRegenerate}
+          onClick={() => onPreview(file)}
           className="rounded-md border border-pae-border bg-pae-surface px-2 py-1 text-[10px] font-medium text-pae-text-secondary transition hover:border-pae-blue/40 hover:text-pae-blue"
         >
-          Regenerar
+          👁 Ver
         </button>
       )}
       <button
         type="button"
         onClick={handleDownload}
-        className="rounded-md bg-pae-blue/10 px-2 py-1 text-[10px] font-medium text-pae-blue transition hover:bg-pae-blue/20"
+        disabled={downloading}
+        title={error ?? undefined}
+        className="rounded-md bg-pae-blue/10 px-2 py-1 text-[10px] font-medium text-pae-blue transition hover:bg-pae-blue/20 disabled:opacity-60"
       >
-        ↓ Descargar
+        {downloading ? "…" : "↓ Descargar"}
       </button>
+      {error && (
+        <span className="text-[10px] text-pae-red" role="alert">
+          {error}
+        </span>
+      )}
     </div>
   );
 }
@@ -105,11 +152,15 @@ function FolderRow({
   depth,
   openSet,
   toggle,
+  initiativeName,
+  onPreview,
 }: {
   folder: DocFolderNode;
   depth: number;
   openSet: Set<string>;
   toggle: (id: string) => void;
+  initiativeName: string;
+  onPreview: (file: DocFileNode) => void;
 }) {
   const isOpen = openSet.has(folder.id);
   const childCount = folder.children.length;
@@ -155,9 +206,17 @@ function FolderRow({
                   depth={depth + 1}
                   openSet={openSet}
                   toggle={toggle}
+                  initiativeName={initiativeName}
+                  onPreview={onPreview}
                 />
               ) : (
-                <FileRow key={child.id} file={child} depth={depth + 1} />
+                <FileRow
+                  key={child.id}
+                  file={child}
+                  depth={depth + 1}
+                  initiativeName={initiativeName}
+                  onPreview={onPreview}
+                />
               ),
             )
           )}
@@ -176,6 +235,7 @@ export function DocumentsTreeView() {
   const [error, setError] = useState<string | null>(null);
   const [openSet, setOpenSet] = useState<Set<string>>(new Set());
   const [reloadKey, setReloadKey] = useState(0);
+  const [previewFile, setPreviewFile] = useState<DocFileNode | null>(null);
 
   useEffect(() => {
     const result = getDocumentTree(initiativeId);
@@ -260,12 +320,28 @@ export function DocumentsTreeView() {
                 depth={0}
                 openSet={openSet}
                 toggle={toggle}
+                initiativeName={detail.initiative.name}
+                onPreview={setPreviewFile}
               />
             ) : (
-              <FileRow key={node.id} file={node} depth={0} />
+              <FileRow
+                key={node.id}
+                file={node}
+                depth={0}
+                initiativeName={detail.initiative.name}
+                onPreview={setPreviewFile}
+              />
             ),
           )}
         </div>
+      )}
+
+      {previewFile && (
+        <DocumentPreviewModal
+          file={previewFile}
+          initiativeName={detail.initiative.name}
+          onClose={() => setPreviewFile(null)}
+        />
       )}
 
       <div className="mt-5 flex items-center gap-4 border-t border-pae-border pt-4 text-[11px] text-pae-text-secondary">
