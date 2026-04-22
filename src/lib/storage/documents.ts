@@ -50,8 +50,14 @@ export function uploadDocument(
   initiativeId: Id,
   stage: InitiativeStage,
   file: UploadDocumentInput["file"],
+  contentDataUrl?: string,
 ): Result<Document> {
-  const parsed = uploadDocumentSchema.safeParse({ initiativeId, stage, file });
+  const parsed = uploadDocumentSchema.safeParse({
+    initiativeId,
+    stage,
+    file,
+    contentDataUrl,
+  });
   if (!parsed.success) {
     return err("VALIDATION_ERROR", firstZodErrorMessage(parsed.error));
   }
@@ -73,6 +79,7 @@ export function uploadDocument(
     ltp_period: null,
     generated_by: user.id,
     created_at: now,
+    content_data_url: parsed.data.contentDataUrl,
   };
   store.documents.push(doc);
   appendAudit(store, {
@@ -103,9 +110,10 @@ export function getDocumentUrl(
   if (!userCanAccessInitiative(user, doc.initiative_id, store)) {
     return err("FORBIDDEN", "No tenés acceso a esta iniciativa");
   }
-  // STUB: en Fase 2-4 no hay binarios reales. La URL es lógica.
-  // Cuando se implemente la generación binaria, se devolverá un blob URL o data URL.
-  return ok({ url: doc.file_path, document: doc });
+  // Para manual_upload guardamos el data URL del contenido real.
+  // Para el resto, la URL es lógica (generación on-demand desde forms).
+  const url = doc.content_data_url ?? doc.file_path;
+  return ok({ url, document: doc });
 }
 
 // ============================================================================
@@ -507,7 +515,6 @@ function buildStageFolder(
       d.document_type === "manual_upload",
   );
   const additionalChildren: DocFileNode[] = [
-    ...history,
     // Docs generados dinámicamente: feedback inline (por aprobador) y
     // feedback doc libre (por usuario) del gateway de esta etapa.
     ...buildStageFeedbackNodes(store, initiativeId, stage, gatewayNumber),
@@ -528,6 +535,17 @@ function buildStageFolder(
         source: { kind: "manual", document_id: d.id },
       })),
   ];
+
+  if (history.length > 0) {
+    children.push({
+      kind: "folder",
+      id: `${stage}-versiones-anteriores`,
+      name: "versiones anteriores",
+      icon: "📁",
+      default_open: false,
+      children: history,
+    });
+  }
 
   children.push({
     kind: "folder",
@@ -674,8 +692,8 @@ function buildLtpFormFolder(store: Store, form: Form): DocFolderNode {
   if (history.length > 0) {
     children.push({
       kind: "folder",
-      id: `ltp-form-${form.id}-adicionales`,
-      name: "archivos adicionales",
+      id: `ltp-form-${form.id}-versiones-anteriores`,
+      name: "versiones anteriores",
       icon: "📁",
       default_open: false,
       children: history,

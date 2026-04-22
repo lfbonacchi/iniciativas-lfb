@@ -22,6 +22,9 @@ export interface Document {
   ltp_period: LtpPeriod | null;
   generated_by: Id;
   created_at: IsoDateString;
+  // Solo para manual_upload: contenido del archivo como data URL
+  // (data:<mime>;base64,<...>). Permite descargar en Fase 2-4 sin backend.
+  content_data_url?: string;
 }
 
 export interface FileUpload {

@@ -11,6 +11,7 @@ import {
 } from "@/lib/storage/documents";
 import { useUploadDocument } from "@/components/shell/UploadDocumentContext";
 import { resolveFormDoc } from "@/lib/documents/resolve";
+import { getDocumentUrl } from "@/lib/storage/documents";
 import { buildXlsxBlob, downloadBlob } from "@/lib/documents/xlsx_form";
 import { downloadPdf } from "@/lib/documents/pdf_form";
 import { downloadDocx } from "@/lib/documents/docx_form";
@@ -80,11 +81,35 @@ function FileRow({
 
   async function handleDownload() {
     if (downloading) return;
+    setError(null);
+
+    // Descarga de archivos subidos manualmente: recuperamos el data URL
+    // guardado en localStorage y disparamos la descarga como Blob.
+    if (file.source.kind === "manual") {
+      const res = getDocumentUrl(file.source.document_id);
+      if (!res.success) {
+        setError(res.error.message);
+        return;
+      }
+      if (!res.data.url.startsWith("data:")) {
+        setError(
+          "Este archivo se subió antes de habilitar la descarga. Volvé a subirlo.",
+        );
+        return;
+      }
+      try {
+        const blob = await (await fetch(res.data.url)).blob();
+        downloadBlob(blob, file.name);
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Error al descargar");
+      }
+      return;
+    }
+
     if (!canGenerate) {
       alert(`${file.name} aún no tiene generador asociado.`);
       return;
     }
-    setError(null);
     const res = resolveFormDoc(file.source, initiativeName, file.author_name);
     if (!res.success) {
       setError(res.error.message);

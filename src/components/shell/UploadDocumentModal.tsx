@@ -49,6 +49,19 @@ function allowedStagesFor(initiative: Initiative): InitiativeStage[] {
   );
 }
 
+function readFileAsDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result;
+      if (typeof result === "string") resolve(result);
+      else reject(new Error("Resultado de lectura inválido"));
+    };
+    reader.onerror = () => reject(reader.error ?? new Error("Error de lectura"));
+    reader.readAsDataURL(file);
+  });
+}
+
 function fileTypeFromName(name: string): string | null {
   const dot = name.lastIndexOf(".");
   if (dot < 0) return null;
@@ -164,11 +177,44 @@ export function UploadDocumentModal() {
     }
 
     setSubmitting(true);
-    const result = uploadDocument(selectedInitiative.id, stage, {
-      name: file.name,
-      type: ext as "docx" | "xlsx" | "pdf" | "pptx" | "png" | "jpg" | "mp4",
-      size: file.size,
-    });
+    let contentDataUrl: string;
+    try {
+      contentDataUrl = await readFileAsDataUrl(file);
+    } catch {
+      setSubmitting(false);
+      setError("No se pudo leer el archivo.");
+      return;
+    }
+
+    let result;
+    try {
+      result = uploadDocument(
+        selectedInitiative.id,
+        stage,
+        {
+          name: file.name,
+          type: ext as "docx" | "xlsx" | "pdf" | "pptx" | "png" | "jpg" | "mp4",
+          size: file.size,
+        },
+        contentDataUrl,
+      );
+    } catch (e) {
+      setSubmitting(false);
+      // Típicamente QuotaExceededError por localStorage lleno con archivos
+      // grandes. En Fase 5 se guarda en SharePoint sin este límite.
+      if (
+        e instanceof Error &&
+        (e.name === "QuotaExceededError" ||
+          /quota/i.test(e.message))
+      ) {
+        setError(
+          "El archivo es demasiado grande para guardarlo en el browser (límite ~5MB en localStorage). Probá con un archivo más chico.",
+        );
+      } else {
+        setError(e instanceof Error ? e.message : "Error al guardar el archivo.");
+      }
+      return;
+    }
     setSubmitting(false);
 
     if (!result.success) {
