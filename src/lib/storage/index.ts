@@ -2,6 +2,7 @@ export * from "./auth";
 export * from "./initiatives";
 export * from "./initiative_detail";
 export * from "./forms";
+export * from "./forms_tab";
 export * from "./gateways";
 export * from "./notifications";
 export * from "./documents";
