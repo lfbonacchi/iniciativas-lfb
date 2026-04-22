@@ -14,6 +14,7 @@ import { err, ok, type Result } from "@/lib/result";
 import { getForm } from "@/lib/storage/forms";
 import { getFormSnapshot } from "@/lib/storage/form_snapshots";
 import {
+  getGatewayMinuta,
   listGatewayFeedbackDocs,
   listInlineComments,
 } from "@/lib/storage/gateways";
@@ -125,10 +126,81 @@ export function resolveFormDoc(
     return resolveGatewayFeedback(source, initiative_name, author_name);
   }
 
+  if (source.kind === "gateway_minuta") {
+    return resolveGatewayMinuta(source, initiative_name, author_name);
+  }
+
   return err(
     "VALIDATION_ERROR",
     "Este archivo aún no tiene generador (pendiente).",
   );
+}
+
+function resolveGatewayMinuta(
+  source: Extract<DocFileSource, { kind: "gateway_minuta" }>,
+  initiative_name: string,
+  author_name: string | null,
+): Result<DocStructure> {
+  const res = getGatewayMinuta(source.gateway_id);
+  if (!res.success) return err(res.error.code, res.error.message);
+  if (!res.data.minuta) {
+    return err(
+      "NOT_FOUND",
+      "La minuta todavía no se creó. Volvé al gateway para completarla.",
+    );
+  }
+
+  const c = res.data.content;
+  const rows: DocRow[] = [];
+  rows.push([cell(initiative_name, "title", 2)]);
+  rows.push([cell("Minuta de reunión de gateway", "subtitle", 2)]);
+  rows.push([
+    cell("Fecha de reunión", "question"),
+    cell(c.fecha_reunion || "—", "answer"),
+  ]);
+  rows.push([
+    cell("Última actualización", "question"),
+    cell(
+      new Date(res.data.minuta.updated_at).toLocaleDateString("es-AR"),
+      "answer",
+    ),
+  ]);
+  rows.push([{ value: "", kind: "empty" }]);
+
+  rows.push([cell("Participantes", "section", 2)]);
+  rows.push([
+    cell("Convocados", "question"),
+    cell(c.participantes || "—", "answer"),
+  ]);
+  rows.push([
+    cell("Asistentes", "question"),
+    cell(c.asistentes || "—", "answer"),
+  ]);
+  rows.push([{ value: "", kind: "empty" }]);
+
+  rows.push([cell("Mejoras identificadas", "section", 2)]);
+  rows.push([cell("Mejoras", "question"), cell(c.mejoras || "—", "answer")]);
+  rows.push([{ value: "", kind: "empty" }]);
+
+  rows.push([cell("Acuerdos", "section", 2)]);
+  rows.push([cell("Acuerdos", "question"), cell(c.acuerdos || "—", "answer")]);
+  rows.push([{ value: "", kind: "empty" }]);
+
+  rows.push([cell("Próximos pasos / decisiones", "section", 2)]);
+  rows.push([
+    cell("Decisiones", "question"),
+    cell(c.proximos_pasos || "—", "answer"),
+  ]);
+
+  const meta: DocMeta = {
+    initiative_name,
+    form_label: "Minuta de gateway",
+    etapa_label: "Gateway",
+    version_label: res.data.is_complete ? "Final" : "Borrador",
+    fecha: res.data.minuta.updated_at,
+    author_name: author_name ?? null,
+  };
+  return ok({ meta, rows });
 }
 
 function cell(value: string, kind: DocCell["kind"], colspan?: number): DocCell {

@@ -52,7 +52,20 @@ export interface Store {
   gateway_inline_comments: GatewayInlineComment[];
   gateway_minutas: GatewayMinuta[];
   gateway_revisions: GatewayRevision[];
+  initiative_area_changes: InitiativeAreaChange[];
   current_user_id: Id | null;
+}
+
+// Cambio de área/VP de una iniciativa. La entrada más reciente por
+// initiative_id determina el VP actual (override sobre el sponsor).
+export interface InitiativeAreaChange {
+  id: Id;
+  initiative_id: Id;
+  from_vp: string | null;
+  to_vp: string;
+  changed_by: Id;
+  changed_at: string;
+  reason: string | null;
 }
 
 // Comentario inline a nivel de campo en la vista read-only del gateway.
@@ -168,6 +181,7 @@ function emptyStore(): Store {
     gateway_inline_comments: [],
     gateway_minutas: [],
     gateway_revisions: [],
+    initiative_area_changes: [],
     current_user_id: null,
   };
 }
@@ -210,6 +224,7 @@ export function seedStore(): Store {
     gateway_inline_comments: current.gateway_inline_comments ?? [],
     gateway_minutas: current.gateway_minutas ?? [],
     gateway_revisions: current.gateway_revisions ?? [],
+    initiative_area_changes: current.initiative_area_changes ?? [],
     current_user_id: current.current_user_id,
   };
   writeStore(next);
@@ -242,6 +257,7 @@ function normalizeStore(raw: Partial<Store>): Store {
   merged.gateway_inline_comments = merged.gateway_inline_comments ?? [];
   merged.gateway_minutas = merged.gateway_minutas ?? [];
   merged.gateway_revisions = merged.gateway_revisions ?? [];
+  merged.initiative_area_changes = merged.initiative_area_changes ?? [];
   return merged;
 }
 

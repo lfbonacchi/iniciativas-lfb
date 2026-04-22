@@ -20,7 +20,11 @@ export type InitiativeMemberRole =
   | "bo"
   | "sponsor"
   | "sm"
-  | "equipo";
+  | "equipo"
+  // Afectado: usuario que no forma parte del equipo pero tiene visibilidad
+  // explícita sobre la iniciativa (aparece en "Que me impactan"). Agregado
+  // por PO/AT cuando la iniciativa afecta al área de esa persona.
+  | "afectado";
 
 export interface Initiative {
   id: Id;

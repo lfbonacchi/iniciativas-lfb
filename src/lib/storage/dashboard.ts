@@ -144,7 +144,7 @@ const OWN_ROLES: readonly string[] = [
   "sponsor",
   "sm",
 ];
-const AFFECT_ROLES: readonly string[] = ["equipo"];
+const AFFECT_ROLES: readonly string[] = ["equipo", "afectado"];
 
 function initiativesForUser(
   user: User,

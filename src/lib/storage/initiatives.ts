@@ -531,7 +531,7 @@ const OWNER_ROLES: ReadonlySet<string> = new Set([
   // formularios igual que el PO y el PO puede sumarlo a su equipo.
   "sm",
 ]);
-const IMPACTING_ROLES: ReadonlySet<string> = new Set(["equipo"]);
+const IMPACTING_ROLES: ReadonlySet<string> = new Set(["equipo", "afectado"]);
 
 const ROLE_ABBR: Record<IniciativaRoleKey, string> = {
   po: "PO",
@@ -555,6 +555,13 @@ function userIsGatewayApprover(
 }
 
 function sponsorVpFor(store: Store, initiativeId: Id): string | null {
+  // Cambios de área sobrescriben al sponsor: si hay un registro en
+  // initiative_area_changes, gana el más reciente.
+  const changes = store.initiative_area_changes
+    .filter((c) => c.initiative_id === initiativeId)
+    .sort((a, b) => b.changed_at.localeCompare(a.changed_at));
+  if (changes.length > 0) return changes[0]!.to_vp;
+
   const sponsorMember = store.initiative_members.find(
     (m) => m.initiative_id === initiativeId && m.role === "sponsor",
   );
@@ -643,7 +650,57 @@ function computePendingAction(
     }
   }
 
-  // 2) Editor con formulario incompleto
+  const isPo = userRoles.includes("po") || userRoles.includes("promotor");
+  const isScrum = userRoles.includes("sm");
+
+  // 2) Gateway con cambios pendientes → PO debe armar y reenviar la VF
+  if (isPo || isScrum) {
+    const gwWithChanges = store.gateways.find(
+      (g) =>
+        g.initiative_id === initiative.id &&
+        (g.status === "approved_with_changes" || g.status === "feedback"),
+    );
+    if (gwWithChanges) {
+      return `VF pendiente · Gateway ${gwWithChanges.gateway_number}`;
+    }
+  }
+
+  // 3) Minuta pendiente (dentro de la ventana de 3 días)
+  if (isPo || isScrum) {
+    const resolvedGws = store.gateways.filter(
+      (g) => g.initiative_id === initiative.id && g.status !== "pending",
+    );
+    for (const g of resolvedGws) {
+      const minuta = store.gateway_minutas.find(
+        (m) => m.gateway_id === g.id,
+      );
+      if (!minuta) {
+        return `Minuta pendiente · Gateway ${g.gateway_number}`;
+      }
+      // Minuta incompleta: todos los 6 campos deben estar con texto.
+      try {
+        const parsed = JSON.parse(minuta.content) as Record<string, string>;
+        const fields = [
+          "fecha_reunion",
+          "participantes",
+          "asistentes",
+          "mejoras",
+          "acuerdos",
+          "proximos_pasos",
+        ];
+        const incomplete = fields.some(
+          (f) => !((parsed[f] ?? "").trim().length > 0),
+        );
+        if (incomplete) {
+          return `Minuta incompleta · Gateway ${g.gateway_number}`;
+        }
+      } catch {
+        // Minuta legacy texto libre → considerada completa si no está vacía.
+      }
+    }
+  }
+
+  // 4) Editor con formulario incompleto
   const isEditor = userRoles.some((r) => OWNER_ROLES.has(r));
   if (!isEditor) return null;
 

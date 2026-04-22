@@ -33,6 +33,7 @@ import { FeedbackDocsPanel } from "./FeedbackDocsPanel";
 import { DecisionConfirmPopup } from "./DecisionConfirmPopup";
 import { MinutaPanel } from "./MinutaPanel";
 import { VFPanel } from "./VFPanel";
+import { TeamManagementPanel } from "./TeamManagementPanel";
 import {
   buildSyntheticFormDefinition,
   normalizeResponsesForSections,
@@ -389,18 +390,13 @@ export default function GatewayPage({
         />
       </div>
 
-      <div className="mt-6">
-        <p className="mb-3 text-[13px] font-semibold text-pae-text">
-          Formulario {detail.form.form_type} (read-only)
-        </p>
-        <ReadOnlySections
-          gatewayId={detail.gateway.id}
-          definition={definition}
-          responses={responses}
-          currentUserId={currentUser?.id ?? null}
-          inputDisabled={!!pendingDecision || gatewayResolved}
-        />
-      </div>
+      {/* Gestión de iniciativa: siempre visible, independiente del estado
+          del gateway. Incluye cambio de área, miembros y afectados. */}
+      <TeamManagementPanel
+        initiativeId={detail.initiative.id}
+        initiativeName={detail.initiative.name}
+        onChanged={reload}
+      />
 
       {isPending ? (
         <DecisionPanel
@@ -411,9 +407,7 @@ export default function GatewayPage({
           error={error}
           onVote={startDecision}
         />
-      ) : (
-        <PostGatewayPanel detail={detail} onActionDone={reload} />
-      )}
+      ) : null}
 
       {/* Minuta: solo visible post-gateway */}
       {gatewayResolved && minutaDetail && (
@@ -436,6 +430,21 @@ export default function GatewayPage({
             onResubmitted={reload}
           />
         )}
+
+      {/* Formulario read-only con inputs de comentarios inline. Queda al
+          final para que minuta/VF/gestión queden arriba. */}
+      <div className="mt-6">
+        <p className="mb-3 text-[13px] font-semibold text-pae-text">
+          Formulario {detail.form.form_type} — lectura y feedback
+        </p>
+        <ReadOnlySections
+          gatewayId={detail.gateway.id}
+          definition={definition}
+          responses={responses}
+          currentUserId={currentUser?.id ?? null}
+          inputDisabled={!!pendingDecision || gatewayResolved}
+        />
+      </div>
 
       {pendingDecision && pendingDecisionDef && (
         <DecisionConfirmPopup
@@ -521,7 +530,10 @@ function DecisionPanel({
   );
 }
 
-function PostGatewayPanel({
+// Panel deprecado: la gestión de equipo/área/afectados pasó a
+// TeamManagementPanel. Dejamos esto como stub no-usado para evitar conflictos
+// con imports históricos; no se renderiza.
+function _PostGatewayPanelDeprecated({
   detail,
   onActionDone,
 }: {

@@ -62,11 +62,52 @@ export const publishSectionCommentsSchema = z.object({
   sectionKey: z.string().trim().min(1).max(200),
 });
 
+// Minuta estructurada — 6 campos obligatorios. El valor se persiste como
+// JSON en GatewayMinuta.content para preservar la compatibilidad del store.
+export const minutaContentSchema = z.object({
+  fecha_reunion: z
+    .string()
+    .trim()
+    .min(1, "La fecha de reunión es obligatoria")
+    .max(50),
+  participantes: z
+    .string()
+    .trim()
+    .min(1, "Los participantes son obligatorios")
+    .max(2000),
+  asistentes: z
+    .string()
+    .trim()
+    .min(1, "Los asistentes son obligatorios")
+    .max(2000),
+  mejoras: z.string().trim().min(1, "Mejoras es obligatorio").max(10000),
+  acuerdos: z.string().trim().min(1, "Acuerdos es obligatorio").max(10000),
+  proximos_pasos: z
+    .string()
+    .trim()
+    .min(1, "Próximos pasos es obligatorio")
+    .max(10000),
+});
+export type MinutaContent = z.infer<typeof minutaContentSchema>;
+
 export const saveMinutaSchema = z.object({
   gatewayId: idSchema,
-  content: z.string().max(30000),
+  content: minutaContentSchema,
 });
 export type SaveMinutaInput = z.infer<typeof saveMinutaSchema>;
+
+// Para guardados parciales (borrador): acepta campos vacíos.
+export const saveMinutaDraftSchema = z.object({
+  gatewayId: idSchema,
+  content: z.object({
+    fecha_reunion: z.string().max(50),
+    participantes: z.string().max(2000),
+    asistentes: z.string().max(2000),
+    mejoras: z.string().max(10000),
+    acuerdos: z.string().max(10000),
+    proximos_pasos: z.string().max(10000),
+  }),
+});
 
 export const resubmitVFSchema = z.object({
   gatewayId: idSchema,

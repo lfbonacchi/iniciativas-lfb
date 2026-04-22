@@ -7,7 +7,14 @@ import {
   isAreaTransformacion,
   userCanAccessInitiative,
 } from "./_security";
-import { readStore, writeStore, type Store } from "./_store";
+import {
+  readStore,
+  writeStore,
+  type InitiativeAreaChange,
+  type Store,
+} from "./_store";
+import { newId, nowIso } from "./_ids";
+import { getOverlay } from "./financials";
 
 export type WorkType = "Interno" | "Externo";
 
@@ -51,6 +58,7 @@ const ROLE_LABEL: Record<InitiativeMemberRole, string> = {
   sponsor: "Sponsor",
   sm: "Scrum Master",
   equipo: "Equipo de trabajo",
+  afectado: "Afectado",
 };
 
 const WORK_ROLES: readonly InitiativeMemberRole[] = [
@@ -226,7 +234,27 @@ const ASSIGNABLE_ROLES: readonly InitiativeMemberRole[] = [
   "po",
   "ld",
   "promotor",
+  "afectado",
 ];
+
+// Quién puede gestionar el equipo / afectados / área: AT, admin, PO, SM o
+// promotor de la iniciativa. VPs también (sobre iniciativas de su VP).
+function userCanManageTeam(
+  user: User,
+  initiativeId: Id,
+  store: Store,
+): boolean {
+  if (isAreaTransformacion(user)) return true;
+  if (user.is_vp) return true;
+  const roles = store.initiative_members
+    .filter((m) => m.user_id === user.id && m.initiative_id === initiativeId)
+    .map((m) => m.role);
+  return (
+    roles.includes("po") ||
+    roles.includes("promotor") ||
+    roles.includes("sm")
+  );
+}
 
 export interface AddTeamMemberInput {
   initiative_id: Id;
@@ -240,10 +268,10 @@ export function addTeamMember(
   const store = readStore();
   const user = getCurrentUserFromStore(store);
   if (!user) return err("AUTH_REQUIRED", "No hay un usuario autenticado");
-  if (!isAreaTransformacion(user)) {
+  if (!userCanManageTeam(user, input.initiative_id, store)) {
     return err(
       "FORBIDDEN",
-      "Solo Área Transformación puede gestionar el equipo",
+      "Solo AT, VP, PO/Promotor o Scrum pueden gestionar el equipo",
     );
   }
 
@@ -303,10 +331,10 @@ export function removeTeamMember(
   const store = readStore();
   const user = getCurrentUserFromStore(store);
   if (!user) return err("AUTH_REQUIRED", "No hay un usuario autenticado");
-  if (!isAreaTransformacion(user)) {
+  if (!userCanManageTeam(user, initiativeId, store)) {
     return err(
       "FORBIDDEN",
-      "Solo Área Transformación puede gestionar el equipo",
+      "Solo AT, VP, PO/Promotor o Scrum pueden gestionar el equipo",
     );
   }
 
@@ -341,10 +369,10 @@ export function changeTeamMemberRole(
   const store = readStore();
   const user = getCurrentUserFromStore(store);
   if (!user) return err("AUTH_REQUIRED", "No hay un usuario autenticado");
-  if (!isAreaTransformacion(user)) {
+  if (!userCanManageTeam(user, initiativeId, store)) {
     return err(
       "FORBIDDEN",
-      "Solo Área Transformación puede gestionar el equipo",
+      "Solo AT, VP, PO/Promotor o Scrum pueden gestionar el equipo",
     );
   }
 
@@ -381,4 +409,180 @@ export function changeTeamMemberRole(
   });
   writeStore(store);
   return ok(member);
+}
+
+// ---------------------------------------------------------------------------
+// Afectados
+// ---------------------------------------------------------------------------
+
+export function addAffectedMember(
+  initiativeId: Id,
+  userId: Id,
+): Result<InitiativeMember> {
+  const store = readStore();
+  const user = getCurrentUserFromStore(store);
+  if (!user) return err("AUTH_REQUIRED", "No hay un usuario autenticado");
+  if (!userCanManageTeam(user, initiativeId, store)) {
+    return err(
+      "FORBIDDEN",
+      "Solo AT, VP, PO/Promotor o Scrum pueden marcar afectados",
+    );
+  }
+  const initiative = store.initiatives.find((i) => i.id === initiativeId);
+  if (!initiative) return err("NOT_FOUND", "Iniciativa no encontrada");
+  const targetUser = store.users.find((u) => u.id === userId);
+  if (!targetUser) return err("NOT_FOUND", "Usuario no encontrado");
+
+  const exists = store.initiative_members.some(
+    (m) =>
+      m.initiative_id === initiativeId &&
+      m.user_id === userId &&
+      m.role === "afectado",
+  );
+  if (exists) {
+    return err(
+      "VALIDATION_ERROR",
+      `${targetUser.display_name} ya está marcado como afectado`,
+    );
+  }
+
+  const member: InitiativeMember = {
+    user_id: userId,
+    initiative_id: initiativeId,
+    role: "afectado",
+    can_edit: false,
+    access_level: "view",
+  };
+  store.initiative_members.push(member);
+
+  const now = nowIso();
+  store.notifications.push({
+    id: newId("notif"),
+    user_id: userId,
+    type: "member_added",
+    title: "Iniciativa que te afecta",
+    message: `Fuiste incluido como afectado en "${initiative.name}". Podés verla en "Que me impactan".`,
+    initiative_id: initiativeId,
+    read: false,
+    created_at: now,
+  });
+
+  appendAudit(store, {
+    user_id: user.id,
+    action: "initiative_affected_added",
+    entity_type: "initiative_member",
+    entity_id: initiativeId,
+    old_data: null,
+    new_data: { user_id: userId, role: "afectado" },
+  });
+  writeStore(store);
+  return ok(member);
+}
+
+// ---------------------------------------------------------------------------
+// Cambio de área (VP)
+// ---------------------------------------------------------------------------
+
+// Devuelve el VP actual de una iniciativa considerando los cambios de área
+// registrados. El último cambio (si hay) gana; si no, cae al sponsor o al
+// overlay financiero.
+export function getCurrentInitiativeVp(
+  initiativeId: Id,
+): { current_vp: string; changed: boolean } {
+  const store = readStore();
+  const changes = store.initiative_area_changes
+    .filter((c) => c.initiative_id === initiativeId)
+    .sort((a, b) => b.changed_at.localeCompare(a.changed_at));
+  if (changes.length > 0) {
+    return { current_vp: changes[0]!.to_vp, changed: true };
+  }
+  const sponsor = store.initiative_members.find(
+    (m) => m.initiative_id === initiativeId && m.role === "sponsor",
+  );
+  if (sponsor) {
+    const u = store.users.find((uu) => uu.id === sponsor.user_id);
+    if (u) return { current_vp: u.vicepresidencia, changed: false };
+  }
+  return {
+    current_vp: getOverlay(initiativeId).vicepresidencia,
+    changed: false,
+  };
+}
+
+export function listAvailableVps(): string[] {
+  const store = readStore();
+  const vps = new Set<string>();
+  for (const u of store.users) {
+    if (u.vicepresidencia) vps.add(u.vicepresidencia);
+  }
+  return Array.from(vps).sort();
+}
+
+export function changeInitiativeArea(
+  initiativeId: Id,
+  toVp: string,
+  reason: string | null,
+): Result<InitiativeAreaChange> {
+  const store = readStore();
+  const user = getCurrentUserFromStore(store);
+  if (!user) return err("AUTH_REQUIRED", "No hay un usuario autenticado");
+  if (!userCanManageTeam(user, initiativeId, store)) {
+    return err(
+      "FORBIDDEN",
+      "Solo AT, VP, PO/Promotor o Scrum pueden cambiar el área",
+    );
+  }
+  const initiative = store.initiatives.find((i) => i.id === initiativeId);
+  if (!initiative) return err("NOT_FOUND", "Iniciativa no encontrada");
+  const clean = (toVp ?? "").trim();
+  if (clean.length < 2) {
+    return err("VALIDATION_ERROR", "Seleccioná un VP destino válido");
+  }
+
+  const current = getCurrentInitiativeVp(initiativeId);
+  if (current.current_vp === clean) {
+    return err("CONFLICT", "La iniciativa ya está en esa VP");
+  }
+
+  const now = nowIso();
+  const change: InitiativeAreaChange = {
+    id: newId("areachg"),
+    initiative_id: initiativeId,
+    from_vp: current.current_vp,
+    to_vp: clean,
+    changed_by: user.id,
+    changed_at: now,
+    reason: reason && reason.trim().length > 0 ? reason.trim() : null,
+  };
+  store.initiative_area_changes.push(change);
+
+  // Notificar a los miembros core y a AT de la nueva VP. Para evitar
+  // dependencia de listas externas, notificamos a todos los miembros actuales.
+  const members = store.initiative_members.filter(
+    (m) => m.initiative_id === initiativeId,
+  );
+  for (const m of members) {
+    if (m.user_id === user.id) continue;
+    store.notifications.push({
+      id: newId("notif"),
+      user_id: m.user_id,
+      type: "initiative_area_change",
+      title: "Cambio de área en la iniciativa",
+      message: `"${initiative.name}" pasó de ${current.current_vp} a ${clean}`,
+      initiative_id: initiativeId,
+      read: false,
+      created_at: now,
+    });
+  }
+
+  appendAudit(store, {
+    user_id: user.id,
+    action: "initiative_area_changed",
+    entity_type: "initiative",
+    entity_id: initiativeId,
+    old_data: { vp: current.current_vp },
+    new_data: { vp: clean, reason: change.reason },
+  });
+  writeStore(store);
+  return ok(change);
 }

@@ -231,6 +231,17 @@ function ExpandedFolder({
       alert("Este formulario todavía no fue creado.");
       return;
     }
+    // VF pendiente: antes de abrir el wizard hay que habilitar la edición
+    // post-gateway (el storage valida PO/Scrum + estado del gateway).
+    if (instance.vf_pending && instance.vf_gateway_id) {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const gw = require("@/lib/storage/gateways") as typeof import("@/lib/storage/gateways");
+      const res = gw.enableVFEditing(instance.vf_gateway_id);
+      if (!res.success) {
+        alert(res.error.message);
+        return;
+      }
+    }
     router.push(`/wizard/${instance.form_id}`);
   }
 
@@ -299,13 +310,26 @@ function ExpandedFolder({
       </div>
 
       <div className="flex flex-wrap items-center gap-2 border-t border-pae-border pt-4">
+        {instance.vf_pending && (
+          <span className="rounded-full bg-pae-amber/15 px-2 py-0.5 text-[10px] font-semibold text-pae-amber">
+            VF post-gateway pendiente
+          </span>
+        )}
         <button
           type="button"
           onClick={handleEditar}
           disabled={instance.is_read_only}
-          className="rounded-lg bg-pae-blue px-4 py-2 text-[12px] font-semibold text-white transition hover:bg-pae-blue/90 disabled:cursor-not-allowed disabled:opacity-50"
+          className={`rounded-lg px-4 py-2 text-[12px] font-semibold text-white transition disabled:cursor-not-allowed disabled:opacity-50 ${
+            instance.vf_pending
+              ? "bg-pae-amber hover:bg-pae-amber/90"
+              : "bg-pae-blue hover:bg-pae-blue/90"
+          }`}
         >
-          {instance.is_read_only ? "Ver formulario" : "Editar formulario"}
+          {instance.vf_pending
+            ? "Editar VF post-gateway"
+            : instance.is_read_only
+              ? "Ver formulario"
+              : "Editar formulario"}
         </button>
         <button
           type="button"

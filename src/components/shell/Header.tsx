@@ -7,6 +7,10 @@ import { useCallback, useEffect, useState } from "react";
 import type { InitiativeStage, Notification, User } from "@/types";
 import { listInitiatives } from "@/lib/storage/initiatives";
 import { getNotifications } from "@/lib/storage/notifications";
+import {
+  listPendingActionsForUser,
+  type PendingActionItem,
+} from "@/lib/storage/gateways";
 
 import { NotificationsPanel } from "./NotificationsPanel";
 import { usePipeline } from "./PipelineContext";
@@ -118,6 +122,9 @@ export function Header({ user, notificationCount }: HeaderProps) {
   const { activeStage } = usePipeline();
   const [open, setOpen] = useState(false);
   const [notifs, setNotifs] = useState<Notification[]>([]);
+  const [pendingActions, setPendingActions] = useState<PendingActionItem[]>(
+    [],
+  );
   const [initiativeNames, setInitiativeNames] = useState<
     Record<string, string>
   >({});
@@ -125,10 +132,13 @@ export function Header({ user, notificationCount }: HeaderProps) {
   const refresh = useCallback(() => {
     if (!user) {
       setNotifs([]);
+      setPendingActions([]);
       return;
     }
     const res = getNotifications(user.id);
     setNotifs(res.success ? res.data : []);
+    const actions = listPendingActionsForUser(user.id);
+    setPendingActions(actions.success ? actions.data : []);
     const inis = listInitiatives();
     if (inis.success) {
       const map: Record<string, string> = {};
@@ -141,8 +151,9 @@ export function Header({ user, notificationCount }: HeaderProps) {
     refresh();
   }, [refresh]);
 
-  const unreadCount = notifs.filter((n) => !n.read).length;
-  const badgeCount = notificationCount ?? unreadCount;
+  // Badge de la campana = acciones pendientes (alineado con sidebar).
+  // Así no hay desfase entre "tenés N acciones" (sidebar) y el 🔔.
+  const badgeCount = notificationCount ?? pendingActions.length;
 
   return (
     <header className="fixed left-0 right-0 top-0 z-50 flex h-14 items-center justify-between border-b border-pae-border bg-pae-surface px-4 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
@@ -213,6 +224,7 @@ export function Header({ user, notificationCount }: HeaderProps) {
           {open && (
             <NotificationsPanel
               notifications={notifs}
+              pendingActions={pendingActions}
               initiativeNames={initiativeNames}
               onClose={() => setOpen(false)}
               onChanged={refresh}

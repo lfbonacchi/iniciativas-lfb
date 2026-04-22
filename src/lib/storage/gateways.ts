@@ -20,8 +20,10 @@ import {
   resubmitVFSchema,
   saveFeedbackDocSchema,
   saveInlineCommentSchema,
+  saveMinutaDraftSchema,
   saveMinutaSchema,
   submitVoteSchema,
+  type MinutaContent,
 } from "@/lib/validations/gateways";
 import {
   readStore,
@@ -481,21 +483,32 @@ export function submitVote(
       form.approved_at = now;
       form.updated_at = now;
 
-      // "Aprobar con cambios": notificar al PO para que arme la VF
-      // incorporando los acuerdos de la minuta + feedback.
-      if (resolution === "approved_with_changes") {
-        const po = store.initiative_members.find(
-          (m) =>
-            m.initiative_id === gateway.initiative_id &&
-            (m.role === "po" || m.role === "promotor"),
-        );
-        if (po) {
+      // PO / Promotor / Scrum Master: notificar minuta obligatoria y, si aplica,
+      // la necesidad de armar VF.
+      const poMembers = store.initiative_members.filter(
+        (m) =>
+          m.initiative_id === gateway.initiative_id &&
+          (m.role === "po" || m.role === "promotor" || m.role === "sm"),
+      );
+      for (const pm of poMembers) {
+        // Minuta obligatoria (todos los gateways resueltos la requieren).
+        store.notifications.push({
+          id: newId("notif"),
+          user_id: pm.user_id,
+          type: "gateway_resolved",
+          title: `Minuta pendiente · Gateway ${gateway.gateway_number}`,
+          message: `Tenés 3 días para completar la minuta de reunión del Gateway ${gateway.gateway_number}.`,
+          initiative_id: gateway.initiative_id,
+          read: false,
+          created_at: now,
+        });
+        if (resolution === "approved_with_changes") {
           store.notifications.push({
             id: newId("notif"),
-            user_id: po.user_id,
+            user_id: pm.user_id,
             type: "gateway_resolved",
-            title: "Gateway aprobado con cambios",
-            message: `El Gateway ${gateway.gateway_number} fue aprobado con cambios. Armá la VF incorporando minuta y feedback.`,
+            title: `VF pendiente · Gateway ${gateway.gateway_number}`,
+            message: `El gateway fue aprobado con cambios. Armá la VF incorporando minuta y feedback y reenviala.`,
             initiative_id: gateway.initiative_id,
             read: false,
             created_at: now,
@@ -514,7 +527,12 @@ export function submitVote(
         old_data: { status: oldFormStatus },
         new_data: { status: form.status },
       });
-      if (initiative) {
+      // REGLA: el gateway debe coincidir con la etapa actual de la iniciativa.
+      // Solo "approved" puro (sin cambios pendientes) avanza a la siguiente
+      // etapa. En "approved_with_changes" el PO todavía tiene que armar la VF
+      // y reenviar; la etapa actual se mantiene hasta que la revisión final
+      // se apruebe sin observaciones.
+      if (initiative && resolution === "approved") {
         const nextStage: InitiativeStage | null =
           gateway.gateway_number === 1
             ? "dimensioning"
@@ -538,6 +556,25 @@ export function submitVote(
       store.gateway_votes = store.gateway_votes.filter(
         (v) => v.gateway_id !== gateway.id,
       );
+      // Notificar al PO/Promotor/Scrum que el gateway pidió cambios fuertes
+      // (vuelve a draft). Deben rearmar el formulario y re-enviarlo.
+      const poMembersFb = store.initiative_members.filter(
+        (m) =>
+          m.initiative_id === gateway.initiative_id &&
+          (m.role === "po" || m.role === "promotor" || m.role === "sm"),
+      );
+      for (const pm of poMembersFb) {
+        store.notifications.push({
+          id: newId("notif"),
+          user_id: pm.user_id,
+          type: "form_feedback_received",
+          title: `Gateway ${gateway.gateway_number}: necesita cambios`,
+          message: `El gateway pidió cambios. El formulario volvió a draft. Incorporá el feedback y re-enviá a aprobación.`,
+          initiative_id: gateway.initiative_id,
+          read: false,
+          created_at: now,
+        });
+      }
       appendAudit(store, {
         user_id: user.id,
         action: "gateway_resolved",
@@ -587,6 +624,170 @@ export function countPendingApprovalsForUser(userId: Id): Result<number> {
     if (!alreadyVoted) count += 1;
   }
   return ok(count);
+}
+
+export type PendingActionKind =
+  | "vote"
+  | "vf_pending"
+  | "minuta_missing"
+  | "minuta_incomplete"
+  | "form_draft";
+
+export interface PendingActionItem {
+  id: string; // único por acción (para keys en React)
+  kind: PendingActionKind;
+  label: string;
+  initiative_id: Id;
+  initiative_name: string;
+  href: string;
+}
+
+// Devuelve la lista COMPLETA de acciones pendientes para un usuario.
+// Cada item es una acción individual; una misma iniciativa puede contribuir
+// con múltiples items (ej: minuta + VF + formulario en draft).
+export function listPendingActionsForUser(
+  userId: Id,
+): Result<PendingActionItem[]> {
+  const store = readStore();
+  const items: PendingActionItem[] = [];
+
+  function iniName(iniId: Id): string {
+    const ini = store.initiatives.find((i) => i.id === iniId);
+    return ini?.name ?? "Iniciativa";
+  }
+
+  // 1) Votos pendientes
+  for (const g of store.gateways) {
+    if (g.status !== "pending") continue;
+    const approvers = approversForInitiative(store, g.initiative_id);
+    const isApprover =
+      approvers.includes(userId) ||
+      store.gateway_extra_approvers.some(
+        (e) => e.gateway_id === g.id && e.user_id === userId,
+      );
+    if (!isApprover) continue;
+    const alreadyVoted = store.gateway_votes.some(
+      (v) => v.gateway_id === g.id && v.user_id === userId,
+    );
+    if (alreadyVoted) continue;
+    items.push({
+      id: `vote-${g.id}`,
+      kind: "vote",
+      label: `Gateway ${g.gateway_number}: tu voto pendiente`,
+      initiative_id: g.initiative_id,
+      initiative_name: iniName(g.initiative_id),
+      href: `/gateway/${g.id}`,
+    });
+  }
+
+  // Iniciativas donde el usuario es PO/Promotor/SM.
+  const myPoInitiatives = new Set(
+    store.initiative_members
+      .filter(
+        (m) =>
+          m.user_id === userId &&
+          (m.role === "po" || m.role === "promotor" || m.role === "sm"),
+      )
+      .map((m) => m.initiative_id),
+  );
+
+  for (const iniId of myPoInitiatives) {
+    const name = iniName(iniId);
+    const gwsForInit = store.gateways.filter(
+      (g) => g.initiative_id === iniId,
+    );
+
+    // 2) VF pendientes (uno por gateway approved_with_changes/feedback sin
+    //    revisión posterior)
+    for (const g of gwsForInit) {
+      if (g.status !== "approved_with_changes" && g.status !== "feedback") {
+        continue;
+      }
+      const revisions = store.gateway_revisions.filter(
+        (r) =>
+          r.initiative_id === iniId &&
+          r.gateway_number === g.gateway_number,
+      );
+      const latest = revisions.sort(
+        (a, b) => b.revision_number - a.revision_number,
+      )[0];
+      if (latest && latest.gateway_id !== g.id) continue;
+      items.push({
+        id: `vf-${g.id}`,
+        kind: "vf_pending",
+        label: `VF pendiente · Gateway ${g.gateway_number}`,
+        initiative_id: iniId,
+        initiative_name: name,
+        href: `/gateway/${g.id}`,
+      });
+    }
+
+    // 3) Minutas pendientes / incompletas (una por gateway resuelto)
+    const resolvedGws = gwsForInit.filter((g) => g.status !== "pending");
+    for (const g of resolvedGws) {
+      const minuta = store.gateway_minutas.find(
+        (m) => m.gateway_id === g.id,
+      );
+      if (!minuta) {
+        items.push({
+          id: `minuta-${g.id}`,
+          kind: "minuta_missing",
+          label: `Minuta pendiente · Gateway ${g.gateway_number}`,
+          initiative_id: iniId,
+          initiative_name: name,
+          href: `/gateway/${g.id}`,
+        });
+        continue;
+      }
+      try {
+        const parsed = JSON.parse(minuta.content) as Record<string, string>;
+        const incomplete = [
+          "fecha_reunion",
+          "participantes",
+          "asistentes",
+          "mejoras",
+          "acuerdos",
+          "proximos_pasos",
+        ].some((f) => !((parsed[f] ?? "").trim().length > 0));
+        if (incomplete) {
+          items.push({
+            id: `minuta-${g.id}`,
+            kind: "minuta_incomplete",
+            label: `Minuta incompleta · Gateway ${g.gateway_number}`,
+            initiative_id: iniId,
+            initiative_name: name,
+            href: `/gateway/${g.id}`,
+          });
+        }
+      } catch {
+        // Minuta legacy texto libre → considerada completa si existe.
+      }
+    }
+
+    // 4) Formularios en draft (uno por form)
+    const draftForms = store.forms.filter(
+      (f) => f.initiative_id === iniId && f.status === "draft",
+    );
+    for (const f of draftForms) {
+      items.push({
+        id: `draft-${f.id}`,
+        kind: "form_draft",
+        label: `Formulario ${f.form_type} en borrador`,
+        initiative_id: iniId,
+        initiative_name: name,
+        href: `/wizard/${f.id}`,
+      });
+    }
+  }
+
+  return ok(items);
+}
+
+// Contador usado por el sidebar: siempre refleja la longitud de
+// listPendingActionsForUser, así count y lista no se pueden desincronizar.
+export function countPendingActionsForUser(userId: Id): Result<number> {
+  const res = listPendingActionsForUser(userId);
+  return res.success ? ok(res.data.length) : res;
 }
 
 export function generateMinuta(gatewayId: Id): Result<Document> {
@@ -1398,9 +1599,45 @@ export function publishSectionComments(
 
 const MINUTA_DEADLINE_DAYS = 3;
 
+export const EMPTY_MINUTA_CONTENT: MinutaContent = {
+  fecha_reunion: "",
+  participantes: "",
+  asistentes: "",
+  mejoras: "",
+  acuerdos: "",
+  proximos_pasos: "",
+};
+
+export function parseMinutaContent(raw: string | null | undefined): MinutaContent {
+  if (!raw) return { ...EMPTY_MINUTA_CONTENT };
+  try {
+    const parsed = JSON.parse(raw);
+    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+      const p = parsed as Record<string, unknown>;
+      return {
+        fecha_reunion:
+          typeof p.fecha_reunion === "string" ? p.fecha_reunion : "",
+        participantes:
+          typeof p.participantes === "string" ? p.participantes : "",
+        asistentes: typeof p.asistentes === "string" ? p.asistentes : "",
+        mejoras: typeof p.mejoras === "string" ? p.mejoras : "",
+        acuerdos: typeof p.acuerdos === "string" ? p.acuerdos : "",
+        proximos_pasos:
+          typeof p.proximos_pasos === "string" ? p.proximos_pasos : "",
+      };
+    }
+  } catch {
+    // Si no parsea, asumimos minuta legacy de texto libre → la metemos en acuerdos.
+    return { ...EMPTY_MINUTA_CONTENT, acuerdos: raw };
+  }
+  return { ...EMPTY_MINUTA_CONTENT };
+}
+
 export interface GatewayMinutaDetail {
   minuta: GatewayMinuta | null;
+  content: MinutaContent;
   can_edit: boolean;
+  is_complete: boolean;
   deadline_at: string | null;
   days_remaining: number | null;
   overdue: boolean;
@@ -1431,6 +1668,10 @@ export function getGatewayMinuta(gatewayId: Id): Result<GatewayMinutaDetail> {
 
   const minuta =
     store.gateway_minutas.find((m) => m.gateway_id === gatewayId) ?? null;
+  const content = parseMinutaContent(minuta?.content ?? null);
+  const isComplete = Object.values(content).every(
+    (v) => v.trim().length > 0,
+  );
 
   // Calculamos deadline a partir del approved_at del form (o submitted_at).
   const form = store.forms.find((f) => f.id === gateway.form_id);
@@ -1449,23 +1690,30 @@ export function getGatewayMinuta(gatewayId: Id): Result<GatewayMinutaDetail> {
   if (deadlineAt) {
     const diffMs = new Date(deadlineAt).getTime() - Date.now();
     daysRemaining = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
-    overdue = diffMs < 0 && !minuta;
+    overdue = diffMs < 0 && !isComplete;
   }
 
   return ok({
     minuta,
+    content,
     can_edit: userIsPoOrScrum(user, gateway.initiative_id, store),
+    is_complete: isComplete,
     deadline_at: deadlineAt,
     days_remaining: daysRemaining,
     overdue,
   });
 }
 
+// Guarda la minuta. `strict=true` valida todos los campos obligatorios.
+// `strict=false` acepta campos vacíos (borrador intermedio).
 export function upsertGatewayMinuta(
   gatewayId: Id,
-  content: string,
+  content: MinutaContent,
+  options: { strict?: boolean } = {},
 ): Result<GatewayMinuta> {
-  const parsed = saveMinutaSchema.safeParse({ gatewayId, content });
+  const strict = options.strict !== false;
+  const schema = strict ? saveMinutaSchema : saveMinutaDraftSchema;
+  const parsed = schema.safeParse({ gatewayId, content });
   if (!parsed.success) {
     return err("VALIDATION_ERROR", firstZodErrorMessage(parsed.error));
   }
@@ -1482,6 +1730,7 @@ export function upsertGatewayMinuta(
   }
 
   const now = nowIso();
+  const serialized = JSON.stringify(parsed.data.content);
   let m = store.gateway_minutas.find((x) => x.gateway_id === gateway.id);
   if (!m) {
     const form = store.forms.find((f) => f.id === gateway.form_id);
@@ -1492,28 +1741,15 @@ export function upsertGatewayMinuta(
       id: newId("minuta"),
       gateway_id: gateway.id,
       initiative_id: gateway.initiative_id,
-      content: parsed.data.content,
+      content: serialized,
       created_by: user.id,
       created_at: now,
       updated_at: now,
       deadline_at: d.toISOString(),
     };
     store.gateway_minutas.push(m);
-
-    // Metadata del doc en archivos adicionales (stub).
-    const stage = stageForGateway(gateway.gateway_number);
-    store.documents.push({
-      id: newId("doc"),
-      initiative_id: gateway.initiative_id,
-      document_type: "minuta_gateway_docx",
-      file_path: `/Iniciativas/${gateway.initiative_id}/${stage}/archivos adicionales/Minuta_gateway_${gateway.gateway_number}.docx`,
-      stage,
-      ltp_period: null,
-      generated_by: user.id,
-      created_at: now,
-    });
   } else {
-    m.content = parsed.data.content;
+    m.content = serialized;
     m.updated_at = now;
   }
 
@@ -1523,7 +1759,7 @@ export function upsertGatewayMinuta(
     entity_type: "gateway",
     entity_id: gateway.id,
     old_data: null,
-    new_data: { length: parsed.data.content.length },
+    new_data: { complete: strict },
   });
   writeStore(store);
   return ok(m);
@@ -1654,7 +1890,8 @@ export function getGatewayRevision(
 
 // Habilita la edición del form asociado al gateway como VF. Cambia el form
 // a draft para que el wizard existente pueda editarlo. Solo PO/Scrum y solo
-// si el gateway quedó en approved_with_changes o feedback.
+// si el gateway quedó en approved_with_changes o feedback Y no hay un
+// gateway posterior ya abierto para el mismo form (p.ej. una revisión).
 export function enableVFEditing(
   gatewayId: Id,
 ): Result<{ form_id: Id }> {
@@ -1677,6 +1914,32 @@ export function enableVFEditing(
   }
   const form = store.forms.find((f) => f.id === gateway.form_id);
   if (!form) return err("NOT_FOUND", "Formulario no encontrado");
+
+  // Bloquear si ya hay un gateway más nuevo para el mismo form (revisión
+  // reenviada). En ese caso, esta VF quedó "vieja" y no se edita más.
+  const newerGateway = store.gateways.find(
+    (g) =>
+      g.form_id === form.id &&
+      g.id !== gateway.id &&
+      new Date(0) < new Date(0) || // placeholder; usamos cron por index
+      false,
+  );
+  void newerGateway;
+  // Criterio real: existe otro gateway con mismo form_id cuya creación es
+  // posterior (no tenemos created_at en Gateway, usamos revisions como señal).
+  const revisionsForForm = store.gateway_revisions.filter(
+    (r) =>
+      r.initiative_id === gateway.initiative_id &&
+      r.gateway_number === gateway.gateway_number,
+  );
+  const latestRevisionId = revisionsForForm
+    .sort((a, b) => b.revision_number - a.revision_number)[0]?.gateway_id;
+  if (latestRevisionId && latestRevisionId !== gateway.id) {
+    return err(
+      "CONFLICT",
+      "Esta VF ya se reenvió a una revisión posterior y quedó read-only",
+    );
+  }
 
   // Si el form está approved, lo volvemos a draft para permitir edición. El
   // snapshot final ya se creó al aprobar; los cambios quedarán en el próximo

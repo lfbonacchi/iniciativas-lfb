@@ -40,6 +40,10 @@ export interface FormInstanceView {
   sections: SectionStatus[];
   is_read_only: boolean;
   action_hint: string;
+  // True si el formulario está aprobado con cambios (o con feedback pendiente)
+  // y el PO debe editar la VF. El UI lo usa para mostrar un botón "Editar VF".
+  vf_pending: boolean;
+  vf_gateway_id: Id | null;
 }
 
 export interface FormFolderCard {
@@ -287,6 +291,8 @@ function emptyInstance(formType: FormType, year: number | null): FormInstanceVie
     sections,
     is_read_only: false,
     action_hint: "Iniciar formulario",
+    vf_pending: false,
+    vf_gateway_id: null,
   };
 }
 
@@ -311,9 +317,20 @@ function buildInstance(
     form.status === "final" ||
     form.status === "reviewed" ||
     form.status === "closed";
-  const actionHint = isClosed || isReadOnly
-    ? "Ver en modo lectura"
-    : "Continuar edición";
+
+  // ¿Hay un gateway con cambios pendientes para este form?
+  const gatewayWithChanges = store.gateways.find(
+    (g) =>
+      g.form_id === form.id &&
+      (g.status === "approved_with_changes" || g.status === "feedback"),
+  );
+  const vfPending = Boolean(gatewayWithChanges);
+
+  const actionHint = vfPending
+    ? "Editar VF post-gateway"
+    : isClosed || isReadOnly
+      ? "Ver en modo lectura"
+      : "Continuar edición";
   return {
     form_id: form.id,
     year,
@@ -327,8 +344,10 @@ function buildInstance(
     last_editor_name: editor.name,
     last_edited_label: editor.date_label,
     sections,
-    is_read_only: isReadOnly,
+    is_read_only: isReadOnly && !vfPending,
     action_hint: actionHint,
+    vf_pending: vfPending,
+    vf_gateway_id: gatewayWithChanges?.id ?? null,
   };
 }
 

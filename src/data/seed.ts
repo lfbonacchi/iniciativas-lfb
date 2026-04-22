@@ -1429,10 +1429,12 @@ const ini003_F4_2026_responses: FormResponse[] = [
 // LTP. F4 2026 reviewed. F5 2026 borrador (30%). Etapas 1-3 completas.
 // ============================================================================
 
+// ini-004 está en MVP con G3 aprobado con cambios: el PO todavía tiene que
+// armar la VF con los acuerdos del gateway antes de avanzar a LTP.
 const ini004: Initiative = {
   id: "ini-004",
   name: "Automatización de sistemas de bombeo",
-  current_stage: "ltp_tracking",
+  current_stage: "mvp",
   status: "in_progress",
   created_at: "2024-03-10T10:00:00.000Z",
   has_etapa1: true,
@@ -2345,15 +2347,22 @@ const ini004_F3_responses: FormResponse[] = [
   }),
 ];
 
+// Gateway 3 de ini-004: aprobado CON cambios → Juan (PO) tiene el flujo VF
+// activo para incorporar los acuerdos de la minuta antes del cierre.
 const ini004_G3 = mkGateway({
   initiative_id: "ini-004",
   form_id: ini004_F3.id,
   gateway_number: 3,
-  status: "approved",
+  status: "approved_with_changes",
 });
 
 const ini004_G3_votes: GatewayVote[] = [
-  mkVote(ini004_G3.id, "u1", "approved", null),
+  mkVote(
+    ini004_G3.id,
+    "u1",
+    "approved_with_changes",
+    "Aprobamos avance pero pedimos reforzar el plan de gestión del cambio con el sindicato. Incorporar el detalle en la VF.",
+  ),
   mkVote(ini004_G3.id, "u4", "approved", null),
   mkVote(ini004_G3.id, "u2", "approved", null),
 ];
@@ -3815,6 +3824,43 @@ const notifications: Notification[] = [
     read: false,
     created_at: "2026-03-15T10:00:00.000Z",
   }),
+  // Juan García (u3) — PO de ini-004. Gateway 3 aprobado con cambios: tiene
+  // que armar la VF y además completar la minuta de reunión dentro de 3 días.
+  mkNotif({
+    id: "notif_005",
+    user_id: "u3",
+    type: "gateway_resolved",
+    title: "VF pendiente · Gateway 3",
+    message:
+      "Automatización de sistemas de bombeo: el gateway fue aprobado con cambios. Armá la VF incorporando minuta y feedback y reenviala.",
+    initiative_id: "ini-004",
+    read: false,
+    created_at: "2026-04-18T15:00:00.000Z",
+  }),
+  mkNotif({
+    id: "notif_006",
+    user_id: "u3",
+    type: "gateway_resolved",
+    title: "Minuta pendiente · Gateway 3",
+    message:
+      "Automatización de sistemas de bombeo: tenés 3 días para completar la minuta de la reunión de gateway.",
+    initiative_id: "ini-004",
+    read: false,
+    created_at: "2026-04-18T15:00:00.000Z",
+  }),
+  // Juan también es PO de ini-001 — el Gateway 1 de ini-001 se aprobó sin
+  // minuta: le recordamos.
+  mkNotif({
+    id: "notif_007",
+    user_id: "u3",
+    type: "gateway_resolved",
+    title: "Minuta pendiente · Gateway 1",
+    message:
+      "Optimización predictiva de pozos maduros: la minuta del Gateway 1 sigue sin completarse.",
+    initiative_id: "ini-001",
+    read: false,
+    created_at: "2026-04-10T10:00:00.000Z",
+  }),
 ];
 
 // ============================================================================
@@ -3902,10 +3948,9 @@ export function getSeedData(): SeedData {
       ini004_F1,
       ini004_F2,
       ini004_F3,
-      ini004_F4_2025,
-      ini004_F5_2025,
-      ini004_F4_2026,
-      ini004_F5_2026,
+      // F4/F5 de ini-004 quedan fuera del seed: con G3 aprobado con cambios,
+      // la iniciativa está todavía en MVP. Los LTP recién aparecen después
+      // de que se apruebe la VF sin observaciones.
       ini005_F1,
       ini005_F2,
       ini005_F3,
@@ -3933,10 +3978,6 @@ export function getSeedData(): SeedData {
       ...ini004_F1_responses,
       ...ini004_F2_responses,
       ...ini004_F3_responses,
-      ...ini004_F4_2025_responses,
-      ...ini004_F5_2025_responses,
-      ...ini004_F4_2026_responses,
-      ...ini004_F5_2026_responses,
       ...ini005_F1_responses,
       ...ini005_F3_responses,
       ...ini005_F4_2025_responses,

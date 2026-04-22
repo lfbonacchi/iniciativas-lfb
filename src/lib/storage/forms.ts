@@ -429,6 +429,23 @@ export function submitForm(formId: Id): Result<{ form: Form; gateway: Gateway | 
   let gateway: Gateway | null = null;
   if (form.form_type === "F1" || form.form_type === "F2" || form.form_type === "F3") {
     const gateway_number = form.form_type === "F1" ? 1 : form.form_type === "F2" ? 2 : 3;
+
+    // Detectar si este submit es una REVISIÓN de una VF: si hay un gateway
+    // previo para este form cerrado como "approved_with_changes" o "feedback",
+    // incrementamos la revisión y arrastramos los aprobadores extra.
+    const priorGateways = store.gateways.filter((g) => g.form_id === form.id);
+    const priorForVF = priorGateways.find(
+      (g) =>
+        g.status === "approved_with_changes" || g.status === "feedback",
+    );
+    const prevRevisions = store.gateway_revisions.filter(
+      (r) =>
+        r.initiative_id === form.initiative_id &&
+        r.gateway_number === gateway_number,
+    ).length;
+    const isRevision = !!priorForVF;
+    const nextRevision = isRevision ? prevRevisions + 2 : 1;
+
     gateway = {
       id: newId("gw"),
       form_id: form.id,
@@ -439,17 +456,55 @@ export function submitForm(formId: Id): Result<{ form: Form; gateway: Gateway | 
     };
     store.gateways.push(gateway);
 
+    if (isRevision) {
+      store.gateway_revisions.push({
+        id: newId("gwrev"),
+        initiative_id: form.initiative_id,
+        gateway_number,
+        revision_number: nextRevision,
+        gateway_id: gateway.id,
+        created_at: now,
+      });
+      // Arrastrar aprobadores extra del gateway previo.
+      if (priorForVF) {
+        const prevExtras = store.gateway_extra_approvers.filter(
+          (e) => e.gateway_id === priorForVF.id,
+        );
+        for (const e of prevExtras) {
+          store.gateway_extra_approvers.push({
+            id: newId("xappr"),
+            gateway_id: gateway.id,
+            user_id: e.user_id,
+            required: e.required,
+            added_by: user.id,
+            added_at: now,
+          });
+        }
+      }
+    }
+
+    // Notificar a aprobadores naturales + extras requeridos.
     const approvers = store.initiative_members.filter((m) =>
       ["bo", "sponsor", "ld"].includes(m.role),
     );
+    const targetIds = new Set<Id>();
     for (const a of approvers) {
       if (a.initiative_id !== form.initiative_id) continue;
+      targetIds.add(a.user_id);
+    }
+    for (const e of store.gateway_extra_approvers) {
+      if (e.gateway_id === gateway.id && e.required) targetIds.add(e.user_id);
+    }
+    const label = isRevision
+      ? `Gateway ${gateway_number} · Revisión ${nextRevision}`
+      : `Gateway ${gateway_number}`;
+    for (const uid of targetIds) {
       store.notifications.push({
         id: newId("notif"),
-        user_id: a.user_id,
+        user_id: uid,
         type: "gateway_vote_pending",
         title: "Tu voto pendiente",
-        message: `Hay un Gateway ${gateway_number} esperando tu voto`,
+        message: `${label} esperando tu voto`,
         initiative_id: form.initiative_id,
         read: false,
         created_at: now,

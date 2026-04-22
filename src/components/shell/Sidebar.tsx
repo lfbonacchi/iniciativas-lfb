@@ -10,7 +10,7 @@ import { useUploadDocument } from "./UploadDocumentContext";
 
 interface SidebarProps {
   user: User | null;
-  pendingApprovals?: number;
+  pendingActions?: number;
 }
 
 const STATUS_CHIPS = [
@@ -38,7 +38,7 @@ function canCreateInitiative(user: User | null): boolean {
   return user.global_role === "area_transformacion" || !user.is_vp;
 }
 
-export function Sidebar({ user, pendingApprovals = 0 }: SidebarProps) {
+export function Sidebar({ user, pendingActions = 0 }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const { openUpload } = useUploadDocument();
@@ -91,17 +91,23 @@ export function Sidebar({ user, pendingApprovals = 0 }: SidebarProps) {
             >
               Subir documento
             </button>
-            {pendingApprovals > 0 && (
-              <Link
-                href="/aprobaciones"
-                className="flex h-10 w-full items-center justify-between rounded-lg border border-pae-red/30 bg-pae-red/10 px-3 text-[14px] font-medium text-pae-red transition hover:bg-pae-red/20"
-              >
-                <span>Aprobaciones pendientes</span>
+            {/* Siempre visible para todos los usuarios. Si hay acciones,
+                el badge rojo muestra el número; si no, solo el texto. */}
+            <Link
+              href="/aprobaciones"
+              className={`flex h-10 w-full items-center justify-between rounded-lg border px-3 text-[14px] font-medium transition ${
+                pendingActions > 0
+                  ? "border-pae-red/30 bg-pae-red/10 text-pae-red hover:bg-pae-red/20"
+                  : "border-pae-border bg-pae-bg text-pae-text-secondary hover:bg-pae-surface"
+              }`}
+            >
+              <span>Acciones pendientes</span>
+              {pendingActions > 0 && (
                 <span className="grid h-5 min-w-5 place-items-center rounded-full bg-pae-red px-1 text-[12px] font-semibold text-white">
-                  {pendingApprovals}
+                  {pendingActions}
                 </span>
-              </Link>
-            )}
+              )}
+            </Link>
           </div>
         </div>
 

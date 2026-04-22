@@ -134,13 +134,13 @@ export type DocFileSource =
       kind: "gateway_feedback";
       gateway_id: Id;
       user_id: Id;
-      format: "xlsx" | "pdf";
+      format: "xlsx" | "pdf" | "docx";
     }
   | {
       // Minuta de reunión del gateway (editable por PO/Scrum).
       kind: "gateway_minuta";
       gateway_id: Id;
-      format: "xlsx" | "pdf";
+      format: "xlsx" | "pdf" | "docx";
     }
   | { kind: "stub" };                    // notas de prensa pendientes
 
@@ -463,17 +463,41 @@ function buildStageFolder(
   children.push(...vf, ...preGateway, ...current);
 
   if (gatewayDone && gateway) {
-    children.push({
-      kind: "file",
-      id: `minuta-${gateway.id}`,
-      name: `Minuta_gateway_${gateway.gateway_number}.docx`,
-      icon: "📝",
-      origin: "auto",
-      created_at: dateIso,
-      author_name: authorName,
-      can_regenerate: true,
-      source: { kind: "stub" },
-    });
+    // Si hay minuta guardada, usamos sus timestamps y el source real para que
+    // el preview/descarga produzca el DOCX de verdad. Si no, queda como stub.
+    const minuta = store.gateway_minutas.find(
+      (m) => m.gateway_id === gateway.id,
+    );
+    if (minuta) {
+      const minutaAuthor = userName(store, minuta.created_by) ?? authorName;
+      children.push({
+        kind: "file",
+        id: `minuta-${gateway.id}`,
+        name: `Minuta_gateway_${gateway.gateway_number}.docx`,
+        icon: "📝",
+        origin: "auto",
+        created_at: minuta.updated_at,
+        author_name: minutaAuthor,
+        can_regenerate: true,
+        source: {
+          kind: "gateway_minuta",
+          gateway_id: gateway.id,
+          format: "docx",
+        },
+      });
+    } else {
+      children.push({
+        kind: "file",
+        id: `minuta-${gateway.id}`,
+        name: `Minuta_gateway_${gateway.gateway_number}.docx`,
+        icon: "📝",
+        origin: "auto",
+        created_at: dateIso,
+        author_name: authorName,
+        can_regenerate: true,
+        source: { kind: "stub" },
+      });
+    }
   }
 
   const manualDocs = store.documents.filter(

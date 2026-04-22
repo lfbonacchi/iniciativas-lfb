@@ -24,6 +24,8 @@ export type AuditAction =
   | "gateway_inline_comments_published"
   | "gateway_minuta_saved"
   | "gateway_resubmitted"
+  | "initiative_area_changed"
+  | "initiative_affected_added"
   | "document_uploaded"
   | "document_generated"
   | "document_downloaded"
