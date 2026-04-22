@@ -1,10 +1,13 @@
 import type {
   Document,
+  Form,
+  FormType,
   Gateway,
   GatewayStatus,
   GatewayVote,
   GatewayVoteValue,
   Id,
+  Initiative,
   InitiativeStage,
 } from "@/types";
 import { err, ok, type Result } from "@/lib/result";
@@ -30,6 +33,208 @@ export interface GatewayDetail {
   gateway: Gateway;
   votes: GatewayVote[];
   feedback_by_user: Record<Id, string | null>;
+}
+
+export interface GatewayApprover {
+  user_id: Id;
+  display_name: string;
+  role: "bo" | "sponsor" | "ld";
+  role_label: string;
+  vote: GatewayVoteValue | null;
+  is_current_user: boolean;
+  feedback_text: string | null;
+}
+
+export interface GatewayFullDetail {
+  gateway: Gateway;
+  initiative: Initiative;
+  form: Form;
+  promotor_name: string | null;
+  ld_name: string | null;
+  dimension: string | null;
+  approvers: GatewayApprover[];
+  votes_received: number;
+  votes_total: number;
+  current_user_vote: GatewayVoteValue | null;
+  current_user_is_approver: boolean;
+}
+
+const ROLE_LABEL: Record<"bo" | "sponsor" | "ld", string> = {
+  sponsor: "Sponsor",
+  bo: "Business Owner",
+  ld: "Líder Dim.",
+};
+
+export function getGatewayFullDetail(gatewayId: Id): Result<GatewayFullDetail> {
+  const store = readStore();
+  const user = getCurrentUserFromStore(store);
+  if (!user) return err("AUTH_REQUIRED", "No hay un usuario autenticado");
+
+  const gateway = store.gateways.find((g) => g.id === gatewayId);
+  if (!gateway) return err("NOT_FOUND", "Gateway no encontrado");
+  if (!userCanAccessInitiative(user, gateway.initiative_id, store)) {
+    return err("FORBIDDEN", "No tenés acceso a esta iniciativa");
+  }
+
+  const initiative = store.initiatives.find((i) => i.id === gateway.initiative_id);
+  const form = store.forms.find((f) => f.id === gateway.form_id);
+  if (!initiative || !form) return err("NOT_FOUND", "Datos del gateway incompletos");
+
+  const members = store.initiative_members.filter(
+    (m) => m.initiative_id === initiative.id,
+  );
+  const findName = (role: string) => {
+    const m = members.find((mm) => mm.role === role);
+    if (!m) return null;
+    const u = store.users.find((uu) => uu.id === m.user_id);
+    return u ? u.display_name : null;
+  };
+  const sponsor = members.find((m) => m.role === "sponsor");
+  const sponsorUser = sponsor ? store.users.find((u) => u.id === sponsor.user_id) : null;
+
+  const votes = store.gateway_votes.filter((v) => v.gateway_id === gateway.id);
+  const approverRoles: Array<"sponsor" | "bo" | "ld"> = ["sponsor", "bo", "ld"];
+  const approvers: GatewayApprover[] = [];
+  for (const role of approverRoles) {
+    const roleMembers = members.filter((m) => m.role === role);
+    for (const m of roleMembers) {
+      const u = store.users.find((uu) => uu.id === m.user_id);
+      if (!u) continue;
+      const vote = votes.find((v) => v.user_id === u.id);
+      approvers.push({
+        user_id: u.id,
+        display_name: u.display_name,
+        role,
+        role_label: ROLE_LABEL[role],
+        vote: vote ? vote.vote : null,
+        is_current_user: u.id === user.id,
+        feedback_text: vote ? vote.feedback_text : null,
+      });
+    }
+  }
+
+  const currentUserVote = votes.find((v) => v.user_id === user.id) ?? null;
+
+  return ok({
+    gateway,
+    initiative,
+    form,
+    promotor_name: findName("promotor"),
+    ld_name: findName("ld"),
+    dimension: sponsorUser ? sponsorUser.vicepresidencia : null,
+    approvers,
+    votes_received: votes.length,
+    votes_total: approvers.length,
+    current_user_vote: currentUserVote ? currentUserVote.vote : null,
+    current_user_is_approver: approvers.some((a) => a.is_current_user),
+  });
+}
+
+export interface GatewayListItem {
+  gateway: Gateway;
+  initiative: Initiative;
+  form: Form;
+  form_type: FormType;
+  promotor_name: string | null;
+  ld_name: string | null;
+  sponsor_name: string | null;
+  dimension: string | null;
+  submitted_at: string | null;
+  votes_received: number;
+  votes_total: number;
+  user_is_approver: boolean;
+  user_has_voted: boolean;
+}
+
+function buildGatewayListItem(
+  store: Store,
+  gateway: Gateway,
+  currentUserId: Id | null,
+): GatewayListItem | null {
+  const initiative = store.initiatives.find(
+    (i) => i.id === gateway.initiative_id,
+  );
+  const form = store.forms.find((f) => f.id === gateway.form_id);
+  if (!initiative || !form) return null;
+
+  const members = store.initiative_members.filter(
+    (m) => m.initiative_id === initiative.id,
+  );
+  const findName = (role: string) => {
+    const m = members.find((mm) => mm.role === role);
+    if (!m) return null;
+    const u = store.users.find((uu) => uu.id === m.user_id);
+    return u ? u.display_name : null;
+  };
+  const sponsor = members.find((m) => m.role === "sponsor");
+  const sponsorUser = sponsor
+    ? store.users.find((u) => u.id === sponsor.user_id)
+    : null;
+
+  const approvers = approversForInitiative(store, initiative.id);
+  const votes = store.gateway_votes.filter((v) => v.gateway_id === gateway.id);
+  const userHasVoted = currentUserId
+    ? votes.some((v) => v.user_id === currentUserId)
+    : false;
+  const userIsApprover = currentUserId
+    ? approvers.includes(currentUserId)
+    : false;
+
+  return {
+    gateway,
+    initiative,
+    form,
+    form_type: form.form_type,
+    promotor_name: findName("promotor"),
+    ld_name: findName("ld"),
+    sponsor_name: sponsorUser ? sponsorUser.display_name : null,
+    dimension: sponsorUser ? sponsorUser.vicepresidencia : null,
+    submitted_at: form.submitted_at,
+    votes_received: votes.length,
+    votes_total: approvers.length,
+    user_is_approver: userIsApprover,
+    user_has_voted: userHasVoted,
+  };
+}
+
+export function listGateways(): Result<GatewayListItem[]> {
+  const store = readStore();
+  const user = getCurrentUserFromStore(store);
+  if (!user) return err("AUTH_REQUIRED", "No hay un usuario autenticado");
+
+  const items: GatewayListItem[] = [];
+  for (const g of store.gateways) {
+    if (!userCanAccessInitiative(user, g.initiative_id, store)) continue;
+    const item = buildGatewayListItem(store, g, user.id);
+    if (item) items.push(item);
+  }
+  items.sort((a, b) =>
+    (b.submitted_at ?? "").localeCompare(a.submitted_at ?? ""),
+  );
+  return ok(items);
+}
+
+export function listPendingApprovalsForUser(): Result<GatewayListItem[]> {
+  const store = readStore();
+  const user = getCurrentUserFromStore(store);
+  if (!user) return err("AUTH_REQUIRED", "No hay un usuario autenticado");
+
+  const items: GatewayListItem[] = [];
+  for (const g of store.gateways) {
+    if (g.status !== "pending") continue;
+    const approvers = approversForInitiative(store, g.initiative_id);
+    if (!approvers.includes(user.id)) continue;
+    const alreadyVoted = store.gateway_votes.some(
+      (v) => v.gateway_id === g.id && v.user_id === user.id,
+    );
+    if (alreadyVoted) continue;
+    const item = buildGatewayListItem(store, g, user.id);
+    if (item) items.push(item);
+  }
+  items.sort((a, b) =>
+    (a.submitted_at ?? "").localeCompare(b.submitted_at ?? ""),
+  );
+  return ok(items);
 }
 
 export function getGateway(gatewayId: Id): Result<GatewayDetail> {
