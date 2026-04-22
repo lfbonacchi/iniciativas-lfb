@@ -13,6 +13,9 @@ import type {
   Initiative,
   InitiativeFolder,
   InitiativeMember,
+  MesaBloqueante,
+  MesaBrainstormNote,
+  MesaTemaPendiente,
   Notification,
   PortfolioEvent,
   User,
@@ -39,6 +42,9 @@ export interface Store {
   file_uploads: FileUpload[];
   audit_log: AuditLog[];
   portfolio_events: PortfolioEvent[];
+  mesa_bloqueantes: MesaBloqueante[];
+  mesa_temas_pendientes: MesaTemaPendiente[];
+  mesa_brainstorm_notes: MesaBrainstormNote[];
   current_user_id: Id | null;
 }
 
@@ -60,6 +66,9 @@ function emptyStore(): Store {
     file_uploads: [],
     audit_log: [],
     portfolio_events: [],
+    mesa_bloqueantes: [],
+    mesa_temas_pendientes: [],
+    mesa_brainstorm_notes: [],
     current_user_id: null,
   };
 }
@@ -92,6 +101,9 @@ export function seedStore(): Store {
     file_uploads: seed.file_uploads,
     audit_log: seed.audit_log,
     portfolio_events: current.portfolio_events,
+    mesa_bloqueantes: current.mesa_bloqueantes,
+    mesa_temas_pendientes: current.mesa_temas_pendientes,
+    mesa_brainstorm_notes: current.mesa_brainstorm_notes,
     current_user_id: current.current_user_id,
   };
   writeStore(next);
@@ -114,6 +126,9 @@ function normalizeStore(raw: Partial<Store>): Store {
     status: e.status ?? "scheduled",
     original_date: e.original_date ?? null,
   }));
+  merged.mesa_bloqueantes = merged.mesa_bloqueantes ?? [];
+  merged.mesa_temas_pendientes = merged.mesa_temas_pendientes ?? [];
+  merged.mesa_brainstorm_notes = merged.mesa_brainstorm_notes ?? [];
   return merged;
 }
 

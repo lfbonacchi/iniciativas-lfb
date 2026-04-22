@@ -12,4 +12,5 @@ export * from "./activity";
 export * from "./dashboard";
 export * from "./timeline";
 export * from "./team";
+export * from "./mesa_de_trabajo";
 export { resetStore } from "./_store";

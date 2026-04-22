@@ -8,3 +8,4 @@ export * from "./notification";
 export * from "./document";
 export * from "./audit";
 export * from "./event";
+export * from "./mesa";
