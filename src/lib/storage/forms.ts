@@ -4,6 +4,7 @@ import type {
   FormDefinition,
   FormFieldValue,
   FormResponse,
+  FormType,
   Gateway,
   Id,
 } from "@/types";
@@ -65,6 +66,118 @@ function loadResponses(store: Store, formId: Id): Record<string, FormFieldValue>
     if (r.form_id === formId) out[r.field_key] = r.value;
   }
   return out;
+}
+
+// Devuelve las responses del formulario "fuente" de carry-over para el
+// formulario destino indicado. Regla según el tipo:
+//   F2 → F1 VF (último F1 aprobado/final)
+//   F3 → F2 VF (último F2 aprobado/final)
+//   F4 → F4 del año anterior revisado (si existe) o F3 VF
+//   F5 → F4 del mismo ciclo revisado (si existe) o F5 del año anterior
+// Devuelve null si no hay fuente aplicable.
+export function getCarryOverSource(formId: Id): Result<{
+  source_form_type: FormType;
+  source_form_id: Id;
+  responses: Record<string, FormFieldValue>;
+} | null> {
+  const store = readStore();
+  const user = getCurrentUserFromStore(store);
+  if (!user) return err("AUTH_REQUIRED", "No hay un usuario autenticado");
+
+  const form = store.forms.find((f) => f.id === formId);
+  if (!form) return err("NOT_FOUND", "Formulario no encontrado");
+  if (!userCanAccessInitiative(user, form.initiative_id, store)) {
+    return err("FORBIDDEN", "No tenés acceso a esta iniciativa");
+  }
+
+  const closedStatuses: ReadonlyArray<string> = [
+    "approved",
+    "final",
+    "reviewed",
+    "closed",
+  ];
+
+  const initiativeForms = store.forms.filter(
+    (f) => f.initiative_id === form.initiative_id,
+  );
+
+  function latestOf(formType: FormType): Form | undefined {
+    return initiativeForms
+      .filter(
+        (f) => f.form_type === formType && closedStatuses.includes(f.status),
+      )
+      .sort((a, b) => b.updated_at.localeCompare(a.updated_at))[0];
+  }
+
+  function parseYear(period: string | null): number | null {
+    if (!period) return null;
+    const m = /^\d{2}-(\d{4})$/.exec(period);
+    if (!m) return null;
+    const y = parseInt(m[1] ?? "", 10);
+    return Number.isFinite(y) ? y : null;
+  }
+
+  let source: Form | undefined;
+  if (form.form_type === "F2") {
+    source = latestOf("F1");
+  } else if (form.form_type === "F3") {
+    source = latestOf("F2");
+  } else if (form.form_type === "F4") {
+    const destYear = parseYear(form.ltp_period);
+    if (destYear != null) {
+      source = initiativeForms
+        .filter(
+          (f) =>
+            f.form_type === "F4" &&
+            closedStatuses.includes(f.status) &&
+            (parseYear(f.ltp_period) ?? -Infinity) < destYear,
+        )
+        .sort(
+          (a, b) =>
+            (parseYear(b.ltp_period) ?? -Infinity) -
+            (parseYear(a.ltp_period) ?? -Infinity),
+        )[0];
+    }
+    if (!source) source = latestOf("F3");
+  } else if (form.form_type === "F5") {
+    const destYear = parseYear(form.ltp_period);
+    if (destYear != null) {
+      source = initiativeForms
+        .filter(
+          (f) =>
+            f.form_type === "F4" &&
+            closedStatuses.includes(f.status) &&
+            parseYear(f.ltp_period) === destYear,
+        )
+        .sort((a, b) => b.updated_at.localeCompare(a.updated_at))[0];
+      if (!source) {
+        source = initiativeForms
+          .filter(
+            (f) =>
+              f.form_type === "F5" &&
+              closedStatuses.includes(f.status) &&
+              (parseYear(f.ltp_period) ?? -Infinity) < destYear,
+          )
+          .sort(
+            (a, b) =>
+              (parseYear(b.ltp_period) ?? -Infinity) -
+              (parseYear(a.ltp_period) ?? -Infinity),
+          )[0];
+      }
+    }
+  }
+
+  if (!source) return ok(null);
+
+  const responses: Record<string, FormFieldValue> = {};
+  for (const r of store.form_responses) {
+    if (r.form_id === source.id) responses[r.field_key] = r.value;
+  }
+  return ok({
+    source_form_type: source.form_type,
+    source_form_id: source.id,
+    responses,
+  });
 }
 
 export function getForm(formId: Id): Result<FormDetail> {

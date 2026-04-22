@@ -1,9 +1,9 @@
 "use client";
 
 import type {
-  F1Section,
   TableColumnDef,
-} from "@/data/form_definitions/f1";
+  WizardSection,
+} from "@/data/form_definitions/_shared";
 import type { FormFieldValue } from "@/types";
 
 import {
@@ -53,7 +53,7 @@ function defaultRow(
 }
 
 interface SectionRendererProps {
-  section: F1Section;
+  section: WizardSection;
   value: FormFieldValue | undefined;
   disabled: boolean;
   onChange: (next: FormFieldValue) => void;
@@ -283,6 +283,74 @@ function InnerRenderer({
             addRowLabel={section.table.add_row_label}
           />
         </div>
+      </div>
+    );
+  }
+
+  if (section.shape === "multi_block") {
+    const current =
+      value && typeof value === "object" && !Array.isArray(value)
+        ? (value as Record<string, unknown>)
+        : {};
+
+    const updateBlock = (blockKey: string, next: unknown) => {
+      onChange({ ...current, [blockKey]: next } as FormFieldValue);
+    };
+
+    return (
+      <div className="space-y-8">
+        {section.blocks.map((b) => {
+          if (b.type === "text") {
+            return (
+              <WizardTextarea
+                key={b.key}
+                label={b.label}
+                hint={b.hint}
+                rows={b.rows}
+                value={asString(current[b.key])}
+                onChange={(nv) => updateBlock(b.key, nv)}
+                onBlur={onBlur}
+              />
+            );
+          }
+          const rows = asRows(current[b.key]);
+          return (
+            <div key={b.key}>
+              <h4 className="text-[13px] font-semibold text-pae-text">
+                {b.title}
+              </h4>
+              {b.description && (
+                <p className="mt-1 mb-3 text-[11px] text-pae-text-secondary">
+                  {b.description}
+                </p>
+              )}
+              <WizardEditableTable
+                columns={b.columns}
+                rows={rows}
+                onChange={(i, k, v) => {
+                  const next = rows.map((r, idx) =>
+                    idx === i ? { ...r, [k]: v } : r,
+                  );
+                  updateBlock(b.key, next);
+                }}
+                onBlur={onBlur}
+                onAddRow={() =>
+                  updateBlock(b.key, [
+                    ...rows,
+                    defaultRow(b.columns, b.row_default),
+                  ])
+                }
+                onRemoveRow={(i) =>
+                  updateBlock(
+                    b.key,
+                    rows.filter((_, idx) => idx !== i),
+                  )
+                }
+                addRowLabel={b.add_row_label}
+              />
+            </div>
+          );
+        })}
       </div>
     );
   }

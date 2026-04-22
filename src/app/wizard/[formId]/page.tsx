@@ -4,15 +4,22 @@ import Image from "next/image";
 import { use, useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
+import { F1_SECTIONS } from "@/data/form_definitions/f1";
+import { F3_SECTIONS } from "@/data/form_definitions/f3";
+import { F4_SECTIONS } from "@/data/form_definitions/f4";
+import { F5_SECTIONS } from "@/data/form_definitions/f5";
 import {
-  F1_SECTIONS,
-  computeF1Completeness,
-  type F1SectionKey,
-} from "@/data/form_definitions/f1";
+  computeCompleteness,
+  type WizardSection,
+} from "@/data/form_definitions/_shared";
 import { getAvailableUsers } from "@/lib/storage/auth";
-import { getForm, submitForm } from "@/lib/storage/forms";
+import {
+  getCarryOverSource,
+  getForm,
+  submitForm,
+} from "@/lib/storage/forms";
 import { getRawSectionChangeLog } from "@/lib/storage/activity";
-import type { FormChangeLog, FormFieldValue, User } from "@/types";
+import type { FormChangeLog, FormFieldValue, FormType, User } from "@/types";
 
 import { SectionHistory } from "./components/SectionHistory";
 import { SectionRenderer } from "./components/SectionRenderer";
@@ -21,6 +28,48 @@ import { WizardStepper } from "./WizardStepper";
 import { useWizardAutoSave } from "./useWizardAutoSave";
 
 type ResponsesMap = Record<string, FormFieldValue>;
+
+// Sección y título por tipo de formulario. F2 aún no tiene definición propia
+// (su wizard se construirá luego); cuando esté, basta con sumarlo acá.
+const SECTIONS_BY_TYPE: Partial<Record<FormType, readonly WizardSection[]>> = {
+  F1: F1_SECTIONS,
+  F3: F3_SECTIONS,
+  F4: F4_SECTIONS,
+  F5: F5_SECTIONS,
+};
+
+const FORM_LABEL: Record<FormType, string> = {
+  F1: "F1 — Propuesta",
+  F2: "F2 — Dimensionamiento",
+  F3: "F3 — MVP",
+  F4: "F4 — Visión Anual",
+  F5: "F5 — Planificación Anual",
+};
+
+// F4 y F5 no tienen gateway: envían a revisión del sponsor, no a aprobación.
+function submitCopy(formType: FormType): {
+  label: string;
+  submitting: string;
+  success: string;
+} {
+  if (formType === "F4" || formType === "F5") {
+    return {
+      label: "Enviar a revisión del sponsor",
+      submitting: "Enviando…",
+      success: "✓ Formulario enviado a revisión del sponsor.",
+    };
+  }
+  return {
+    label: "Enviar a aprobación",
+    submitting: "Enviando…",
+    success:
+      formType === "F1"
+        ? "✓ Formulario enviado a aprobación. Se creó el Gateway 1."
+        : formType === "F2"
+          ? "✓ Formulario enviado a aprobación. Se creó el Gateway 2."
+          : "✓ Formulario enviado a aprobación. Se creó el Gateway 3.",
+  };
+}
 
 export default function WizardPage({
   params,
@@ -33,13 +82,16 @@ export default function WizardPage({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [initiativeId, setInitiativeId] = useState<string | null>(null);
-  const [formType, setFormType] = useState<string | null>(null);
+  const [formType, setFormType] = useState<FormType | null>(null);
   const [formStatus, setFormStatus] = useState<string | null>(null);
   const [responses, setResponses] = useState<ResponsesMap>({});
-  const [users, setUsers] = useState<readonly User[]>([]);
-  const [activeKey, setActiveKey] = useState<F1SectionKey>(
-    F1_SECTIONS[0]!.key,
+  const [carriedOverKeys, setCarriedOverKeys] = useState<ReadonlySet<string>>(
+    new Set(),
   );
+  const [carryOverSourceType, setCarryOverSourceType] =
+    useState<FormType | null>(null);
+  const [users, setUsers] = useState<readonly User[]>([]);
+  const [activeKey, setActiveKey] = useState<string>("");
   const [historyBySection, setHistoryBySection] = useState<
     Record<string, FormChangeLog[]>
   >({});
@@ -47,7 +99,12 @@ export default function WizardPage({
 
   const autosave = useWizardAutoSave(formId);
 
-  // Carga inicial.
+  const sections = useMemo<readonly WizardSection[]>(() => {
+    if (!formType) return [];
+    return SECTIONS_BY_TYPE[formType] ?? [];
+  }, [formType]);
+
+  // Carga inicial: form + responses + carry-over merge.
   useEffect(() => {
     const userRes = getAvailableUsers();
     if (userRes.success) setUsers(userRes.data);
@@ -58,14 +115,51 @@ export default function WizardPage({
       setLoading(false);
       return;
     }
+    const ft = res.data.form.form_type as FormType;
     setInitiativeId(res.data.form.initiative_id);
-    setFormType(res.data.form.form_type);
+    setFormType(ft);
     setFormStatus(res.data.form.status);
-    setResponses(res.data.responses);
+
+    const ownResponses = res.data.responses;
+
+    // Carry-over: traer responses del formulario origen (si aplica) y
+    // completar solo las secciones marcadas como `carries_over` que todavía
+    // estén vacías en el formulario destino.
+    const sectionDefs = SECTIONS_BY_TYPE[ft] ?? [];
+    const carryOverRes = getCarryOverSource(formId);
+    const mergedResponses: ResponsesMap = { ...ownResponses };
+    const carriedKeys = new Set<string>();
+    let sourceType: FormType | null = null;
+
+    if (carryOverRes.success && carryOverRes.data) {
+      sourceType = carryOverRes.data.source_form_type;
+      const sourceResponses = carryOverRes.data.responses;
+      for (const section of sectionDefs) {
+        if (!section.carries_over) continue;
+        const current = mergedResponses[section.key];
+        const isEmpty =
+          current === undefined ||
+          current === null ||
+          current === "" ||
+          (Array.isArray(current) && current.length === 0) ||
+          (typeof current === "object" &&
+            !Array.isArray(current) &&
+            Object.keys(current as Record<string, unknown>).length === 0);
+        if (!isEmpty) continue;
+        const sourceValue = sourceResponses[section.key];
+        if (sourceValue === undefined) continue;
+        mergedResponses[section.key] = sourceValue;
+        carriedKeys.add(section.key);
+      }
+    }
+
+    setResponses(mergedResponses);
+    setCarriedOverKeys(carriedKeys);
+    setCarryOverSourceType(sourceType);
+    setActiveKey(sectionDefs[0]?.key ?? "");
     setLoading(false);
   }, [formId]);
 
-  // Carga el historial para la sección activa (se refresca cada vez que cambia).
   const refreshHistoryForSection = useCallback(
     (sectionKey: string) => {
       const res = getRawSectionChangeLog(formId, sectionKey);
@@ -77,21 +171,29 @@ export default function WizardPage({
   );
 
   useEffect(() => {
-    if (!loading) refreshHistoryForSection(activeKey);
+    if (!loading && activeKey) refreshHistoryForSection(activeKey);
   }, [activeKey, loading, refreshHistoryForSection, autosave.lastSavedAt]);
 
-  const completeness = useMemo(() => computeF1Completeness(responses), [
-    responses,
-  ]);
+  const completeness = useMemo(
+    () => computeCompleteness(sections, responses),
+    [sections, responses],
+  );
 
   const activeSection = useMemo(
-    () => F1_SECTIONS.find((s) => s.key === activeKey) ?? F1_SECTIONS[0]!,
-    [activeKey],
+    () => sections.find((s) => s.key === activeKey) ?? sections[0],
+    [sections, activeKey],
   );
 
   const handleSectionChange = useCallback(
-    (key: F1SectionKey, next: FormFieldValue) => {
+    (key: string, next: FormFieldValue) => {
       setResponses((prev) => ({ ...prev, [key]: next }));
+      // Al editar, la sección deja de ser "heredada".
+      setCarriedOverKeys((prev) => {
+        if (!prev.has(key)) return prev;
+        const copy = new Set(prev);
+        copy.delete(key);
+        return copy;
+      });
       autosave.scheduleFieldChange(key, next);
     },
     [autosave],
@@ -107,19 +209,29 @@ export default function WizardPage({
   }, [autosave, initiativeId, router]);
 
   const handleSubmit = useCallback(async () => {
+    if (!formType) return;
+    // Antes de enviar, si hay secciones heredadas sin editar, las persistimos
+    // explícitamente para que queden como respuestas propias del destino.
+    if (carriedOverKeys.size > 0) {
+      for (const key of carriedOverKeys) {
+        const value = responses[key];
+        if (value !== undefined) autosave.scheduleFieldChange(key, value);
+      }
+    }
     await autosave.flushNow();
     setSubmitting(true);
     const res = submitForm(formId);
     setSubmitting(false);
+    const copy = submitCopy(formType);
     if (!res.success) {
-      alert(`No se pudo enviar a aprobación: ${res.error.message}`);
+      alert(`No se pudo enviar: ${res.error.message}`);
       return;
     }
-    alert("✓ Formulario enviado a aprobación. Se creó el Gateway 1.");
+    alert(copy.success);
     if (initiativeId) {
       router.push(`/iniciativas/${initiativeId}/formularios`);
     }
-  }, [autosave, formId, initiativeId, router]);
+  }, [autosave, carriedOverKeys, formId, formType, initiativeId, responses, router]);
 
   const handlePreview = useCallback(() => {
     alert("Previsualización pendiente de integración.");
@@ -154,12 +266,12 @@ export default function WizardPage({
     );
   }
 
-  if (formType !== "F1") {
+  if (!formType || sections.length === 0 || !activeSection) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-pae-bg p-6">
         <div className="max-w-md rounded-xl border border-pae-border bg-pae-surface p-6 text-center">
           <p className="text-[13px] font-semibold text-pae-text">
-            Wizard disponible solo para F1
+            Wizard no disponible para {formType ?? "este formulario"}
           </p>
           <p className="mt-2 text-[11px] text-pae-text-secondary">
             El wizard de {formType} se habilitará próximamente.
@@ -180,15 +292,17 @@ export default function WizardPage({
     formStatus === "approved" ||
     formStatus === "final" ||
     formStatus === "closed" ||
+    formStatus === "reviewed" ||
     formStatus === "in_review" ||
     formStatus === "submitted";
   const canSubmit = completeness.percent === 100 && formStatus === "draft";
+  const copy = submitCopy(formType);
 
   const sectionHistory = historyBySection[activeKey] ?? [];
+  const isActiveCarriedOver = carriedOverKeys.has(activeSection.key);
 
   return (
     <div className="flex min-h-screen flex-col bg-pae-bg">
-      {/* Header top bar minimal */}
       <header className="flex h-14 shrink-0 items-center gap-4 border-b border-pae-border bg-pae-surface px-6">
         <div className="flex items-center gap-3">
           <Image
@@ -204,7 +318,7 @@ export default function WizardPage({
           </span>
         </div>
         <span className="ml-2 text-[11px] text-pae-text-tertiary">
-          Wizard · F1 Propuesta
+          Wizard · {FORM_LABEL[formType]}
         </span>
         {isReadOnly && (
           <span className="ml-auto rounded-full bg-pae-amber/10 px-2.5 py-0.5 text-[10px] font-semibold text-pae-amber">
@@ -215,23 +329,38 @@ export default function WizardPage({
 
       <div className="flex flex-1 overflow-hidden">
         <WizardStepper
-          formName="F1 — Propuesta"
+          formName={FORM_LABEL[formType]}
           percent={completeness.percent}
-          sections={F1_SECTIONS}
+          sections={sections}
           activeKey={activeKey}
           completeMap={completeness.by_section}
+          carriedOverKeys={carriedOverKeys}
           onSelect={(k) => setActiveKey(k)}
           onExit={handleExit}
         />
 
         <main className="flex flex-1 flex-col overflow-y-auto">
           <div className="mx-auto w-full max-w-4xl px-8 py-8">
+            {carriedOverKeys.size > 0 && carryOverSourceType && (
+              <div className="mb-4 rounded-lg border border-pae-blue/20 bg-pae-blue/5 px-4 py-2.5 text-[11px] text-pae-text-secondary">
+                Las secciones marcadas como{" "}
+                <span className="font-semibold text-pae-text">Heredado</span>{" "}
+                se pre-cargaron desde {carryOverSourceType} VF. Revisalas y
+                editá lo que haga falta antes de enviar.
+              </div>
+            )}
+
             <header className="mb-5">
               <p className="text-[11px] font-semibold uppercase tracking-wide text-pae-text-tertiary">
-                Sección {activeSection.number} de {F1_SECTIONS.length}
+                Sección {activeSection.number} de {sections.length}
               </p>
-              <h1 className="mt-1 text-[20px] font-semibold text-pae-text">
+              <h1 className="mt-1 flex items-center gap-2 text-[20px] font-semibold text-pae-text">
                 {activeSection.number}. {activeSection.title}
+                {isActiveCarriedOver && carryOverSourceType && (
+                  <span className="rounded-full bg-pae-bg px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-pae-text-tertiary">
+                    Heredado de {carryOverSourceType}
+                  </span>
+                )}
               </h1>
               {activeSection.description && (
                 <p className="mt-2 text-[12px] leading-relaxed text-pae-text-secondary">
@@ -264,7 +393,7 @@ export default function WizardPage({
                 type="button"
                 disabled={activeSection.number === 1}
                 onClick={() => {
-                  const prev = F1_SECTIONS[activeSection.number - 2];
+                  const prev = sections[activeSection.number - 2];
                   if (prev) setActiveKey(prev.key);
                 }}
                 className="rounded-lg border border-pae-border bg-pae-surface px-4 py-2 text-[12px] font-medium text-pae-text-secondary transition hover:border-pae-blue/40 hover:text-pae-blue disabled:cursor-not-allowed disabled:opacity-40"
@@ -273,9 +402,9 @@ export default function WizardPage({
               </button>
               <button
                 type="button"
-                disabled={activeSection.number === F1_SECTIONS.length}
+                disabled={activeSection.number === sections.length}
                 onClick={() => {
-                  const next = F1_SECTIONS[activeSection.number];
+                  const next = sections[activeSection.number];
                   if (next) setActiveKey(next.key);
                 }}
                 className="rounded-lg bg-pae-blue px-4 py-2 text-[12px] font-semibold text-white transition hover:bg-pae-blue/90 disabled:cursor-not-allowed disabled:bg-pae-blue/40"
@@ -291,6 +420,9 @@ export default function WizardPage({
             autosave={autosave}
             percent={completeness.percent}
             canSubmit={canSubmit && !isReadOnly}
+            submitLabel={copy.label}
+            submittingLabel={copy.submitting}
+            disabledHint={`Completá todas las secciones (${completeness.percent}%) para ${copy.label.toLowerCase()}`}
             onPreview={handlePreview}
             onGeneratePptx={handleGeneratePptx}
             onSubmit={handleSubmit}

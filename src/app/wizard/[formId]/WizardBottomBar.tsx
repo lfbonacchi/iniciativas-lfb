@@ -8,6 +8,9 @@ export function WizardBottomBar({
   autosave,
   percent,
   canSubmit,
+  submitLabel,
+  submittingLabel,
+  disabledHint,
   onPreview,
   onGeneratePptx,
   onSubmit,
@@ -16,6 +19,9 @@ export function WizardBottomBar({
   autosave: WizardAutoSaveState;
   percent: number;
   canSubmit: boolean;
+  submitLabel: string;
+  submittingLabel?: string;
+  disabledHint?: string;
   onPreview: () => void;
   onGeneratePptx: () => void;
   onSubmit: () => void;
@@ -84,12 +90,13 @@ export function WizardBottomBar({
             onClick={onSubmit}
             title={
               !canSubmit
-                ? `Completá todas las secciones (${percent}%) para enviar a aprobación`
+                ? disabledHint ??
+                  `Completá todas las secciones (${percent}%) para enviar`
                 : undefined
             }
             className="rounded-lg bg-pae-blue px-4 py-1.5 text-[12px] font-semibold text-white transition hover:bg-pae-blue/90 disabled:cursor-not-allowed disabled:bg-pae-blue/40"
           >
-            {submitting ? "Enviando…" : "Enviar a aprobación"}
+            {submitting ? submittingLabel ?? "Enviando…" : submitLabel}
           </button>
         </div>
       </div>

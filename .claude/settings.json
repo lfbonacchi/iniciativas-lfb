@@ -1,3 +1,16 @@
 {
-  "autoMemoryEnabled": true
+  "autoMemoryEnabled": true,
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 -c \"import sys,json,re; d=json.load(sys.stdin); c=d.get('tool_input',{}).get('command',''); re.search(r'npm run build|next build', c) and print(json.dumps({'hookSpecificOutput':{'hookEventName':'PreToolUse','permissionDecision':'deny','permissionDecisionReason':'No corras build mientras Martina tiene el dev server en localhost:3000 — pisa .next/ y mata el server. Usa npx tsc --noEmit para verificar tipos. Si realmente necesitas build, pedile a Martina que cierre el dev server primero.'}}))\""
+          }
+        ]
+      }
+    ]
+  }
 }

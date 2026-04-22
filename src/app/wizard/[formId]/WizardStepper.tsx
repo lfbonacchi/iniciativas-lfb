@@ -1,6 +1,6 @@
 "use client";
 
-import type { F1Section, F1SectionKey } from "@/data/form_definitions/f1";
+import type { WizardSection } from "@/data/form_definitions/_shared";
 
 type SectionState = "complete" | "active" | "pending";
 
@@ -10,18 +10,20 @@ export function WizardStepper({
   sections,
   activeKey,
   completeMap,
+  carriedOverKeys,
   onSelect,
   onExit,
 }: {
   formName: string;
   percent: number;
-  sections: readonly F1Section[];
-  activeKey: F1SectionKey;
-  completeMap: Record<F1SectionKey, boolean>;
-  onSelect: (key: F1SectionKey) => void;
+  sections: readonly WizardSection[];
+  activeKey: string;
+  completeMap: Record<string, boolean>;
+  carriedOverKeys: ReadonlySet<string>;
+  onSelect: (key: string) => void;
   onExit: () => void;
 }) {
-  function stateOf(s: F1Section): SectionState {
+  function stateOf(s: WizardSection): SectionState {
     if (s.key === activeKey) return "active";
     if (completeMap[s.key]) return "complete";
     return "pending";
@@ -106,6 +108,11 @@ export function WizardStepper({
                 </span>
                 <span className={`text-[12px] leading-tight ${colors.label}`}>
                   {s.title}
+                  {carriedOverKeys.has(s.key) && (
+                    <span className="ml-2 rounded-full bg-pae-bg px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-pae-text-tertiary">
+                      Heredado
+                    </span>
+                  )}
                 </span>
               </button>
             </li>
