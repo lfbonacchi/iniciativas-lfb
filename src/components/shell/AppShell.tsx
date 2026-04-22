@@ -7,6 +7,7 @@ import { getCurrentUser } from "@/lib/storage/auth";
 import { countPendingApprovalsForUser } from "@/lib/storage/gateways";
 
 import { Header } from "./Header";
+import { PipelineProvider } from "./PipelineContext";
 import { Sidebar } from "./Sidebar";
 
 interface AppShellProps {
@@ -29,12 +30,14 @@ export function AppShell({ children, notificationCount }: AppShellProps) {
   }, []);
 
   return (
-    <div className="min-h-screen bg-pae-bg">
-      <Header user={user} notificationCount={notificationCount} />
-      <Sidebar user={user} pendingApprovals={pendingApprovals} />
-      <main className="pt-14 md:pl-[220px]">
-        <div className="px-6 py-6">{children}</div>
-      </main>
-    </div>
+    <PipelineProvider>
+      <div className="min-h-screen bg-pae-bg">
+        <Header user={user} notificationCount={notificationCount} />
+        <Sidebar user={user} pendingApprovals={pendingApprovals} />
+        <main className="pt-14 md:pl-[220px]">
+          <div className="px-6 py-6">{children}</div>
+        </main>
+      </div>
+    </PipelineProvider>
   );
 }

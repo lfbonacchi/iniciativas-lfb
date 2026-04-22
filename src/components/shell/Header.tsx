@@ -4,12 +4,24 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
-import type { User } from "@/types";
+import type { InitiativeStage, User } from "@/types";
+
+import { usePipeline } from "./PipelineContext";
 
 interface HeaderProps {
   user: User | null;
   notificationCount?: number;
 }
+
+const PIPELINE_STAGES: {
+  key: InitiativeStage;
+  label: string;
+}[] = [
+  { key: "proposal", label: "Propuesta" },
+  { key: "dimensioning", label: "Dimensionamiento" },
+  { key: "mvp", label: "MVP" },
+  { key: "ltp_tracking", label: "Delivery" },
+];
 
 const ZOOM_STORAGE_KEY = "pae-ui-zoom";
 const ZOOM_MIN = 0.85;
@@ -91,6 +103,7 @@ function avatarAccent(user: User): { bg: string; fg: string } {
 
 export function Header({ user, notificationCount = 0 }: HeaderProps) {
   const accent = user ? avatarAccent(user) : null;
+  const { activeStage } = usePipeline();
 
   return (
     <header className="fixed left-0 right-0 top-0 z-50 flex h-14 items-center justify-between border-b border-pae-border bg-pae-surface px-4 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
@@ -110,15 +123,29 @@ export function Header({ user, notificationCount = 0 }: HeaderProps) {
 
       <nav
         aria-label="Pipeline"
-        className="hidden items-center gap-2 text-[16px] text-pae-text-tertiary md:flex"
+        className="hidden items-center gap-2 text-[16px] md:flex"
       >
-        <span>Propuesta</span>
-        <span aria-hidden>›</span>
-        <span>Dimensionamiento</span>
-        <span aria-hidden>›</span>
-        <span>MVP</span>
-        <span aria-hidden>›</span>
-        <span>Delivery</span>
+        {PIPELINE_STAGES.map((s, idx) => {
+          const isActive = activeStage === s.key;
+          return (
+            <span key={s.key} className="flex items-center gap-2">
+              <span
+                className={
+                  isActive
+                    ? "border-b-2 border-pae-blue pb-0.5 font-semibold text-pae-blue"
+                    : "text-pae-text-tertiary"
+                }
+              >
+                {s.label}
+              </span>
+              {idx < PIPELINE_STAGES.length - 1 && (
+                <span aria-hidden className="text-pae-text-tertiary">
+                  ›
+                </span>
+              )}
+            </span>
+          );
+        })}
       </nav>
 
       <div className="flex items-center gap-3">

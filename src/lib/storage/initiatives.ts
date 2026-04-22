@@ -162,14 +162,12 @@ export function listInitiatives(
 
   let visible = store.initiatives;
 
-  // RLS: usuarios normales solo ven iniciativas donde son miembros.
-  if (!isAreaTransformacion(user) && !user.is_vp) {
-    const allowedIds = new Set(
-      store.initiative_members
-        .filter((m) => m.user_id === user.id)
-        .map((m) => m.initiative_id),
+  // RLS: AT ve todo. Para el resto filtramos con userCanAccessInitiative,
+  // que ya contempla miembro directo, VP de scope y aprobador de gate.
+  if (!isAreaTransformacion(user)) {
+    visible = visible.filter((i) =>
+      userCanAccessInitiative(user, i.id, store),
     );
-    visible = visible.filter((i) => allowedIds.has(i.id));
   }
 
   const f = parsed.data;
@@ -250,13 +248,10 @@ export function searchInitiatives(
   if (!user) return err("AUTH_REQUIRED", "No hay un usuario autenticado");
 
   let visible = store.initiatives;
-  if (!isAreaTransformacion(user) && !user.is_vp) {
-    const allowedIds = new Set(
-      store.initiative_members
-        .filter((m) => m.user_id === user.id)
-        .map((m) => m.initiative_id),
+  if (!isAreaTransformacion(user)) {
+    visible = visible.filter((i) =>
+      userCanAccessInitiative(user, i.id, store),
     );
-    visible = visible.filter((i) => allowedIds.has(i.id));
   }
 
   const q = query.trim().toLowerCase();
@@ -335,7 +330,14 @@ export interface ListMyInitiativesResult {
   available_vps: string[];
 }
 
-const OWNER_ROLES: ReadonlySet<string> = new Set(["po", "promotor", "ld"]);
+const OWNER_ROLES: ReadonlySet<string> = new Set([
+  "po",
+  "promotor",
+  "ld",
+  "bo",
+  "sponsor",
+]);
+const IMPACTING_ROLES: ReadonlySet<string> = new Set(["sm", "equipo"]);
 
 const ROLE_ABBR: Record<IniciativaRoleKey, string> = {
   po: "PO",
@@ -345,6 +347,27 @@ const ROLE_ABBR: Record<IniciativaRoleKey, string> = {
   sm: "SM",
   sponsor: "Sponsor",
 };
+
+function userIsGatewayApprover(
+  store: Store,
+  initiativeId: Id,
+  userId: Id,
+): boolean {
+  return store.gateway_votes.some((v) => {
+    if (v.user_id !== userId) return false;
+    const gw = store.gateways.find((g) => g.id === v.gateway_id);
+    return gw?.initiative_id === initiativeId;
+  });
+}
+
+function sponsorVpFor(store: Store, initiativeId: Id): string | null {
+  const sponsorMember = store.initiative_members.find(
+    (m) => m.initiative_id === initiativeId && m.role === "sponsor",
+  );
+  if (!sponsorMember) return null;
+  const sponsor = store.users.find((u) => u.id === sponsorMember.user_id);
+  return sponsor?.vicepresidencia ?? null;
+}
 
 function fmtUsdShort(v: number): string {
   if (v >= 1_000_000) return `USD ${(v / 1_000_000).toFixed(1)}M`;
@@ -450,11 +473,14 @@ export function listMyInitiativeCards(): Result<ListMyInitiativesResult> {
   const user = getCurrentUserFromStore(store);
   if (!user) return err("AUTH_REQUIRED", "No hay un usuario autenticado");
 
-  // Rol global: AT ve todo como "impactante" potencial. Para otros, se
-  // clasifica por pertenencia real.
+  // Regla: AT lidera todo el portfolio → todas las iniciativas son "propias".
+  // Para el resto: PO/Promotor/LD/BO/Sponsor directo → propias. SM, equipo,
+  // aprobador de gateway sin rol directo, y VP de la VP del sponsor → impactan.
   const own: IniciativaCard[] = [];
   const impacting: IniciativaCard[] = [];
   const vpsSet = new Set<string>();
+
+  const atLeadsAll = isAreaTransformacion(user);
 
   for (const ini of store.initiatives) {
     const members = store.initiative_members.filter(
@@ -466,19 +492,36 @@ export function listMyInitiativeCards(): Result<ListMyInitiativesResult> {
     );
 
     const overlay = getOverlay(ini.id);
-    const isVpOfScope = user.is_vp && overlay.vicepresidencia === user.vicepresidencia;
-    const atSeesAll = isAreaTransformacion(user);
+    const sponsorVp = sponsorVpFor(store, ini.id);
+    const initiativeVp = sponsorVp ?? overlay.vicepresidencia;
 
-    const isOwn = myRoleKeys.some((r) => OWNER_ROLES.has(r));
-    const isImpactingDirectly =
-      myRoleKeys.some((r) =>
-        ["bo", "sm", "sponsor", "equipo"].includes(r),
-      ) || isVpOfScope;
+    const hasOwnerRole = myRoleKeys.some((r) => OWNER_ROLES.has(r));
+    const hasImpactingRole = myRoleKeys.some((r) => IMPACTING_ROLES.has(r));
+    const isApproverOnly =
+      !hasOwnerRole && userIsGatewayApprover(store, ini.id, user.id);
+    const isVpOfScopeOnly =
+      !hasOwnerRole &&
+      Boolean(user.is_vp) &&
+      initiativeVp === user.vicepresidencia;
 
-    // RLS: si no sos miembro ni VP de scope ni AT, no ves la iniciativa.
-    if (!isOwn && !isImpactingDirectly && !atSeesAll) continue;
+    let isOwn: boolean;
+    let isImpacting: boolean;
 
-    vpsSet.add(overlay.vicepresidencia);
+    if (atLeadsAll) {
+      isOwn = true;
+      isImpacting = false;
+    } else if (hasOwnerRole) {
+      isOwn = true;
+      isImpacting = false;
+    } else if (hasImpactingRole || isApproverOnly || isVpOfScopeOnly) {
+      isOwn = false;
+      isImpacting = true;
+    } else {
+      // Sin pertenencia → no ve la iniciativa
+      continue;
+    }
+
+    vpsSet.add(initiativeVp);
 
     const displayRoles: IniciativaRoleInCard[] = [];
     const seenKeys = new Set<IniciativaRoleKey>();
@@ -523,10 +566,10 @@ export function listMyInitiativeCards(): Result<ListMyInitiativesResult> {
       expected_cost_usd: overlay.expected_cost_usd,
       third_metric: thirdMetricFor(ini.id),
       pending_action: pending,
-      vicepresidencia: overlay.vicepresidencia,
+      vicepresidencia: initiativeVp,
       current_form_type: currentFormType,
       is_own: isOwn,
-      is_impacting: isImpactingDirectly || (atSeesAll && !isOwn),
+      is_impacting: isImpacting,
     };
 
     if (isOwn) own.push(card);

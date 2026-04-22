@@ -1,6 +1,7 @@
 export * from "./common";
 export * from "./user";
 export * from "./initiative";
+export * from "./initiative_summary";
 export * from "./form";
 export * from "./gateway";
 export * from "./notification";
