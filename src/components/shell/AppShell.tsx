@@ -9,6 +9,8 @@ import { countPendingApprovalsForUser } from "@/lib/storage/gateways";
 import { Header } from "./Header";
 import { PipelineProvider } from "./PipelineContext";
 import { Sidebar } from "./Sidebar";
+import { UploadDocumentProvider } from "./UploadDocumentContext";
+import { UploadDocumentModal } from "./UploadDocumentModal";
 
 interface AppShellProps {
   children: React.ReactNode;
@@ -31,13 +33,16 @@ export function AppShell({ children, notificationCount }: AppShellProps) {
 
   return (
     <PipelineProvider>
-      <div className="min-h-screen bg-pae-bg">
-        <Header user={user} notificationCount={notificationCount} />
-        <Sidebar user={user} pendingApprovals={pendingApprovals} />
-        <main className="pt-14 md:pl-[220px]">
-          <div className="px-6 py-6">{children}</div>
-        </main>
-      </div>
+      <UploadDocumentProvider>
+        <div className="min-h-screen bg-pae-bg">
+          <Header user={user} notificationCount={notificationCount} />
+          <Sidebar user={user} pendingApprovals={pendingApprovals} />
+          <main className="pt-14 md:pl-[220px]">
+            <div className="px-6 py-6">{children}</div>
+          </main>
+        </div>
+        <UploadDocumentModal />
+      </UploadDocumentProvider>
     </PipelineProvider>
   );
 }

@@ -6,6 +6,7 @@ import { useState } from "react";
 
 import type { User } from "@/types";
 import { clearAllData } from "@/lib/storage/files";
+import { useUploadDocument } from "./UploadDocumentContext";
 
 interface SidebarProps {
   user: User | null;
@@ -40,6 +41,7 @@ function canCreateInitiative(user: User | null): boolean {
 export function Sidebar({ user, pendingApprovals = 0 }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
+  const { openUpload } = useUploadDocument();
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [clearing, setClearing] = useState(false);
   const [clearError, setClearError] = useState<string | null>(null);
@@ -82,12 +84,13 @@ export function Sidebar({ user, pendingApprovals = 0 }: SidebarProps) {
                 + Nueva propuesta
               </Link>
             )}
-            <Link
-              href="/subir-documento"
+            <button
+              type="button"
+              onClick={() => openUpload()}
               className="flex h-10 w-full items-center justify-center rounded-lg border border-pae-green/30 bg-pae-green/10 text-[14px] font-medium text-pae-green transition hover:bg-pae-green/20"
             >
               Subir documento
-            </Link>
+            </button>
             {pendingApprovals > 0 && (
               <Link
                 href="/aprobaciones"
