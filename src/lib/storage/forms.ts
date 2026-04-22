@@ -26,6 +26,7 @@ import { newId, nowIso } from "./_ids";
 import {
   getCurrentUserFromStore,
   userCanAccessInitiative,
+  userCanCommentInitiativeForms,
   userCanEditInitiativeForms,
   userRolesInInitiative,
 } from "./_security";
@@ -38,6 +39,8 @@ export interface FormDetail {
   completeness: { percent: number; missing_required: string[] };
   /** True si el usuario actual puede editar este formulario. */
   can_edit: boolean;
+  /** True si puede dejar comentarios en el formulario (requiere form abierto). */
+  can_comment: boolean;
 }
 
 function computeCompleteness(
@@ -199,12 +202,19 @@ export function getForm(formId: Id): Result<FormDetail> {
       (d) => d.form_type === form.form_type && d.version === form.version,
     ) ?? null;
   const responses = loadResponses(store, formId);
+  const formOpen =
+    form.status === "draft" ||
+    form.status === "submitted" ||
+    form.status === "in_review";
   return ok({
     form,
     definition,
     responses,
     completeness: computeCompleteness(definition, responses),
     can_edit: userCanEditInitiativeForms(user, form.initiative_id, store),
+    can_comment:
+      formOpen &&
+      userCanCommentInitiativeForms(user, form.initiative_id, store),
   });
 }
 

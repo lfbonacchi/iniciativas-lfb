@@ -4,6 +4,7 @@ import { err, ok, type Result } from "@/lib/result";
 import {
   getCurrentUserFromStore,
   userCanAccessInitiative,
+  userCanCommentInitiativeForms,
 } from "./_security";
 import { newId, nowIso } from "./_ids";
 import {
@@ -93,10 +94,16 @@ export function addFormComment(
   if (!userCanAccessInitiative(user, form.initiative_id, store)) {
     return err("FORBIDDEN", "No tenés acceso a esta iniciativa");
   }
+  if (!userCanCommentInitiativeForms(user, form.initiative_id, store)) {
+    return err(
+      "FORBIDDEN",
+      "Tu nivel de acceso no permite comentar este formulario",
+    );
+  }
   if (!formIsInProgress(form.status)) {
     return err(
       "CONFLICT",
-      "Solo se puede comentar en formularios en proceso (draft, enviado o en revisión)",
+      "El formulario está cerrado: solo lectura, no admite nuevos comentarios",
     );
   }
 

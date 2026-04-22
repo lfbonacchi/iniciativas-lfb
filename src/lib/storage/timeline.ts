@@ -252,61 +252,97 @@ function buildLtpRows(
     if (!form) {
       return { key, label, bar: null, gateway: null, dots: [] };
     }
-    const defaults = key === "ltp" ? STAGE_DEFAULT_SPAN.F4 : STAGE_DEFAULT_SPAN.F5;
-    let state: TimelineState = "in_progress";
-    if (isFormApproved(form)) state = "completed";
-    if (form.status === "draft" && !form.submitted_at) state = "in_progress";
-    // Si el "approved_at" es posterior a hoy, todavía no está completado.
-    if (
-      state === "completed" &&
-      !!form.approved_at &&
-      form.approved_at > today.iso
-    ) {
-      state = "pending";
-    }
 
-    let startMonth = defaults.start;
-    let endMonth = defaults.end;
+    // "Pending window": ventana corta alrededor del período anual, para
+    // señalizar la fase cuando todavía no hubo actividad este año. F4 arranca
+    // en el período (p. ej. 06 = Jun) y dura ~2 meses. F5 termina en el
+    // período (p. ej. 12 = Dic) y arranca ~2 meses antes.
+    let periodStart = key === "ltp" ? 0 : 9;
+    let periodEnd = key === "ltp" ? 1 : 11;
     if (form.ltp_period) {
       const m = /^(\d{2})-(\d{4})$/.exec(form.ltp_period);
       if (m) {
         const periodMonth = Number(m[1]) - 1;
         if (key === "ltp") {
-          startMonth = clampMonth(periodMonth);
-          endMonth = 11;
+          periodStart = clampMonth(periodMonth);
+          periodEnd = clampMonth(periodMonth + 1);
         } else {
-          startMonth = clampMonth(periodMonth - 3);
-          endMonth = 11;
+          periodStart = clampMonth(periodMonth - 2);
+          periodEnd = clampMonth(periodMonth);
         }
       }
     }
-    if (state === "completed") {
-      // Solo quedan como "completed" si hay approved_at real en el pasado
-      // y cae en este año. Si no, se degrada: pendiente si arranca en futuro,
-      // en curso si arranca hoy/antes (y la barra termina en hoy).
-      let hasRealCompletion = false;
-      if (form.approved_at && form.approved_at <= today.iso) {
-        const m = monthOf(form.approved_at, year);
-        if (m !== null && m >= 0 && m <= 11) {
-          endMonth = m;
-          hasRealCompletion = true;
-        }
+
+    const createdM = form.created_at ? monthOf(form.created_at, year) : null;
+    const submittedM = form.submitted_at
+      ? monthOf(form.submitted_at, year)
+      : null;
+    const updatedM = form.updated_at ? monthOf(form.updated_at, year) : null;
+    const approvedM = form.approved_at
+      ? monthOf(form.approved_at, year)
+      : null;
+
+    const inYear = (m: number | null): m is number =>
+      m !== null && m >= 0 && m <= 11;
+
+    const completedByStatus = isFormApproved(form);
+    const completedTimestamp =
+      form.approved_at && form.approved_at <= today.iso
+        ? form.approved_at
+        : completedByStatus &&
+            form.updated_at &&
+            form.updated_at <= today.iso
+          ? form.updated_at
+          : null;
+
+    let state: TimelineState;
+    let startMonth: number;
+    let endMonth: number;
+
+    if (completedByStatus && completedTimestamp) {
+      state = "completed";
+      endMonth = inYear(approvedM)
+        ? approvedM
+        : inYear(updatedM)
+          ? updatedM
+          : clampMonth(today.month);
+      if (inYear(createdM)) {
+        startMonth = createdM;
+      } else {
+        // creado en año previo → que la barra empiece cerca del fin para
+        // señalar actividad histórica.
+        startMonth = Math.max(0, endMonth - 1);
       }
-      if (!hasRealCompletion) {
-        if (startMonth > today.month) {
-          state = "pending";
-          // Mantener defaults (futuro) → gris.
-        } else {
-          state = "in_progress";
-          endMonth = clampMonth(today.month);
-        }
+    } else if (
+      form.status === "draft" ||
+      form.status === "submitted" ||
+      form.status === "in_review" ||
+      completedByStatus // reviewed/approved pero sin timestamp usable
+    ) {
+      // En curso si hay actividad en este año, pendiente si recién se creó
+      // para un período futuro y aún no hay nada.
+      if (inYear(createdM) && createdM <= today.month) {
+        state = "in_progress";
+        startMonth = createdM;
+        endMonth = clampMonth(
+          Math.max(
+            today.month,
+            inYear(updatedM) ? updatedM : today.month,
+            inYear(submittedM) ? submittedM : today.month,
+          ),
+        );
+        if (endMonth > today.month) endMonth = today.month;
+      } else {
+        state = "pending";
+        startMonth = periodStart;
+        endMonth = periodEnd;
       }
+    } else {
+      state = "pending";
+      startMonth = periodStart;
+      endMonth = periodEnd;
     }
-    if (state === "in_progress") {
-      // No adelantar la barra más allá del mes actual.
-      if (startMonth > today.month) startMonth = clampMonth(today.month);
-      endMonth = clampMonth(today.month);
-    }
+
     if (endMonth < startMonth) endMonth = startMonth;
     return {
       key,

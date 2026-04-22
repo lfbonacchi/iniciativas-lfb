@@ -101,6 +101,7 @@ export default function WizardPage({
   >({});
   const [submitting, setSubmitting] = useState(false);
   const [canEdit, setCanEdit] = useState(true);
+  const [canComment, setCanComment] = useState(false);
 
   const autosave = useWizardAutoSave(formId);
 
@@ -125,6 +126,7 @@ export default function WizardPage({
     setFormType(ft);
     setFormStatus(res.data.form.status);
     setCanEdit(res.data.can_edit);
+    setCanComment(res.data.can_comment);
 
     const ownResponses = res.data.responses;
 
@@ -444,14 +446,7 @@ export default function WizardPage({
             </div>
 
             <div className="mt-6">
-              <FormCommentsPanel
-                formId={formId}
-                canComment={
-                  formStatus === "draft" ||
-                  formStatus === "submitted" ||
-                  formStatus === "in_review"
-                }
-              />
+              <FormCommentsPanel formId={formId} canComment={canComment} />
             </div>
 
             <div className="h-16" aria-hidden />

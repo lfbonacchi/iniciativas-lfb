@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 
+import type { MemberAccessLevel } from "@/types";
 import {
   getFormEditors,
   grantFormEditAccess,
@@ -19,6 +20,7 @@ export function DelegatedEditorsPanel({
 }: DelegatedEditorsPanelProps) {
   const [snapshot, setSnapshot] = useState<FormEditorsSnapshot | null>(null);
   const [selected, setSelected] = useState<string>("");
+  const [level, setLevel] = useState<MemberAccessLevel>("edit");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -52,7 +54,7 @@ export function DelegatedEditorsPanel({
   function handleGrant() {
     if (!selected || busy) return;
     setBusy(true);
-    const res = grantFormEditAccess(initiativeId, selected);
+    const res = grantFormEditAccess(initiativeId, selected, level);
     setBusy(false);
     if (!res.success) {
       setError(res.error.message);
@@ -87,12 +89,13 @@ export function DelegatedEditorsPanel({
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="text-[14px] font-semibold text-pae-text">
-            Editores de formularios
+            Accesos a formularios
           </h2>
           <p className="mt-1 text-[12px] text-pae-text-secondary">
             Por defecto, pueden editar el PO, Promotor, Líder de Dimensión y
-            Scrum Master. El PO puede delegar edición a cualquier miembro.
-            Cada cambio queda registrado en el control de cambios.
+            Scrum Master. El PO puede delegar edición, comentarios o solo
+            visualización a cualquier miembro. Cada cambio queda registrado
+            en el control de cambios.
           </p>
         </div>
       </div>
@@ -137,7 +140,7 @@ export function DelegatedEditorsPanel({
       {can_manage && (
         <div className="mt-4 rounded-lg border border-pae-border bg-pae-bg/40 p-3">
           <p className="text-[12px] font-semibold text-pae-text">
-            Delegar edición
+            Delegar acceso
           </p>
           <p className="mt-1 text-[11px] text-pae-text-tertiary">
             Seleccioná miembros de la iniciativa o de afuera de la iniciativa
@@ -145,7 +148,57 @@ export function DelegatedEditorsPanel({
             conjunto (tus líderes tienen opción de comentar). Tus VP pueden
             comentar para hacer cambios.
           </p>
-          <div className="mt-2 flex flex-wrap items-center gap-2">
+
+          <fieldset className="mt-3">
+            <legend className="text-[11px] font-semibold text-pae-text-secondary">
+              Nivel de acceso
+            </legend>
+            <div className="mt-1 flex flex-wrap gap-3 text-[12px] text-pae-text">
+              {(
+                [
+                  {
+                    value: "edit" as const,
+                    label: "Edición",
+                    hint: "Edita y comenta",
+                  },
+                  {
+                    value: "comment" as const,
+                    label: "Comentarios",
+                    hint: "Solo lectura + comentarios",
+                  },
+                  {
+                    value: "view" as const,
+                    label: "Visualización",
+                    hint: "Solo lectura",
+                  },
+                ] as const
+              ).map((opt) => (
+                <label
+                  key={opt.value}
+                  className={`flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-1.5 transition ${
+                    level === opt.value
+                      ? "border-pae-blue bg-pae-blue/5"
+                      : "border-pae-border bg-pae-surface"
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="access-level"
+                    value={opt.value}
+                    checked={level === opt.value}
+                    onChange={() => setLevel(opt.value)}
+                    className="h-3.5 w-3.5 accent-pae-blue"
+                  />
+                  <span className="font-medium">{opt.label}</span>
+                  <span className="text-[11px] text-pae-text-tertiary">
+                    · {opt.hint}
+                  </span>
+                </label>
+              ))}
+            </div>
+          </fieldset>
+
+          <div className="mt-3 flex flex-wrap items-center gap-2">
             <select
               value={selected}
               onChange={(e) => setSelected(e.target.value)}
@@ -169,7 +222,7 @@ export function DelegatedEditorsPanel({
               disabled={!selected || busy}
               className="rounded-lg bg-pae-blue px-4 py-2 text-[13px] font-semibold text-white transition hover:bg-pae-blue/90 disabled:bg-pae-blue/40"
             >
-              Dar edición
+              Dar acceso
             </button>
           </div>
         </div>
