@@ -62,7 +62,16 @@ function emptyStore(): Store {
 
 function bootstrapStore(): Store {
   const seed = getSeedData();
-  return {
+  const store = emptyStore();
+  store.users = seed.users;
+  store.form_definitions = seed.form_definitions;
+  return store;
+}
+
+export function seedStore(): Store {
+  const seed = getSeedData();
+  const current = isClient() ? readStore() : emptyStore();
+  const next: Store = {
     users: seed.users,
     initiatives: seed.initiatives,
     initiative_members: seed.initiative_members,
@@ -78,8 +87,10 @@ function bootstrapStore(): Store {
     documents: seed.documents,
     file_uploads: seed.file_uploads,
     audit_log: seed.audit_log,
-    current_user_id: seed.default_user_id,
+    current_user_id: current.current_user_id,
   };
+  writeStore(next);
+  return next;
 }
 
 export function isClient(): boolean {
