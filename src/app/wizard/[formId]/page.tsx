@@ -5,6 +5,7 @@ import { use, useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { F1_SECTIONS } from "@/data/form_definitions/f1";
+import { F2_SECTIONS } from "@/data/form_definitions/f2";
 import { F3_SECTIONS } from "@/data/form_definitions/f3";
 import { F4_SECTIONS } from "@/data/form_definitions/f4";
 import { F5_SECTIONS } from "@/data/form_definitions/f5";
@@ -33,6 +34,7 @@ type ResponsesMap = Record<string, FormFieldValue>;
 // (su wizard se construirá luego); cuando esté, basta con sumarlo acá.
 const SECTIONS_BY_TYPE: Partial<Record<FormType, readonly WizardSection[]>> = {
   F1: F1_SECTIONS,
+  F2: F2_SECTIONS,
   F3: F3_SECTIONS,
   F4: F4_SECTIONS,
   F5: F5_SECTIONS,
@@ -342,11 +344,17 @@ export default function WizardPage({
         <main className="flex flex-1 flex-col overflow-y-auto">
           <div className="mx-auto w-full max-w-4xl px-8 py-8">
             {carriedOverKeys.size > 0 && carryOverSourceType && (
-              <div className="mb-4 rounded-lg border border-pae-blue/20 bg-pae-blue/5 px-4 py-2.5 text-[11px] text-pae-text-secondary">
-                Las secciones marcadas como{" "}
-                <span className="font-semibold text-pae-text">Heredado</span>{" "}
-                se pre-cargaron desde {carryOverSourceType} VF. Revisalas y
-                editá lo que haga falta antes de enviar.
+              <div className="mb-4 rounded-lg border border-pae-amber/40 bg-pae-amber/10 px-4 py-3 text-[12px] text-pae-text">
+                <span className="mr-1">⚠</span>
+                Revisar y profundizar los textos grises heredados de{" "}
+                <span className="font-semibold">{carryOverSourceType} VF</span>{" "}
+                con los resultados del{" "}
+                {formType === "F2"
+                  ? "dimensionamiento"
+                  : formType === "F3"
+                    ? "MVP"
+                    : "ciclo actual"}
+                . Los campos con borde azul son nuevos y deben completarse.
               </div>
             )}
 
@@ -356,10 +364,17 @@ export default function WizardPage({
               </p>
               <h1 className="mt-1 flex items-center gap-2 text-[20px] font-semibold text-pae-text">
                 {activeSection.number}. {activeSection.title}
-                {isActiveCarriedOver && carryOverSourceType && (
-                  <span className="rounded-full bg-pae-bg px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-pae-text-tertiary">
-                    Heredado de {carryOverSourceType}
+                {isActiveCarriedOver && carryOverSourceType ? (
+                  <span className="rounded-full bg-pae-text-tertiary/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-pae-text-secondary">
+                    Heredado {carryOverSourceType}
                   </span>
+                ) : (
+                  activeSection.carries_over === undefined &&
+                  carryOverSourceType && (
+                    <span className="rounded-full bg-pae-blue/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-pae-blue">
+                      Nuevo
+                    </span>
+                  )
                 )}
               </h1>
               {activeSection.description && (
@@ -369,7 +384,15 @@ export default function WizardPage({
               )}
             </header>
 
-            <section className="rounded-xl border border-pae-border bg-pae-surface p-6 shadow-sm">
+            <section
+              className={`rounded-xl border p-6 shadow-sm ${
+                isActiveCarriedOver
+                  ? "border-pae-border bg-pae-bg"
+                  : carryOverSourceType
+                    ? "border-pae-blue/40 bg-pae-surface"
+                    : "border-pae-border bg-pae-surface"
+              }`}
+            >
               <SectionRenderer
                 section={activeSection}
                 value={responses[activeSection.key]}

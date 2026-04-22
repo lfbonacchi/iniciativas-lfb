@@ -108,10 +108,17 @@ export function WizardStepper({
                 </span>
                 <span className={`text-[12px] leading-tight ${colors.label}`}>
                   {s.title}
-                  {carriedOverKeys.has(s.key) && (
-                    <span className="ml-2 rounded-full bg-pae-bg px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-pae-text-tertiary">
+                  {carriedOverKeys.has(s.key) ? (
+                    <span className="ml-2 rounded-full bg-pae-text-tertiary/15 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-pae-text-secondary">
                       Heredado
                     </span>
+                  ) : (
+                    carriedOverKeys.size > 0 &&
+                    s.carries_over === undefined && (
+                      <span className="ml-2 rounded-full bg-pae-blue/10 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-pae-blue">
+                        Nuevo
+                      </span>
+                    )
                   )}
                 </span>
               </button>

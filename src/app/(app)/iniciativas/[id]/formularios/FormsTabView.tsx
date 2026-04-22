@@ -227,12 +227,6 @@ function ExpandedFolder({
   if (!instance) return null;
 
   function handleEditar() {
-    if (folder.form_type !== "F1") {
-      alert(
-        `El wizard de ${folder.form_type} se habilitará próximamente. Por ahora solo está disponible F1.`,
-      );
-      return;
-    }
     if (!instance?.form_id) {
       alert("Este formulario todavía no fue creado.");
       return;
