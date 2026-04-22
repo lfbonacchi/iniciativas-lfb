@@ -2,10 +2,13 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
-import type { InitiativeStage, User } from "@/types";
+import type { InitiativeStage, Notification, User } from "@/types";
+import { listInitiatives } from "@/lib/storage/initiatives";
+import { getNotifications } from "@/lib/storage/notifications";
 
+import { NotificationsPanel } from "./NotificationsPanel";
 import { usePipeline } from "./PipelineContext";
 
 interface HeaderProps {
@@ -110,9 +113,36 @@ function avatarAccent(user: User): { bg: string; fg: string } {
   return { bg: "bg-pae-blue/10", fg: "text-pae-blue" };
 }
 
-export function Header({ user, notificationCount = 0 }: HeaderProps) {
+export function Header({ user, notificationCount }: HeaderProps) {
   const accent = user ? avatarAccent(user) : null;
   const { activeStage } = usePipeline();
+  const [open, setOpen] = useState(false);
+  const [notifs, setNotifs] = useState<Notification[]>([]);
+  const [initiativeNames, setInitiativeNames] = useState<
+    Record<string, string>
+  >({});
+
+  const refresh = useCallback(() => {
+    if (!user) {
+      setNotifs([]);
+      return;
+    }
+    const res = getNotifications(user.id);
+    setNotifs(res.success ? res.data : []);
+    const inis = listInitiatives();
+    if (inis.success) {
+      const map: Record<string, string> = {};
+      for (const i of inis.data) map[i.id] = i.name;
+      setInitiativeNames(map);
+    }
+  }, [user]);
+
+  useEffect(() => {
+    refresh();
+  }, [refresh]);
+
+  const unreadCount = notifs.filter((n) => !n.read).length;
+  const badgeCount = notificationCount ?? unreadCount;
 
   return (
     <header className="fixed left-0 right-0 top-0 z-50 flex h-14 items-center justify-between border-b border-pae-border bg-pae-surface px-4 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
@@ -160,20 +190,35 @@ export function Header({ user, notificationCount = 0 }: HeaderProps) {
       <div className="flex items-center gap-3">
         <FontSizeSlider />
 
-        <button
-          type="button"
-          aria-label="Notificaciones"
-          className="relative grid h-8 w-8 place-items-center rounded-full border border-pae-border text-pae-text-secondary transition hover:bg-pae-bg"
-        >
-          <span className="text-[18px]" aria-hidden>
-            🔔
-          </span>
-          {notificationCount > 0 && (
-            <span className="absolute -right-1 -top-1 grid h-4 min-w-4 place-items-center rounded-full bg-pae-red px-1 text-[13px] font-semibold text-white">
-              {notificationCount}
+        <div className="relative">
+          <button
+            type="button"
+            aria-label="Notificaciones"
+            aria-expanded={open}
+            onClick={() => {
+              if (!open) refresh();
+              setOpen((v) => !v);
+            }}
+            className="relative grid h-8 w-8 place-items-center rounded-full border border-pae-border text-pae-text-secondary transition hover:bg-pae-bg"
+          >
+            <span className="text-[18px]" aria-hidden>
+              🔔
             </span>
+            {badgeCount > 0 && (
+              <span className="absolute -right-1 -top-1 grid h-4 min-w-4 place-items-center rounded-full bg-pae-red px-1 text-[13px] font-semibold text-white">
+                {badgeCount}
+              </span>
+            )}
+          </button>
+          {open && (
+            <NotificationsPanel
+              notifications={notifs}
+              initiativeNames={initiativeNames}
+              onClose={() => setOpen(false)}
+              onChanged={refresh}
+            />
           )}
-        </button>
+        </div>
 
         {user && accent && (
           <div
