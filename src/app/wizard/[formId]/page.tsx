@@ -25,6 +25,7 @@ import { getInitiative } from "@/lib/storage/initiatives";
 import { resolveFormDoc } from "@/lib/documents/resolve";
 import { buildXlsxBlob, downloadBlob } from "@/lib/documents/xlsx_form";
 import { downloadPdf } from "@/lib/documents/pdf_form";
+import { downloadFormularioPPTX } from "@/lib/generators/pptx-formulario";
 import type { FormChangeLog, FormFieldValue, FormType, User } from "@/types";
 
 import { SectionHistory } from "./components/SectionHistory";
@@ -314,6 +315,59 @@ export default function WizardPage({
     }
   }, [buildActiveDoc, formType]);
 
+  const handleDownloadPptx = useCallback(async () => {
+    if (!formType || !initiativeId) return;
+    await autosave.flushNow();
+    const formRes = getForm(formId);
+    if (!formRes.success) {
+      alert(`No se pudo generar el PPTX: ${formRes.error.message}`);
+      return;
+    }
+    const iniRes = getInitiative(initiativeId);
+    if (!iniRes.success) {
+      alert(`No se pudo leer la iniciativa: ${iniRes.error.message}`);
+      return;
+    }
+    const infoGeneral = responses["seccion_1_info_general"];
+    const info =
+      infoGeneral && typeof infoGeneral === "object" && !Array.isArray(infoGeneral)
+        ? (infoGeneral as Record<string, unknown>)
+        : {};
+    const unidad_gestion =
+      typeof info["unidad_gestion"] === "string"
+        ? (info["unidad_gestion"] as string)
+        : undefined;
+    const areas_involucradas =
+      typeof info["areas_involucradas"] === "string"
+        ? (info["areas_involucradas"] as string)
+        : undefined;
+    const tipo_iniciativa =
+      typeof info["tipo"] === "string" ? (info["tipo"] as string) : undefined;
+    const version_label =
+      formStatus === "draft"
+        ? `Borrador v${formRes.data.form.version}`
+        : `v${formRes.data.form.version} (${formStatus ?? "en curso"})`;
+    try {
+      await downloadFormularioPPTX({
+        form_type: formType,
+        initiative_name: iniRes.data.name,
+        dimension:
+          typeof info["dimension"] === "string"
+            ? (info["dimension"] as string)
+            : unidad_gestion ?? "",
+        unidad_gestion,
+        areas_involucradas,
+        tipo_iniciativa,
+        version_label,
+        fecha_iso: formRes.data.form.updated_at,
+        ltp_period: formRes.data.form.ltp_period ?? null,
+        responses,
+      });
+    } catch (e) {
+      alert(e instanceof Error ? e.message : "Error al generar el PPTX");
+    }
+  }, [autosave, formId, formStatus, formType, initiativeId, responses]);
+
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-pae-bg">
@@ -527,6 +581,7 @@ export default function WizardPage({
             onPreview={handlePreview}
             onDownloadXlsx={handleDownloadXlsx}
             onDownloadPdf={handleDownloadPdf}
+            onDownloadPptx={handleDownloadPptx}
             onSubmit={handleSubmit}
             submitting={submitting}
           />

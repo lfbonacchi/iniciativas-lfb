@@ -15,6 +15,10 @@ import { getDocumentUrl } from "@/lib/storage/documents";
 import { buildXlsxBlob, downloadBlob } from "@/lib/documents/xlsx_form";
 import { downloadPdf } from "@/lib/documents/pdf_form";
 import { downloadDocx } from "@/lib/documents/docx_form";
+import {
+  generateFormularioPPTX,
+} from "@/lib/generators/pptx-formulario";
+import { buildPptxInputFromFormId } from "@/lib/generators/pptx-formulario-build";
 
 import { useInitiativeDetail } from "../DetailContext";
 import { DocumentPreviewModal } from "./DocumentPreviewModal";
@@ -145,6 +149,30 @@ function FileRow({
       alert(`${file.name} aún no tiene generador asociado.`);
       return;
     }
+
+    // Caso especial: PPTX se genera con pptx-formulario (no pasa por DocStructure).
+    if (
+      (file.source.kind === "form_current" ||
+        file.source.kind === "form_snapshot") &&
+      file.source.format === "pptx"
+    ) {
+      setDownloading(true);
+      try {
+        const input = buildPptxInputFromFormId(file.source.form_id);
+        if (!input) {
+          setError("No se pudo leer el formulario para generar el PPTX.");
+          return;
+        }
+        const blob = await generateFormularioPPTX(input);
+        downloadBlob(blob, file.name);
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Error al generar el PPTX");
+      } finally {
+        setDownloading(false);
+      }
+      return;
+    }
+
     const res = resolveFormDoc(file.source, initiativeName, file.author_name);
     if (!res.success) {
       setError(res.error.message);
@@ -157,7 +185,7 @@ function FileRow({
       const ext = file.name.split(".").pop()?.toLowerCase();
       const format: "xlsx" | "pdf" | "docx" =
         file.source.kind === "form_current" || file.source.kind === "form_snapshot"
-          ? file.source.format
+          ? (file.source.format === "pptx" ? "xlsx" : file.source.format)
           : ext === "docx"
             ? "docx"
             : ext === "pdf"

@@ -6,6 +6,13 @@ import { useState } from "react";
 
 import type { InitiativeDetail } from "@/lib/storage/initiative_detail";
 import { DeleteInitiativeModal } from "@/components/shell/DeleteInitiativeModal";
+import {
+  buildPptxInputFromFormId,
+  findActiveFormIdForInitiative,
+} from "@/lib/generators/pptx-formulario-build";
+import { downloadFormularioPPTX } from "@/lib/generators/pptx-formulario";
+import { buildNotaPrensaInputFromFormId } from "@/lib/generators/nota-prensa-build";
+import { downloadNotaPrensaDocx } from "@/lib/generators/nota-prensa";
 
 const TABS: { key: string; label: string; segment: string | null }[] = [
   { key: "resumen", label: "Resumen", segment: null },
@@ -59,6 +66,56 @@ export function DetailHeader({ detail }: { detail: InitiativeDetail }) {
   const stageTone = stageChipTone(detail);
   const statusTone = statusChipTone(detail.status);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [generatingPptx, setGeneratingPptx] = useState(false);
+  const [generatingNota, setGeneratingNota] = useState(false);
+
+  const handleDownloadPptx = async () => {
+    if (generatingPptx) return;
+    setGeneratingPptx(true);
+    try {
+      const formId = findActiveFormIdForInitiative(detail.initiative.id);
+      if (!formId) {
+        alert(
+          "Esta iniciativa todavía no tiene un formulario con datos. Cargá contenido antes de generar el PPTX.",
+        );
+        return;
+      }
+      const input = buildPptxInputFromFormId(formId);
+      if (!input) {
+        alert("No se pudo leer el formulario de la iniciativa.");
+        return;
+      }
+      await downloadFormularioPPTX(input);
+    } catch (e) {
+      alert(e instanceof Error ? e.message : "Error al generar el PPTX");
+    } finally {
+      setGeneratingPptx(false);
+    }
+  };
+
+  const handleDownloadNotaPrensa = async () => {
+    if (generatingNota) return;
+    setGeneratingNota(true);
+    try {
+      const formId = findActiveFormIdForInitiative(detail.initiative.id);
+      if (!formId) {
+        alert(
+          "Esta iniciativa todavía no tiene un formulario con datos. Cargá contenido antes de generar la nota de prensa.",
+        );
+        return;
+      }
+      const input = buildNotaPrensaInputFromFormId(formId);
+      if (!input) {
+        alert("No se pudo leer el formulario de la iniciativa.");
+        return;
+      }
+      await downloadNotaPrensaDocx(input);
+    } catch (e) {
+      alert(e instanceof Error ? e.message : "Error al generar la nota de prensa");
+    } finally {
+      setGeneratingNota(false);
+    }
+  };
 
   const rolesText = [
     `Dim: ${detail.dimension}`,
@@ -102,17 +159,21 @@ export function DetailHeader({ detail }: { detail: InitiativeDetail }) {
         <div className="flex shrink-0 items-center gap-2">
           <button
             type="button"
-            className="rounded-lg border border-pae-red/30 bg-pae-red/5 px-3 py-2 text-[12px] font-semibold text-pae-red transition hover:bg-pae-red/10"
+            onClick={handleDownloadPptx}
+            disabled={generatingPptx}
+            className="rounded-lg border border-pae-red/30 bg-pae-red/5 px-3 py-2 text-[12px] font-semibold text-pae-red transition hover:bg-pae-red/10 disabled:cursor-not-allowed disabled:opacity-60"
             title="Descargar presentación PPTX"
           >
-            Descargar PPTX
+            {generatingPptx ? "Generando…" : "Descargar PPTX"}
           </button>
           <button
             type="button"
-            className="rounded-lg border border-pae-border bg-pae-surface px-3 py-2 text-[12px] font-medium text-pae-text-secondary transition hover:bg-pae-bg"
-            title="Generar nota de prensa DOCX"
+            onClick={handleDownloadNotaPrensa}
+            disabled={generatingNota}
+            className="rounded-lg border border-pae-border bg-pae-surface px-3 py-2 text-[12px] font-medium text-pae-text-secondary transition hover:bg-pae-bg disabled:cursor-not-allowed disabled:opacity-60"
+            title="Generar nota de prensa DOCX (Working Backwards)"
           >
-            Nota de prensa
+            {generatingNota ? "Generando…" : "Nota de prensa"}
           </button>
           {detail.is_area_transformacion && (
             <button

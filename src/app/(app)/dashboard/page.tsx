@@ -18,6 +18,7 @@ import {
 import { AddEventModal } from "@/components/events/AddEventModal";
 import { EventDetailModal } from "@/components/events/EventDetailModal";
 import { EmptyStateModal } from "@/components/shell/EmptyStateModal";
+import { downloadDashboardPPTX } from "@/lib/generators/pptx-dashboard";
 
 // ---------------------------------------------------------------------------
 // Formatting helpers
@@ -650,6 +651,19 @@ export default function DashboardPage() {
     null,
   );
   const [emptyModalOpen, setEmptyModalOpen] = useState(false);
+  const [generatingPptx, setGeneratingPptx] = useState(false);
+
+  const handleDownloadPptx = useCallback(async () => {
+    if (!data || generatingPptx) return;
+    setGeneratingPptx(true);
+    try {
+      await downloadDashboardPPTX(data);
+    } catch (e) {
+      alert(e instanceof Error ? e.message : "Error al generar el PPTX");
+    } finally {
+      setGeneratingPptx(false);
+    }
+  }, [data, generatingPptx]);
 
   useEffect(() => {
     if (!data) return;
@@ -774,10 +788,11 @@ export default function DashboardPage() {
 
           <button
             type="button"
-            onClick={() => alert("Generación PPTX pendiente")}
-            className="rounded-lg border border-pae-red px-3 py-1.5 text-[14px] font-semibold text-pae-red transition hover:bg-pae-red/5"
+            onClick={handleDownloadPptx}
+            disabled={generatingPptx}
+            className="rounded-lg border border-pae-red px-3 py-1.5 text-[14px] font-semibold text-pae-red transition hover:bg-pae-red/5 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            Descargar PPTX
+            {generatingPptx ? "Generando…" : "Descargar PPTX"}
           </button>
         </div>
       </div>

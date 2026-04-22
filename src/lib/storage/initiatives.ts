@@ -21,6 +21,7 @@ import {
   getCurrentUserFromStore,
   isAreaTransformacion,
   userCanAccessInitiative,
+  userDepartmentInInitiativeScope,
 } from "./_security";
 import { appendAudit } from "./_audit";
 import { getOverlay } from "./financials";
@@ -754,6 +755,10 @@ export function listMyInitiativeCards(): Result<ListMyInitiativesResult> {
       !hasOwnerRole &&
       Boolean(user.is_vp) &&
       initiativeVp === user.vicepresidencia;
+    const isAreaInvolucradaOnly =
+      !hasOwnerRole &&
+      !hasImpactingRole &&
+      userDepartmentInInitiativeScope(store, user, ini.id);
 
     let isOwn: boolean;
     let isImpacting: boolean;
@@ -764,7 +769,12 @@ export function listMyInitiativeCards(): Result<ListMyInitiativesResult> {
     } else if (hasOwnerRole) {
       isOwn = true;
       isImpacting = false;
-    } else if (hasImpactingRole || isApproverOnly || isVpOfScopeOnly) {
+    } else if (
+      hasImpactingRole ||
+      isApproverOnly ||
+      isVpOfScopeOnly ||
+      isAreaInvolucradaOnly
+    ) {
       isOwn = false;
       isImpacting = true;
     } else {

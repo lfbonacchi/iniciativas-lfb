@@ -43,7 +43,39 @@ export function userCanAccessInitiative(
     const gw = store.gateways.find((g) => g.id === v.gateway_id);
     return gw?.initiative_id === initiativeId;
   });
-  return isApprover;
+  if (isApprover) return true;
+
+  // Área del usuario declarada en "Áreas involucradas" del formulario.
+  if (userDepartmentInInitiativeScope(store, user, initiativeId)) return true;
+
+  return false;
+}
+
+// Busca el campo `areas_involucradas` de `seccion_1_info_general` en los forms
+// de la iniciativa y chequea si menciona el department del usuario.
+// Case-insensitive, substring match. Si no hay department o el campo no existe
+// → devuelve false.
+export function userDepartmentInInitiativeScope(
+  store: Store,
+  user: User,
+  initiativeId: Id,
+): boolean {
+  const dept = (user.department ?? "").trim().toLowerCase();
+  if (!dept) return false;
+  const formIds = new Set(
+    store.forms
+      .filter((f) => f.initiative_id === initiativeId)
+      .map((f) => f.id),
+  );
+  for (const r of store.form_responses) {
+    if (!formIds.has(r.form_id)) continue;
+    if (r.field_key !== "seccion_1_info_general") continue;
+    const v = r.value as { areas_involucradas?: unknown } | null;
+    const areas = v?.areas_involucradas;
+    if (typeof areas !== "string") continue;
+    if (areas.toLowerCase().includes(dept)) return true;
+  }
+  return false;
 }
 
 // Roles "naturales" con permiso de edición sobre los formularios.

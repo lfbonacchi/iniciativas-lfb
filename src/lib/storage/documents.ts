@@ -127,13 +127,13 @@ export type DocFileOrigin = "auto" | "manual";
 // momento de descargar/previsualizar. Esta distinción reemplaza los binarios
 // físicos que no existen en Fase 2-4.
 export type DocFileSource =
-  | { kind: "form_current"; form_id: Id; format: "xlsx" | "pdf" }
+  | { kind: "form_current"; form_id: Id; format: "xlsx" | "pdf" | "pptx" }
   | {
       kind: "form_snapshot";
       form_id: Id;
       snapshot_id: Id;
       snapshot_type: "submitted" | "final";
-      format: "xlsx" | "pdf";
+      format: "xlsx" | "pdf" | "pptx";
     }
   | { kind: "manual"; document_id: Id } // upload de usuario (stub en Fase 2-4)
   | {
@@ -307,6 +307,23 @@ function buildFormFiles(
           format: "pdf",
         },
       },
+      {
+        kind: "file",
+        id: `final-${latestFinal.id}-pptx`,
+        name: `${baseName}.pptx`,
+        icon: "📊",
+        origin: "auto",
+        created_at: latestFinal.created_at,
+        author_name: authorName,
+        can_regenerate: false,
+        source: {
+          kind: "form_snapshot",
+          form_id: form.id,
+          snapshot_id: latestFinal.id,
+          snapshot_type: "final",
+          format: "pptx",
+        },
+      },
     );
   }
 
@@ -348,6 +365,23 @@ function buildFormFiles(
           format: "pdf",
         },
       },
+      {
+        kind: "file",
+        id: `submitted-${latestSubmitted.id}-pptx`,
+        name: `${baseName}.pptx`,
+        icon: "📊",
+        origin: "auto",
+        created_at: latestSubmitted.created_at,
+        author_name: authorName,
+        can_regenerate: false,
+        source: {
+          kind: "form_snapshot",
+          form_id: form.id,
+          snapshot_id: latestSubmitted.id,
+          snapshot_type: "submitted",
+          format: "pptx",
+        },
+      },
     );
   }
 
@@ -374,6 +408,17 @@ function buildFormFiles(
       author_name: authorName,
       can_regenerate: true,
       source: { kind: "form_current", form_id: form.id, format: "pdf" },
+    },
+    {
+      kind: "file",
+      id: `current-${form.id}-pptx`,
+      name: `${fileStem}.pptx`,
+      icon: "📊",
+      origin: "auto",
+      created_at: form.updated_at,
+      author_name: authorName,
+      can_regenerate: true,
+      source: { kind: "form_current", form_id: form.id, format: "pptx" },
     },
   ];
 

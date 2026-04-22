@@ -8,6 +8,8 @@ import { renderDocAsHtml } from "@/lib/documents/html_form";
 import { buildXlsxBlob, downloadBlob } from "@/lib/documents/xlsx_form";
 import { downloadPdf } from "@/lib/documents/pdf_form";
 import { downloadDocx } from "@/lib/documents/docx_form";
+import { generateFormularioPPTX } from "@/lib/generators/pptx-formulario";
+import { buildPptxInputFromFormId } from "@/lib/generators/pptx-formulario-build";
 import { getCurrentUser } from "@/lib/storage/auth";
 import {
   getGatewayMinuta,
@@ -24,7 +26,7 @@ interface Props {
   onClose: () => void;
 }
 
-type Format = "xlsx" | "pdf" | "docx";
+type Format = "xlsx" | "pdf" | "docx" | "pptx";
 
 type EditorKind = "feedback" | "minuta" | null;
 
@@ -40,7 +42,18 @@ export function DocumentPreviewModal({ file, initiativeName, onClose }: Props) {
     return u.success ? u.data.id : null;
   }, []);
 
+  const isPptx =
+    (file.source.kind === "form_current" ||
+      file.source.kind === "form_snapshot") &&
+    file.source.format === "pptx";
+
   useEffect(() => {
+    // PPTX no tiene preview HTML: se ofrece solo descarga.
+    if (isPptx) {
+      setHtml(null);
+      setError(null);
+      return;
+    }
     const res = resolveFormDoc(file.source, initiativeName, file.author_name);
     if (!res.success) {
       setError(res.error.message);
@@ -49,7 +62,7 @@ export function DocumentPreviewModal({ file, initiativeName, onClose }: Props) {
     }
     setHtml(renderDocAsHtml(res.data));
     setError(null);
-  }, [file, initiativeName, previewTick]);
+  }, [file, initiativeName, previewTick, isPptx]);
 
   const availableFormats = useMemo<Format[]>(() => {
     const src = file.source;
@@ -86,6 +99,32 @@ export function DocumentPreviewModal({ file, initiativeName, onClose }: Props) {
 
   async function handleDownload(fmt: Format) {
     if (downloading) return;
+    // PPTX: generamos vía pptx-formulario (no pasa por DocStructure).
+    if (fmt === "pptx") {
+      if (
+        file.source.kind !== "form_current" &&
+        file.source.kind !== "form_snapshot"
+      ) {
+        setError("PPTX solo está disponible para formularios.");
+        return;
+      }
+      setDownloading(fmt);
+      try {
+        const input = buildPptxInputFromFormId(file.source.form_id);
+        if (!input) {
+          setError("No se pudo leer el formulario para generar el PPTX.");
+          return;
+        }
+        const blob = await generateFormularioPPTX(input);
+        downloadBlob(blob, filenameFor(fmt));
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Error al generar el PPTX");
+      } finally {
+        setDownloading(null);
+      }
+      return;
+    }
+
     const res = resolveFormDoc(file.source, initiativeName, file.author_name);
     if (!res.success) {
       setError(res.error.message);
@@ -169,7 +208,19 @@ export function DocumentPreviewModal({ file, initiativeName, onClose }: Props) {
               {error}
             </p>
           )}
-          {!error && !html && (
+          {!error && !html && isPptx && (
+            <div className="rounded-lg border border-pae-border bg-pae-surface px-6 py-10 text-center">
+              <p className="text-[28px]">📊</p>
+              <p className="mt-2 text-[14px] font-semibold text-pae-text">
+                Presentación PPTX
+              </p>
+              <p className="mx-auto mt-2 max-w-md text-[12px] text-pae-text-secondary">
+                Las presentaciones PowerPoint no se previsualizan en el browser.
+                Descargalas con el botón ↓ PPTX y abrilas en PowerPoint, Google Slides o Keynote.
+              </p>
+            </div>
+          )}
+          {!error && !html && !isPptx && (
             <p className="text-[12px] text-pae-text-secondary">
               Cargando vista previa…
             </p>

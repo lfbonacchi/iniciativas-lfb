@@ -14,6 +14,7 @@ export function WizardBottomBar({
   onPreview,
   onDownloadXlsx,
   onDownloadPdf,
+  onDownloadPptx,
   onSubmit,
   submitting,
 }: {
@@ -26,6 +27,7 @@ export function WizardBottomBar({
   onPreview: () => void;
   onDownloadXlsx: () => void;
   onDownloadPdf: () => void;
+  onDownloadPptx: () => void;
   onSubmit: () => void;
   submitting: boolean;
 }) {
@@ -92,6 +94,14 @@ export function WizardBottomBar({
             className="rounded-lg border border-pae-red/30 bg-pae-red/5 px-3 py-1.5 text-[12px] font-medium text-pae-red transition hover:bg-pae-red/10"
           >
             ↓ PDF
+          </button>
+          <button
+            type="button"
+            onClick={onDownloadPptx}
+            title="Generar presentación PPTX"
+            className="rounded-lg border border-pae-blue/40 bg-pae-blue/5 px-3 py-1.5 text-[12px] font-medium text-pae-blue transition hover:bg-pae-blue/10"
+          >
+            ↓ PPTX
           </button>
           <button
             type="button"
