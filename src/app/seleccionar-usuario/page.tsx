@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import type { Id, User } from "@/types";
 import {
+  clearAllData,
   getAvailableUsers,
   loadSeedData,
   switchUser,
@@ -145,6 +146,28 @@ export default function SeleccionarUsuarioPage() {
     }
     setErrorMsg(null);
     setDemoLoaded(true);
+  }
+
+  function handleClearData() {
+    if (
+      !window.confirm(
+        "Se borran todas las iniciativas, formularios, gateways y eventos guardados. ¿Continuar?",
+      )
+    ) {
+      return;
+    }
+    const result = clearAllData();
+    if (!result.success) {
+      setErrorMsg(result.error.message);
+      return;
+    }
+    setErrorMsg(null);
+    setDemoLoaded(false);
+    setSelectedRole(null);
+    setSelectedUserId("");
+    // Forzar re-fetch de usuarios (el store se recarga con seed de users al próximo read)
+    const available = getAvailableUsers();
+    if (available.success) setAllUsers(available.data);
   }
 
   function handleConfirm() {
@@ -335,14 +358,28 @@ export default function SeleccionarUsuarioPage() {
                 </p>
               )}
             </div>
-            <button
-              type="button"
-              onClick={handleLoadDemo}
-              className="shrink-0 rounded-lg border border-pae-blue px-4 py-2 text-[14px] font-semibold text-pae-blue transition hover:bg-pae-blue/5"
-            >
-              {demoLoaded ? "Recargar demo" : "Cargar datos demo"}
-            </button>
+            <div className="flex shrink-0 flex-col items-end gap-2">
+              <button
+                type="button"
+                onClick={handleLoadDemo}
+                className="rounded-lg border border-pae-blue px-4 py-2 text-[14px] font-semibold text-pae-blue transition hover:bg-pae-blue/5"
+              >
+                {demoLoaded ? "Recargar demo" : "Cargar datos demo"}
+              </button>
+              <button
+                type="button"
+                onClick={handleClearData}
+                className="rounded-lg border border-pae-red px-4 py-2 text-[13px] font-medium text-pae-red transition hover:bg-pae-red/5"
+              >
+                Limpiar todos los datos
+              </button>
+            </div>
           </div>
+          <p className="mt-2 text-[12px] text-pae-text-tertiary">
+            Tip: &ldquo;Limpiar&rdquo; borra iniciativas, formularios y eventos
+            guardados en este navegador. Los usuarios mock se recargan
+            automáticamente.
+          </p>
         </section>
 
         {errorMsg && (

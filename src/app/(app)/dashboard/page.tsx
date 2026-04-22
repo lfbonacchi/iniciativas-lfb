@@ -16,6 +16,7 @@ import {
 } from "@/lib/storage/dashboard";
 import { AddEventModal } from "@/components/events/AddEventModal";
 import { EventDetailModal } from "@/components/events/EventDetailModal";
+import { EmptyStateModal } from "@/components/shell/EmptyStateModal";
 
 // ---------------------------------------------------------------------------
 // Formatting helpers
@@ -646,6 +647,12 @@ export default function DashboardPage() {
   const [selectedEvent, setSelectedEvent] = useState<DashboardEvent | null>(
     null,
   );
+  const [emptyModalOpen, setEmptyModalOpen] = useState(false);
+
+  useEffect(() => {
+    if (!data) return;
+    setEmptyModalOpen(data.available_initiatives.length === 0);
+  }, [data]);
 
   const reload = useCallback(() => setReloadKey((k) => k + 1), []);
 
@@ -784,6 +791,12 @@ export default function DashboardPage() {
               }
             : null
         }
+      />
+
+      <EmptyStateModal
+        open={emptyModalOpen}
+        onClose={() => setEmptyModalOpen(false)}
+        canCreate={data.role_key === "po" || data.role_key === "at"}
       />
     </div>
   );
