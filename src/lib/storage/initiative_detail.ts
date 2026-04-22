@@ -8,11 +8,6 @@ import type {
   User,
 } from "@/types";
 import { err, ok, type Result } from "@/lib/result";
-import {
-  getInitiativeSummary,
-  getInitiativeSummaries,
-} from "@/data/initiative_summaries";
-
 import { readStore, type Store } from "./_store";
 import {
   getCurrentUserFromStore,
@@ -20,6 +15,10 @@ import {
   userCanAccessInitiative,
 } from "./_security";
 import { getOverlay } from "./financials";
+import {
+  computeAllSummaries,
+  computeInitiativeSummary,
+} from "./initiative_summary";
 
 export interface InitiativeHeaderRole {
   key: "po" | "ld" | "bo" | "sponsor";
@@ -221,7 +220,7 @@ function buildVpAtExtras(
   store: Store,
   currentUser: User,
 ): InitiativeDetail["vp_at_extras"] {
-  const allSummaries = getInitiativeSummaries();
+  const allSummaries = computeAllSummaries(store);
 
   const objectives: ObjectiveLink[] = allSummaries
     .filter((s) => s.initiative_id !== ini.id)
@@ -312,7 +311,7 @@ export function getInitiativeDetail(
 
   // Si no hay summary (iniciativa recién creada o importada sin data) devolvemos
   // uno vacío para que la UI pueda renderizar el estado vacío con sus CTAs.
-  const summary = getInitiativeSummary(initiativeId) ?? {
+  const summary = computeInitiativeSummary(store, initiativeId) ?? {
     initiative_id: initiativeId,
     purpose: "",
     value_streams_5y: [],

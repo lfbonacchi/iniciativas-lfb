@@ -189,11 +189,11 @@ const users: User[] = [
     azure_oid: null,
     email: "ana.torres@pae.com",
     display_name: "Ana Torres",
-    job_title: "Supervisora Operaciones Norte",
-    department: "Operaciones Norte",
+    job_title: "VP Operaciones",
+    department: "Dirección Operaciones",
     vicepresidencia: "VP Operaciones",
     global_role: "user",
-    is_vp: false,
+    is_vp: true,
   },
   {
     id: "u5",
@@ -233,11 +233,11 @@ const users: User[] = [
     azure_oid: null,
     email: "sofia.romero@pae.com",
     display_name: "Sofía Romero",
-    job_title: "Analista Supply Chain",
-    department: "Supply Chain",
+    job_title: "VP Transformación",
+    department: "Dirección Transformación",
     vicepresidencia: "VP Transformación",
     global_role: "user",
-    is_vp: false,
+    is_vp: true,
   },
   {
     id: "u9",
@@ -728,6 +728,42 @@ const ini001_F2_responses: FormResponse[] = [
       estado: "Planificado",
     },
   ]),
+  mkResp(ini001_F2.id, "seccion_10_impacto_corrientes_5anios", {
+    corrientes_valor: [
+      {
+        corriente: "PRODUCCIÓN (m3)",
+        anio_1: "+2,800",
+        anio_2: "+7,500",
+        anio_3: "+12,000",
+        anio_4: "+14,000",
+        anio_5: "+14,000",
+      },
+      {
+        corriente: "OPEX (M$ USD)",
+        anio_1: "-0.4",
+        anio_2: "-1.2",
+        anio_3: "-2.0",
+        anio_4: "-2.3",
+        anio_5: "-2.3",
+      },
+      {
+        corriente: "CAPEX (M$ USD)",
+        anio_1: "-1.2",
+        anio_2: "-0.6",
+        anio_3: "-0.3",
+        anio_4: "-0.15",
+        anio_5: "-0.1",
+      },
+      {
+        corriente: "PRODUCTIVIDAD (HH)",
+        anio_1: "-900",
+        anio_2: "-2,200",
+        anio_3: "-3,500",
+        anio_4: "-3,800",
+        anio_5: "-3,800",
+      },
+    ],
+  }),
 ];
 
 // ============================================================================
@@ -1073,12 +1109,20 @@ const ini002_F2_responses: FormResponse[] = [
       anio_5: "+15,000",
     },
     {
-      corriente: "OPEX (USD)",
-      anio_1: "-300K",
-      anio_2: "-800K",
-      anio_3: "-800K",
-      anio_4: "-900K",
-      anio_5: "-900K",
+      corriente: "OPEX (M$ USD)",
+      anio_1: "-0.3",
+      anio_2: "-0.8",
+      anio_3: "-0.8",
+      anio_4: "-0.9",
+      anio_5: "-0.9",
+    },
+    {
+      corriente: "CAPEX (M$ USD)",
+      anio_1: "-0.7",
+      anio_2: "-0.3",
+      anio_3: "-0.15",
+      anio_4: "-0.08",
+      anio_5: "-0.05",
     },
     {
       corriente: "PRODUCTIVIDAD (HH)",
@@ -1087,6 +1131,14 @@ const ini002_F2_responses: FormResponse[] = [
       anio_3: "-3,500",
       anio_4: "-4,000",
       anio_5: "-4,000",
+    },
+    {
+      corriente: "EMISIONES (MTnCO2 Eq)",
+      anio_1: "-300",
+      anio_2: "-700",
+      anio_3: "-700",
+      anio_4: "-800",
+      anio_5: "-800",
     },
   ]),
 ];
@@ -1422,6 +1474,42 @@ const ini003_F4_2026_responses: FormResponse[] = [
     },
     { hito: "Reportes regulatorios automáticos", fecha: "Feb 2027" },
   ]),
+  mkResp(ini003_F4_2026.id, "seccion_8_impacto_economico", {
+    beneficio_bruto_5_anios: [
+      {
+        corriente: "OPEX (M$ USD)",
+        ano_1: "-0.8",
+        ano_2: "-1.4",
+        ano_3: "-1.6",
+        ano_4: "-1.6",
+        ano_5: "-1.6",
+      },
+      {
+        corriente: "CAPEX (M$ USD)",
+        ano_1: "-0.9",
+        ano_2: "-0.35",
+        ano_3: "-0.15",
+        ano_4: "-0.08",
+        ano_5: "-0.04",
+      },
+      {
+        corriente: "PRODUCTIVIDAD (HH)",
+        ano_1: "-1,400",
+        ano_2: "-2,600",
+        ano_3: "-2,800",
+        ano_4: "-2,800",
+        ano_5: "-2,800",
+      },
+      {
+        corriente: "EMISIONES (MTnCO2 Eq)",
+        ano_1: "-450",
+        ano_2: "-900",
+        ano_3: "-1,100",
+        ano_4: "-1,100",
+        ano_5: "-1,100",
+      },
+    ],
+  }),
 ];
 
 // ============================================================================
@@ -1894,11 +1982,11 @@ const ini004_F2_responses: FormResponse[] = [
       },
       {
         corriente: "CAPEX (M$ USD)",
-        anio_1: "-0.26",
-        anio_2: "-0.34",
-        anio_3: "-0.28",
-        anio_4: "-0.10",
-        anio_5: "-0.05",
+        anio_1: "-1.1",
+        anio_2: "-1.4",
+        anio_3: "-0.8",
+        anio_4: "-0.2",
+        anio_5: "-0.1",
       },
       {
         corriente: "PRODUCTIVIDAD (HH)",
@@ -2730,6 +2818,45 @@ const ini005_F3 = mkForm({
   approved_at: "2024-11-20T16:00:00.000Z",
 });
 
+const ini005_F2_responses: FormResponse[] = [
+  mkResp(ini005_F2.id, "seccion_10_impacto_corrientes_5anios", {
+    corrientes_valor: [
+      {
+        corriente: "OPEX (M$ USD)",
+        anio_1: "-1.6",
+        anio_2: "-3.2",
+        anio_3: "-3.4",
+        anio_4: "-3.4",
+        anio_5: "-3.4",
+      },
+      {
+        corriente: "CAPEX (M$ USD)",
+        anio_1: "-1.8",
+        anio_2: "-0.8",
+        anio_3: "-0.3",
+        anio_4: "-0.12",
+        anio_5: "-0.08",
+      },
+      {
+        corriente: "PRODUCTIVIDAD (HH)",
+        anio_1: "-3,200",
+        anio_2: "-6,000",
+        anio_3: "-6,500",
+        anio_4: "-6,500",
+        anio_5: "-6,500",
+      },
+      {
+        corriente: "INTANGIBLE",
+        anio_1: "+900000",
+        anio_2: "+1500000",
+        anio_3: "+1800000",
+        anio_4: "+1800000",
+        anio_5: "+1800000",
+      },
+    ],
+  }),
+];
+
 const ini005_F3_responses: FormResponse[] = [
   mkResp(
     ini005_F3.id,
@@ -3215,6 +3342,42 @@ const ini006_F4_2026_responses: FormResponse[] = [
     { hito: "Integración gestión documental", fecha: "Sep 2026" },
     { hito: "App mobile inspectores", fecha: "Nov 2026" },
   ]),
+  mkResp(ini006_F4_2026.id, "seccion_8_impacto_economico", {
+    beneficio_bruto_5_anios: [
+      {
+        corriente: "OPEX (M$ USD)",
+        ano_1: "-0.5",
+        ano_2: "-0.9",
+        ano_3: "-1.0",
+        ano_4: "-1.0",
+        ano_5: "-1.0",
+      },
+      {
+        corriente: "CAPEX (M$ USD)",
+        ano_1: "-0.4",
+        ano_2: "-0.12",
+        ano_3: "-0.06",
+        ano_4: "-0.03",
+        ano_5: "-0.02",
+      },
+      {
+        corriente: "PRODUCTIVIDAD (HH)",
+        ano_1: "-1,200",
+        ano_2: "-2,400",
+        ano_3: "-2,600",
+        ano_4: "-2,600",
+        ano_5: "-2,600",
+      },
+      {
+        corriente: "INTANGIBLE",
+        ano_1: "+700000",
+        ano_2: "+1000000",
+        ano_3: "+1100000",
+        ano_4: "+1100000",
+        ano_5: "+1100000",
+      },
+    ],
+  }),
 ];
 
 const ini006_F5_2026 = mkForm({
@@ -3490,20 +3653,36 @@ const ini007_F3_responses: FormResponse[] = [
   ]),
   mkResp(ini007_F3.id, "corrientes_5_anios", [
     {
-      corriente: "OPEX ahorro (USD)",
-      anio_1: "-195K",
-      anio_2: "-650K",
-      anio_3: "-700K",
-      anio_4: "-700K",
-      anio_5: "-700K",
+      corriente: "OPEX ahorro (M$ USD)",
+      anio_1: "-0.195",
+      anio_2: "-0.65",
+      anio_3: "-0.7",
+      anio_4: "-0.7",
+      anio_5: "-0.7",
     },
     {
-      corriente: "HH ahorro",
+      corriente: "CAPEX (M$ USD)",
+      anio_1: "-0.55",
+      anio_2: "-0.2",
+      anio_3: "-0.08",
+      anio_4: "-0.04",
+      anio_5: "-0.02",
+    },
+    {
+      corriente: "PRODUCTIVIDAD (HH)",
       anio_1: "-800",
       anio_2: "-2,500",
       anio_3: "-2,800",
       anio_4: "-2,800",
       anio_5: "-2,800",
+    },
+    {
+      corriente: "INTANGIBLE",
+      anio_1: "+250000",
+      anio_2: "+600000",
+      anio_3: "+700000",
+      anio_4: "+700000",
+      anio_5: "+700000",
     },
   ]),
 ];
@@ -3769,12 +3948,36 @@ const ini008_F4_2026_responses: FormResponse[] = [
   ]),
   mkResp(ini008_F4_2026.id, "corrientes_5_anios", [
     {
-      corriente: "HH ahorro",
+      corriente: "PRODUCTIVIDAD (HH)",
       anio_2026: "-1,200",
       anio_2027: "-2,400",
       anio_2028: "-2,400",
       anio_2029: "-2,400",
       anio_2030: "-2,400",
+    },
+    {
+      corriente: "OPEX (M$ USD)",
+      anio_2026: "-0.18",
+      anio_2027: "-0.35",
+      anio_2028: "-0.35",
+      anio_2029: "-0.35",
+      anio_2030: "-0.35",
+    },
+    {
+      corriente: "CAPEX (M$ USD)",
+      anio_2026: "-0.3",
+      anio_2027: "-0.08",
+      anio_2028: "-0.04",
+      anio_2029: "-0.02",
+      anio_2030: "-0.02",
+    },
+    {
+      corriente: "INTANGIBLE",
+      anio_2026: "+150000",
+      anio_2027: "+300000",
+      anio_2028: "+350000",
+      anio_2029: "+350000",
+      anio_2030: "+350000",
     },
   ]),
 ];
@@ -3902,12 +4105,18 @@ const documents: Document[] = [
 function applyResponseFiller(seed: SeedData): SeedData {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   const { generateMissingResponses } = require("./seed_filler") as typeof import("./seed_filler");
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { buildSummaryResponses } = require("./summary_to_responses") as typeof import("./summary_to_responses");
   const extras = generateMissingResponses(
     seed.forms,
     seed.initiatives,
     seed.form_responses,
   );
-  return { ...seed, form_responses: [...seed.form_responses, ...extras] };
+  const summaryResponses = buildSummaryResponses(seed.forms);
+  return {
+    ...seed,
+    form_responses: [...seed.form_responses, ...extras, ...summaryResponses],
+  };
 }
 
 export function getSeedData(): SeedData {
@@ -3979,6 +4188,7 @@ export function getSeedData(): SeedData {
       ...ini004_F2_responses,
       ...ini004_F3_responses,
       ...ini005_F1_responses,
+      ...ini005_F2_responses,
       ...ini005_F3_responses,
       ...ini005_F4_2025_responses,
       ...ini005_F5_2025_responses,

@@ -18,6 +18,7 @@ import {
 import { AddEventModal } from "@/components/events/AddEventModal";
 import { EventDetailModal } from "@/components/events/EventDetailModal";
 import { EmptyStateModal } from "@/components/shell/EmptyStateModal";
+import { MultiplicadoresCard } from "@/components/shell/MultiplicadoresCard";
 import { downloadDashboardPPTX } from "@/lib/generators/pptx-dashboard";
 
 // ---------------------------------------------------------------------------
@@ -721,6 +722,7 @@ export default function DashboardPage() {
     <div className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-[18px] font-semibold text-pae-text">{title}</h1>
+        <MultiplicadoresCard />
       </div>
 
       <nav

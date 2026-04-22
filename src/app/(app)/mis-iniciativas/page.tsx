@@ -11,6 +11,7 @@ import {
 } from "@/lib/storage/initiatives";
 import { getCurrentUser } from "@/lib/storage/auth";
 import { EmptyStateModal } from "@/components/shell/EmptyStateModal";
+import { MultiplicadoresCard } from "@/components/shell/MultiplicadoresCard";
 
 const STAGE_LABEL: Record<InitiativeStage, string> = {
   proposal: "Propuesta",
@@ -167,9 +168,12 @@ export default function MisIniciativasPage() {
 
   return (
     <div className="space-y-5">
-      <h1 className="text-[18px] font-semibold text-pae-text">
-        Mis iniciativas
-      </h1>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-[18px] font-semibold text-pae-text">
+          Mis iniciativas
+        </h1>
+        <MultiplicadoresCard />
+      </div>
 
       {pageError && (
         <div className="rounded-xl border border-pae-red/30 bg-pae-red/5 p-4">

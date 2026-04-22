@@ -8,9 +8,8 @@ import type {
 } from "@/types";
 import type { ImpactIndicator } from "@/types";
 import { err, ok, type Result } from "@/lib/result";
-import { getInitiativeSummary } from "@/data/initiative_summaries";
-
 import { newId, nowIso } from "./_ids";
+import { computeInitiativeSummary } from "./initiative_summary";
 import {
   getCurrentUserFromStore,
   userCanAccessInitiative,
@@ -142,7 +141,7 @@ export function getMesaDeTrabajo(
   if (!userCanAccessInitiative(user, initiativeId, store)) {
     return err("FORBIDDEN", "No tenés acceso a esta iniciativa");
   }
-  const summary = getInitiativeSummary(initiativeId);
+  const summary = computeInitiativeSummary(store, initiativeId);
   if (!summary) {
     return err("NOT_FOUND", "No hay resumen disponible para esta iniciativa");
   }
