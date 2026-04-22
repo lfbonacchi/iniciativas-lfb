@@ -7,4 +7,6 @@ export * from "./notifications";
 export * from "./documents";
 export * from "./events";
 export * from "./dashboard";
+export * from "./timeline";
+export * from "./team";
 export { resetStore } from "./_store";
