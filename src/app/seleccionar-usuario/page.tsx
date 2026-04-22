@@ -163,23 +163,23 @@ export default function SeleccionarUsuarioPage() {
     <main className="flex min-h-screen items-start justify-center bg-pae-bg px-6 py-12">
       <div className="w-full max-w-3xl">
         <header className="mb-8 text-center">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-pae-text-tertiary">
+          <p className="text-[12px] font-semibold uppercase tracking-[0.15em] text-pae-text-tertiary">
             PAE — Plataforma de Portfolio
           </p>
           <h1 className="mt-2 text-[20px] font-semibold text-pae-text">
             Seleccioná un rol para probar
           </h1>
-          <p className="mt-1 text-[12px] text-pae-text-secondary">
+          <p className="mt-1 text-[14px] text-pae-text-secondary">
             Cada rol tiene su propia vista del portfolio.
           </p>
 
           <div className="mx-auto mt-4 max-w-xl space-y-2 text-left">
-            <p className="rounded-lg bg-pae-blue/5 px-3 py-2 text-[11px] leading-snug text-pae-text-secondary">
+            <p className="rounded-lg bg-pae-blue/5 px-3 py-2 text-[13px] leading-snug text-pae-text-secondary">
               <span className="font-semibold text-pae-blue">Nota:</span> el
               Líder de Dimensión determina quién es el Product Owner y asigna
               los demás roles de la iniciativa.
             </p>
-            <p className="rounded-lg bg-pae-blue/5 px-3 py-2 text-[11px] leading-snug text-pae-text-secondary">
+            <p className="rounded-lg bg-pae-blue/5 px-3 py-2 text-[13px] leading-snug text-pae-text-secondary">
               <span className="font-semibold text-pae-blue">Nota:</span> Scrum
               Masters y coaches pueden ser asignados a cualquier rol según
               corresponda.
@@ -190,7 +190,7 @@ export default function SeleccionarUsuarioPage() {
         <section aria-labelledby="paso-1" className="mb-8">
           <h2
             id="paso-1"
-            className="mb-3 text-[10px] font-semibold uppercase tracking-[0.12em] text-pae-text-tertiary"
+            className="mb-3 text-[12px] font-semibold uppercase tracking-[0.12em] text-pae-text-tertiary"
           >
             Paso 1 — Elegí un rol
           </h2>
@@ -220,24 +220,24 @@ export default function SeleccionarUsuarioPage() {
                   />
                   <div className="flex-1 pl-2">
                     <div className="flex items-center gap-2">
-                      <h3 className="text-[14px] font-semibold text-pae-text">
+                      <h3 className="text-[16px] font-semibold text-pae-text">
                         {r.title}
                       </h3>
                       <span
-                        className={`rounded-full px-2 py-[2px] text-[10px] font-medium ${accent.chip} ${accent.chipText}`}
+                        className={`rounded-full px-2 py-[2px] text-[12px] font-medium ${accent.chip} ${accent.chipText}`}
                       >
                         {r.subtitle}
                       </span>
                     </div>
-                    <p className="mt-1 text-[12px] leading-snug text-pae-text-secondary">
+                    <p className="mt-1 text-[14px] leading-snug text-pae-text-secondary">
                       {r.description}
                     </p>
                     {r.footnote && (
-                      <p className="mt-1 text-[11px] italic text-pae-text-tertiary">
+                      <p className="mt-1 text-[13px] italic text-pae-text-tertiary">
                         {r.footnote}
                       </p>
                     )}
-                    <p className="mt-2 text-[10px] text-pae-text-tertiary">
+                    <p className="mt-2 text-[12px] text-pae-text-tertiary">
                       {r.userIds.length === 1
                         ? "1 usuario disponible"
                         : `${r.userIds.length} usuarios disponibles`}
@@ -252,14 +252,14 @@ export default function SeleccionarUsuarioPage() {
         <section aria-labelledby="paso-2" className="mb-8">
           <h2
             id="paso-2"
-            className="mb-3 text-[10px] font-semibold uppercase tracking-[0.12em] text-pae-text-tertiary"
+            className="mb-3 text-[12px] font-semibold uppercase tracking-[0.12em] text-pae-text-tertiary"
           >
             Paso 2 — Elegí un usuario
           </h2>
 
           <div className="rounded-xl border border-pae-border bg-pae-surface p-5">
             {!role ? (
-              <p className="text-[12px] text-pae-text-tertiary">
+              <p className="text-[14px] text-pae-text-tertiary">
                 Seleccioná primero un rol para ver los usuarios disponibles.
               </p>
             ) : roleUsers.length === 1 && roleUsers[0] ? (
@@ -268,19 +268,19 @@ export default function SeleccionarUsuarioPage() {
                 return (
                   <div className="flex items-center gap-3">
                     <span
-                      className={`grid h-9 w-9 place-items-center rounded-full text-[11px] font-semibold ${ACCENT_CLASSES[role.accent].chip} ${ACCENT_CLASSES[role.accent].chipText}`}
+                      className={`grid h-9 w-9 place-items-center rounded-full text-[13px] font-semibold ${ACCENT_CLASSES[role.accent].chip} ${ACCENT_CLASSES[role.accent].chipText}`}
                     >
                       {initials(u.display_name)}
                     </span>
                     <div className="flex-1">
-                      <p className="text-[13px] font-semibold text-pae-text">
+                      <p className="text-[15px] font-semibold text-pae-text">
                         {u.display_name}
                       </p>
-                      <p className="text-[11px] text-pae-text-secondary">
+                      <p className="text-[13px] text-pae-text-secondary">
                         {u.job_title} · {u.email}
                       </p>
                     </div>
-                    <span className="rounded-full bg-pae-bg px-2 py-[2px] text-[10px] font-medium text-pae-text-secondary">
+                    <span className="rounded-full bg-pae-bg px-2 py-[2px] text-[12px] font-medium text-pae-text-secondary">
                       Autoseleccionado
                     </span>
                   </div>
@@ -290,7 +290,7 @@ export default function SeleccionarUsuarioPage() {
               <div>
                 <label
                   htmlFor="user-select"
-                  className="block text-[11px] font-medium text-pae-text-secondary"
+                  className="block text-[13px] font-medium text-pae-text-secondary"
                 >
                   Usuario
                 </label>
@@ -298,7 +298,7 @@ export default function SeleccionarUsuarioPage() {
                   id="user-select"
                   value={selectedUserId}
                   onChange={(e) => setSelectedUserId(e.target.value as Id)}
-                  className="mt-2 block h-10 w-full rounded-lg border border-pae-border bg-pae-bg px-3 text-[12px] text-pae-text focus:border-pae-blue focus:outline-none"
+                  className="mt-2 block h-10 w-full rounded-lg border border-pae-border bg-pae-bg px-3 text-[14px] text-pae-text focus:border-pae-blue focus:outline-none"
                 >
                   <option value="">— Seleccioná un usuario —</option>
                   {roleUsers.map((u) => (
@@ -315,22 +315,22 @@ export default function SeleccionarUsuarioPage() {
         <section aria-labelledby="demo" className="mb-8">
           <h2
             id="demo"
-            className="mb-3 text-[10px] font-semibold uppercase tracking-[0.12em] text-pae-text-tertiary"
+            className="mb-3 text-[12px] font-semibold uppercase tracking-[0.12em] text-pae-text-tertiary"
           >
             Datos de ejemplo (opcional)
           </h2>
 
           <div className="flex items-center justify-between gap-4 rounded-xl border border-pae-border bg-pae-surface px-5 py-4">
             <div>
-              <p className="text-[13px] font-semibold text-pae-text">
+              <p className="text-[15px] font-semibold text-pae-text">
                 Cargar datos demo
               </p>
-              <p className="mt-1 text-[11px] text-pae-text-secondary">
+              <p className="mt-1 text-[13px] text-pae-text-secondary">
                 Carga 8 iniciativas de ejemplo con formularios, gateways y
                 eventos en localStorage.
               </p>
               {demoLoaded && (
-                <p className="mt-1 text-[11px] font-medium text-pae-green">
+                <p className="mt-1 text-[13px] font-medium text-pae-green">
                   ✓ Datos demo cargados
                 </p>
               )}
@@ -338,7 +338,7 @@ export default function SeleccionarUsuarioPage() {
             <button
               type="button"
               onClick={handleLoadDemo}
-              className="shrink-0 rounded-lg border border-pae-blue px-4 py-2 text-[12px] font-semibold text-pae-blue transition hover:bg-pae-blue/5"
+              className="shrink-0 rounded-lg border border-pae-blue px-4 py-2 text-[14px] font-semibold text-pae-blue transition hover:bg-pae-blue/5"
             >
               {demoLoaded ? "Recargar demo" : "Cargar datos demo"}
             </button>
@@ -346,7 +346,7 @@ export default function SeleccionarUsuarioPage() {
         </section>
 
         {errorMsg && (
-          <p className="mb-4 rounded-lg bg-pae-red/10 px-4 py-3 text-[12px] text-pae-red">
+          <p className="mb-4 rounded-lg bg-pae-red/10 px-4 py-3 text-[14px] text-pae-red">
             {errorMsg}
           </p>
         )}
@@ -356,7 +356,7 @@ export default function SeleccionarUsuarioPage() {
             type="button"
             onClick={handleConfirm}
             disabled={!canConfirm}
-            className={`inline-flex items-center gap-2 rounded-lg px-5 py-3 text-[13px] font-semibold text-white shadow-sm transition ${
+            className={`inline-flex items-center gap-2 rounded-lg px-5 py-3 text-[15px] font-semibold text-white shadow-sm transition ${
               canConfirm
                 ? "bg-pae-blue hover:bg-pae-blue/90"
                 : "cursor-not-allowed bg-pae-blue/40"

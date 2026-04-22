@@ -12,8 +12,10 @@ import {
   type RankingRow,
   type StageDistribution,
   type ValueStream,
+  type VpBreakdown,
 } from "@/lib/storage/dashboard";
 import { AddEventModal } from "@/components/events/AddEventModal";
+import { EventDetailModal } from "@/components/events/EventDetailModal";
 
 // ---------------------------------------------------------------------------
 // Formatting helpers
@@ -79,9 +81,9 @@ const STAGE_TONE: Record<
     chipText: "text-pae-blue",
   },
   mvp: {
-    bar: "bg-pae-green/60",
-    chipBg: "bg-pae-green/10",
-    chipText: "text-pae-green",
+    bar: "bg-pae-blue/60",
+    chipBg: "bg-pae-blue/10",
+    chipText: "text-pae-blue",
   },
   ltp_tracking: {
     bar: "bg-pae-green/60",
@@ -129,7 +131,7 @@ function KpiCards({ data }: { data: DashboardData }) {
           key={c.label}
           className={`relative overflow-hidden rounded-xl bg-pae-surface p-4 shadow-sm before:absolute before:left-0 before:right-0 before:top-0 before:h-1 ${c.accent}`}
         >
-          <p className="text-[9px] font-semibold uppercase tracking-[0.08em] text-pae-text-tertiary">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-pae-text-tertiary">
             {c.label}
           </p>
           <p className="mt-3 text-[20px] font-bold text-pae-text">{c.value}</p>
@@ -150,7 +152,7 @@ function StageDistributionCard({ dist }: { dist: StageDistribution }) {
 
   return (
     <div className="rounded-xl bg-pae-surface p-5 shadow-sm">
-      <h3 className="text-[14px] font-semibold text-pae-text">
+      <h3 className="text-[16px] font-semibold text-pae-text">
         Distribución por etapa
       </h3>
       <div
@@ -167,7 +169,7 @@ function StageDistributionCard({ dist }: { dist: StageDistribution }) {
               className="flex flex-col items-center gap-2"
             >
               <span
-                className={`whitespace-nowrap text-[11px] font-semibold ${isEmpty ? "text-pae-text-tertiary" : "text-pae-text"}`}
+                className={`whitespace-nowrap text-[13px] font-semibold ${isEmpty ? "text-pae-text-tertiary" : "text-pae-text"}`}
               >
                 {e.count}
               </span>
@@ -179,14 +181,14 @@ function StageDistributionCard({ dist }: { dist: StageDistribution }) {
                   style={{ height: `${h}px` }}
                 />
               )}
-              <span className="whitespace-nowrap text-[9px] text-pae-text-secondary">
+              <span className="whitespace-nowrap text-[11px] text-pae-text-secondary">
                 {STAGE_SHORT[e.stage]}
               </span>
             </div>
           );
         })}
       </div>
-      <p className="mt-4 text-[10px] text-pae-text-tertiary">
+      <p className="mt-4 text-[12px] text-pae-text-tertiary">
         Pausadas: {dist.paused} · Rechazadas: {dist.rejected}
       </p>
     </div>
@@ -197,10 +199,10 @@ function ValueStreamsCard({ streams }: { streams: ValueStream[] }) {
   const max = Math.max(1, ...streams.map((s) => s.value_usd_y1));
   return (
     <div className="rounded-xl bg-pae-surface p-5 shadow-sm">
-      <h3 className="text-[14px] font-semibold text-pae-text">
+      <h3 className="text-[16px] font-semibold text-pae-text">
         Corrientes de valor
       </h3>
-      <p className="mt-1 text-[11px] text-pae-text-secondary">
+      <p className="mt-1 text-[13px] text-pae-text-secondary">
         Proyección año 1 (HH convertido a USD · USD 60/h)
       </p>
       <div
@@ -213,7 +215,7 @@ function ValueStreamsCard({ streams }: { streams: ValueStream[] }) {
           return (
             <div key={s.key} className="flex flex-col items-center gap-2">
               <span
-                className={`whitespace-nowrap text-[10px] font-semibold ${isEmpty ? "text-pae-text-tertiary" : "text-pae-text"}`}
+                className={`whitespace-nowrap text-[12px] font-semibold ${isEmpty ? "text-pae-text-tertiary" : "text-pae-text"}`}
               >
                 {isEmpty ? "—" : fmtUsdShort(s.value_usd_y1)}
               </span>
@@ -231,7 +233,7 @@ function ValueStreamsCard({ streams }: { streams: ValueStream[] }) {
                   style={{ height: `${h}px` }}
                 />
               )}
-              <span className="whitespace-nowrap text-[9px] text-pae-text-secondary">
+              <span className="whitespace-nowrap text-[11px] text-pae-text-secondary">
                 {s.key === "hh" && s.raw_value
                   ? `HH (${fmtHoursShort(s.raw_value)})`
                   : s.label}
@@ -269,6 +271,11 @@ function RankingCard({ rows }: { rows: RankingRow[] }) {
     return copy;
   }, [rows, sortKey, sortDir]);
 
+  const maxRoi = useMemo(
+    () => rows.reduce((acc, r) => (r.roi > acc ? r.roi : acc), 0),
+    [rows],
+  );
+
   function toggleSort(key: RankingSortKey) {
     if (sortKey === key) {
       setSortDir(sortDir === "asc" ? "desc" : "asc");
@@ -300,7 +307,7 @@ function RankingCard({ rows }: { rows: RankingRow[] }) {
       <button
         type="button"
         onClick={() => toggleSort(sortKeyName)}
-        className="inline-flex items-center gap-1 text-[9px] font-semibold uppercase tracking-[0.08em] text-pae-text-tertiary hover:text-pae-text-secondary"
+        className="inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-pae-text-tertiary hover:text-pae-text-secondary"
       >
         {label} <span aria-hidden>{arrow(sortKeyName)}</span>
       </button>
@@ -310,10 +317,10 @@ function RankingCard({ rows }: { rows: RankingRow[] }) {
   return (
     <div className="rounded-xl bg-pae-surface p-5 shadow-sm">
       <div className="flex items-center justify-between">
-        <h3 className="text-[14px] font-semibold text-pae-text">
+        <h3 className="text-[16px] font-semibold text-pae-text">
           Ranking de iniciativas
         </h3>
-        <span className="text-[11px] text-pae-text-tertiary">
+        <span className="text-[13px] text-pae-text-tertiary">
           Ordenar: {sortKey} {sortDir === "asc" ? "↑" : "↓"}
         </span>
       </div>
@@ -335,7 +342,7 @@ function RankingCard({ rows }: { rows: RankingRow[] }) {
                 align="right"
               />
               <HeaderCell label="ROI" sortKeyName="roi" align="right" />
-              <th className="px-3 py-2 text-right text-[9px] font-semibold uppercase tracking-[0.08em] text-pae-text-tertiary">
+              <th className="px-3 py-2 text-right text-[11px] font-semibold uppercase tracking-[0.08em] text-pae-text-tertiary">
                 Estado
               </th>
             </tr>
@@ -345,7 +352,7 @@ function RankingCard({ rows }: { rows: RankingRow[] }) {
               <tr>
                 <td
                   colSpan={6}
-                  className="px-3 py-6 text-center text-[11px] text-pae-text-tertiary"
+                  className="px-3 py-6 text-center text-[13px] text-pae-text-tertiary"
                 >
                   Todavía no hay iniciativas para mostrar.
                 </td>
@@ -361,32 +368,43 @@ function RankingCard({ rows }: { rows: RankingRow[] }) {
                   }
                   className="cursor-pointer border-b border-pae-border/60 transition hover:bg-pae-bg"
                 >
-                  <td className="px-3 py-2.5 text-[11px] text-pae-text">
+                  <td className="px-3 py-2.5 text-[13px] text-pae-text">
                     {row.initiative_name}
                   </td>
                   <td className="px-3 py-2.5">
                     <span
-                      className={`rounded-full px-2 py-[2px] text-[10px] font-medium ${tone.chipBg} ${tone.chipText}`}
+                      className={`rounded-full px-2 py-[2px] text-[12px] font-medium ${tone.chipBg} ${tone.chipText}`}
                     >
                       {STAGE_SHORT[row.stage]}
                     </span>
                   </td>
-                  <td className="px-3 py-2.5 text-right text-[11px] text-pae-text">
+                  <td className="px-3 py-2.5 text-right text-[13px] text-pae-text">
                     {fmtUsdShort(row.expected_value_usd)}
                   </td>
-                  <td className="px-3 py-2.5 text-right text-[11px] text-pae-text-secondary">
+                  <td className="px-3 py-2.5 text-right text-[13px] text-pae-text-secondary">
                     {fmtUsdShort(row.expected_cost_usd)}
                   </td>
-                  <td className="px-3 py-2.5 text-right text-[11px] font-semibold text-pae-green">
-                    {row.roi.toFixed(1)}x
+                  <td className="px-3 py-2.5 text-right">
+                    <div className="inline-flex items-center justify-end gap-2">
+                      <span
+                        className="h-[6px] rounded-full bg-pae-green/70"
+                        style={{
+                          width: `${Math.max(4, Math.round((row.roi / Math.max(maxRoi, 0.01)) * 56))}px`,
+                        }}
+                        aria-hidden
+                      />
+                      <span className="min-w-[40px] text-right text-[13px] font-semibold tabular-nums text-pae-green">
+                        {row.roi.toFixed(1)}x
+                      </span>
+                    </div>
                   </td>
                   <td className="px-3 py-2.5 text-right">
                     {row.has_pending_gate ? (
-                      <span className="rounded-full bg-pae-red/10 px-2 py-[2px] text-[10px] font-medium text-pae-red">
+                      <span className="rounded-full bg-pae-red/10 px-2 py-[2px] text-[12px] font-medium text-pae-red">
                         Gate
                       </span>
                     ) : (
-                      <span className="rounded-full bg-pae-green/10 px-2 py-[2px] text-[10px] font-medium text-pae-green">
+                      <span className="rounded-full bg-pae-green/10 px-2 py-[2px] text-[12px] font-medium text-pae-green">
                         OK
                       </span>
                     )}
@@ -412,27 +430,29 @@ const EVENT_TONE: Record<DashboardEvent["kind"], string> = {
 function UpcomingEventsCard({
   events,
   onAddClick,
+  onEventClick,
 }: {
   events: DashboardEvent[];
   onAddClick: () => void;
+  onEventClick: (event: DashboardEvent) => void;
 }) {
   return (
     <div className="rounded-xl bg-pae-surface p-5 shadow-sm">
       <div className="flex items-center justify-between">
-        <h3 className="text-[14px] font-semibold text-pae-text">
+        <h3 className="text-[16px] font-semibold text-pae-text">
           Próximos eventos
         </h3>
         <button
           type="button"
           onClick={onAddClick}
-          className="rounded-lg border border-pae-border bg-pae-surface px-3 py-1.5 text-[11px] font-medium text-pae-blue transition hover:bg-pae-blue/5"
+          className="rounded-lg border border-pae-border bg-pae-surface px-3 py-1.5 text-[13px] font-medium text-pae-blue transition hover:bg-pae-blue/5"
         >
           + Agregar evento
         </button>
       </div>
 
       {events.length === 0 ? (
-        <p className="mt-6 text-[11px] text-pae-text-tertiary">
+        <p className="mt-6 text-[13px] text-pae-text-tertiary">
           No hay eventos próximos.
         </p>
       ) : (
@@ -443,36 +463,118 @@ function UpcomingEventsCard({
           />
           <div className="grid grid-cols-2 gap-x-4 gap-y-6 sm:grid-cols-3 lg:grid-cols-5">
             {events.map((evt) => (
-              <div
+              <button
                 key={evt.id}
-                className="relative flex flex-col items-center px-1 text-center"
+                type="button"
+                onClick={() => onEventClick(evt)}
+                className="group relative flex flex-col items-center rounded-lg px-1 py-2 text-center transition hover:bg-pae-bg"
+                aria-label={`Ver detalle de ${evt.name}`}
               >
                 <span
-                  className={`mb-3 h-3 w-3 shrink-0 rounded-full ring-4 ring-pae-surface ${EVENT_TONE[evt.kind]}`}
+                  className={`mb-3 h-3 w-3 shrink-0 rounded-full ring-4 ring-pae-surface transition group-hover:scale-125 ${EVENT_TONE[evt.kind]}`}
                   aria-hidden
                 />
-                <p className="text-[10px] font-semibold text-pae-text">
+                <p className="text-[12px] font-semibold text-pae-text group-hover:text-pae-blue">
                   {evt.name}
                 </p>
                 <p
-                  className="mt-1 line-clamp-2 text-[9px] leading-tight text-pae-text-secondary"
+                  className="mt-1 line-clamp-2 text-[11px] leading-tight text-pae-text-secondary"
                   title={evt.initiative_name}
                 >
                   {evt.initiative_name}
                 </p>
-                <p className="mt-1 text-[9px] text-pae-text-tertiary">
+                <p className="mt-1 text-[11px] text-pae-text-tertiary">
                   {fmtDateShort(evt.date)}
                 </p>
                 {evt.your_vote_pending && (
-                  <p className="mt-1 text-[9px] font-semibold text-pae-red">
+                  <p className="mt-1 text-[11px] font-semibold text-pae-red">
                     Tu voto
                   </p>
                 )}
-              </div>
+              </button>
             ))}
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function VpSmallMultiplesCard({
+  breakdown,
+}: {
+  breakdown: VpBreakdown[];
+}) {
+  const stages: InitiativeStage[] = [
+    "proposal",
+    "dimensioning",
+    "mvp",
+    "ltp_tracking",
+  ];
+  const globalMax = breakdown.reduce(
+    (acc, b) =>
+      Math.max(acc, ...stages.map((s) => b.by_stage[s])),
+    1,
+  );
+
+  return (
+    <div className="rounded-xl bg-pae-surface p-5 shadow-sm">
+      <h3 className="text-[16px] font-semibold text-pae-text">
+        Distribución por etapa · por vicepresidencia
+      </h3>
+      <p className="mt-1 text-[13px] text-pae-text-secondary">
+        Misma escala en todos los paneles para comparar directamente.
+      </p>
+      <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {breakdown.map((vp) => (
+          <div
+            key={vp.vicepresidencia}
+            className="rounded-lg border border-pae-border bg-pae-bg/40 p-3"
+          >
+            <div className="flex items-baseline justify-between">
+              <p className="text-[13px] font-semibold text-pae-text">
+                {vp.vicepresidencia}
+              </p>
+              <p className="text-[11px] text-pae-text-tertiary tabular-nums">
+                {vp.total} inic.
+              </p>
+            </div>
+            <div
+              className="mt-3 flex items-end justify-between gap-2"
+              style={{ height: 80 }}
+            >
+              {stages.map((stage) => {
+                const count = vp.by_stage[stage];
+                const h = count === 0 ? 0 : Math.round((count / globalMax) * 64);
+                const tone = STAGE_TONE[stage];
+                return (
+                  <div
+                    key={stage}
+                    className="flex flex-1 flex-col items-center gap-1"
+                  >
+                    <span
+                      className={`text-[10px] font-semibold tabular-nums ${count === 0 ? "text-pae-text-tertiary" : "text-pae-text"}`}
+                    >
+                      {count}
+                    </span>
+                    {count === 0 ? (
+                      <div className="w-full" style={{ height: 1 }} aria-hidden />
+                    ) : (
+                      <div
+                        className={`w-full rounded-sm ${tone.bar}`}
+                        style={{ height: `${h}px` }}
+                      />
+                    )}
+                    <span className="text-[9px] text-pae-text-secondary">
+                      {STAGE_SHORT[stage]}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -484,22 +586,22 @@ function CrossValueStreamsCard({
 }) {
   return (
     <div className="rounded-xl bg-pae-surface p-5 shadow-sm">
-      <h3 className="text-[14px] font-semibold text-pae-text">
+      <h3 className="text-[16px] font-semibold text-pae-text">
         Corrientes de valor cruzadas
       </h3>
-      <p className="mt-1 text-[11px] text-pae-text-secondary">
+      <p className="mt-1 text-[13px] text-pae-text-secondary">
         Iniciativas que aportan a cada corriente
       </p>
       <table className="mt-4 min-w-full">
         <thead>
           <tr className="border-b border-pae-border">
-            <th className="px-3 py-2 text-left text-[9px] font-semibold uppercase tracking-[0.08em] text-pae-text-tertiary">
+            <th className="px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-[0.08em] text-pae-text-tertiary">
               Corriente
             </th>
-            <th className="px-3 py-2 text-right text-[9px] font-semibold uppercase tracking-[0.08em] text-pae-text-tertiary">
+            <th className="px-3 py-2 text-right text-[11px] font-semibold uppercase tracking-[0.08em] text-pae-text-tertiary">
               Total
             </th>
-            <th className="px-3 py-2 text-left text-[9px] font-semibold uppercase tracking-[0.08em] text-pae-text-tertiary">
+            <th className="px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-[0.08em] text-pae-text-tertiary">
               Iniciativas
             </th>
           </tr>
@@ -510,13 +612,13 @@ function CrossValueStreamsCard({
               key={row.stream_key}
               className="border-b border-pae-border/60"
             >
-              <td className="px-3 py-2.5 text-[11px] text-pae-text">
+              <td className="px-3 py-2.5 text-[13px] text-pae-text">
                 {row.label}
               </td>
-              <td className="px-3 py-2.5 text-right text-[11px] font-semibold text-pae-green">
+              <td className="px-3 py-2.5 text-right text-[13px] font-semibold text-pae-green">
                 {row.total_label}
               </td>
-              <td className="px-3 py-2.5 text-[11px] text-pae-text-secondary">
+              <td className="px-3 py-2.5 text-[13px] text-pae-text-secondary">
                 {row.contributors
                   .map((c) => `${c.initiative_name} (${c.amount_label})`)
                   .join(" · ")}
@@ -541,6 +643,9 @@ export default function DashboardPage() {
   const [iniFilter, setIniFilter] = useState<Id | "all">("all");
   const [modalOpen, setModalOpen] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
+  const [selectedEvent, setSelectedEvent] = useState<DashboardEvent | null>(
+    null,
+  );
 
   const reload = useCallback(() => setReloadKey((k) => k + 1), []);
 
@@ -563,7 +668,7 @@ export default function DashboardPage() {
   if (error) {
     return (
       <div className="rounded-xl bg-pae-surface p-6 shadow-sm">
-        <p className="text-[12px] text-pae-red">{error}</p>
+        <p className="text-[14px] text-pae-red">{error}</p>
       </div>
     );
   }
@@ -571,7 +676,7 @@ export default function DashboardPage() {
   if (!data) {
     return (
       <div className="rounded-xl bg-pae-surface p-6 shadow-sm">
-        <p className="text-[12px] text-pae-text-secondary">Cargando…</p>
+        <p className="text-[14px] text-pae-text-secondary">Cargando…</p>
       </div>
     );
   }
@@ -585,12 +690,12 @@ export default function DashboardPage() {
 
         <div className="flex flex-wrap items-center gap-3">
           {data.role_key === "at" && (
-            <label className="flex items-center gap-2 text-[12px] text-pae-text-secondary">
+            <label className="flex items-center gap-2 text-[14px] text-pae-text-secondary">
               Filtro VP:
               <select
                 value={vpFilter}
                 onChange={(e) => setVpFilter(e.target.value)}
-                className="h-8 rounded-lg border border-pae-border bg-pae-surface px-2 text-[12px] text-pae-text focus:border-pae-blue focus:outline-none"
+                className="h-8 rounded-lg border border-pae-border bg-pae-surface px-2 text-[14px] text-pae-text focus:border-pae-blue focus:outline-none"
               >
                 <option value="all">Todas</option>
                 {data.available_vps.map((vp) => (
@@ -603,12 +708,12 @@ export default function DashboardPage() {
           )}
 
           {data.role_key === "vp" && (
-            <label className="flex items-center gap-2 text-[12px] text-pae-text-secondary">
+            <label className="flex items-center gap-2 text-[14px] text-pae-text-secondary">
               Iniciativa:
               <select
                 value={iniFilter}
                 onChange={(e) => setIniFilter(e.target.value as Id | "all")}
-                className="h-8 max-w-[240px] rounded-lg border border-pae-border bg-pae-surface px-2 text-[12px] text-pae-text focus:border-pae-blue focus:outline-none"
+                className="h-8 max-w-[240px] rounded-lg border border-pae-border bg-pae-surface px-2 text-[14px] text-pae-text focus:border-pae-blue focus:outline-none"
               >
                 <option value="all">Todas</option>
                 {data.available_initiatives.map((ini) => (
@@ -623,7 +728,7 @@ export default function DashboardPage() {
           <button
             type="button"
             onClick={() => alert("Generación PPTX pendiente")}
-            className="rounded-lg border border-pae-red px-3 py-1.5 text-[12px] font-semibold text-pae-red transition hover:bg-pae-red/5"
+            className="rounded-lg border border-pae-red px-3 py-1.5 text-[14px] font-semibold text-pae-red transition hover:bg-pae-red/5"
           >
             Descargar PPTX
           </button>
@@ -637,6 +742,12 @@ export default function DashboardPage() {
         <ValueStreamsCard streams={data.value_streams} />
       </div>
 
+      {data.role_key === "at" &&
+        data.vp_breakdown &&
+        data.vp_breakdown.length > 0 && (
+          <VpSmallMultiplesCard breakdown={data.vp_breakdown} />
+        )}
+
       {data.role_key === "vp" && data.cross_value_streams && (
         <CrossValueStreamsCard data={data.cross_value_streams} />
       )}
@@ -646,6 +757,7 @@ export default function DashboardPage() {
       <UpcomingEventsCard
         events={data.events}
         onAddClick={() => setModalOpen(true)}
+        onEventClick={(evt) => setSelectedEvent(evt)}
       />
 
       <AddEventModal
@@ -653,6 +765,25 @@ export default function DashboardPage() {
         onClose={() => setModalOpen(false)}
         onCreated={reload}
         initiatives={data.available_initiatives}
+      />
+
+      <EventDetailModal
+        open={selectedEvent !== null}
+        onClose={() => setSelectedEvent(null)}
+        onChanged={reload}
+        event={
+          selectedEvent
+            ? {
+                id: selectedEvent.id,
+                name: selectedEvent.name,
+                type: selectedEvent.event_type,
+                initiative_id: selectedEvent.initiative_id,
+                initiative_name: selectedEvent.initiative_name,
+                date: selectedEvent.date,
+                is_custom: selectedEvent.is_custom,
+              }
+            : null
+        }
       />
     </div>
   );

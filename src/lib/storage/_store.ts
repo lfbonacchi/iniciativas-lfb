@@ -104,6 +104,18 @@ export function isClient(): boolean {
   );
 }
 
+function normalizeStore(raw: Partial<Store>): Store {
+  const merged = { ...emptyStore(), ...raw } as Store;
+  // Migración defensiva: eventos guardados antes de agregar attendance/status/original_date
+  merged.portfolio_events = (merged.portfolio_events ?? []).map((e) => ({
+    ...e,
+    attendance: e.attendance ?? {},
+    status: e.status ?? "scheduled",
+    original_date: e.original_date ?? null,
+  }));
+  return merged;
+}
+
 export function readStore(): Store {
   if (!isClient()) return emptyStore();
   const raw = window.localStorage.getItem(STORE_KEY);
@@ -117,7 +129,7 @@ export function readStore(): Store {
     if (typeof parsed !== "object" || parsed === null) {
       throw new Error("Store inválido");
     }
-    return { ...emptyStore(), ...(parsed as Partial<Store>) } as Store;
+    return normalizeStore(parsed as Partial<Store>);
   } catch {
     const seeded = bootstrapStore();
     writeStore(seeded);

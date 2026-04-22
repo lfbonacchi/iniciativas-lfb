@@ -73,10 +73,13 @@ export interface DashboardEvent {
   id: Id;
   name: string;
   kind: DashboardEventKind;
+  event_type: PortfolioEventType;
   initiative_id: Id;
   initiative_name: string;
   date: string;
   your_vote_pending: boolean;
+  is_custom: boolean;
+  status: "scheduled" | "cancelled";
 }
 
 export interface ValueStreamCrossRow {
@@ -91,6 +94,12 @@ export interface DashboardInitiativeOption {
   name: string;
 }
 
+export interface VpBreakdown {
+  vicepresidencia: string;
+  total: number;
+  by_stage: Record<InitiativeStage, number>;
+}
+
 export interface DashboardData {
   role_key: DashboardRoleKey;
   user: User;
@@ -103,6 +112,7 @@ export interface DashboardData {
   ranking: RankingRow[];
   events: DashboardEvent[];
   cross_value_streams?: ValueStreamCrossRow[];
+  vp_breakdown?: VpBreakdown[];
 }
 
 // ---------------------------------------------------------------------------
@@ -128,13 +138,13 @@ const FINANCIAL_OVERLAY: Record<Id, FinancialOverlay> = {
   "ini-002": {
     expected_value_usd: 3_500_000,
     expected_cost_usd: 420_000,
-    vicepresidencia: "VP Upstream",
+    vicepresidencia: "VP Operaciones",
     contribution: { opex: 3_100_000, intangible: 900_000 },
   },
   "ini-003": {
     expected_value_usd: 950_000,
     expected_cost_usd: 95_000,
-    vicepresidencia: "VP Upstream",
+    vicepresidencia: "VP Perforación",
     contribution: { opex: 850_000, hh: 6_000 },
   },
   "ini-004": {
@@ -146,25 +156,25 @@ const FINANCIAL_OVERLAY: Record<Id, FinancialOverlay> = {
   "ini-005": {
     expected_value_usd: 2_800_000,
     expected_cost_usd: 450_000,
-    vicepresidencia: "VP Upstream",
+    vicepresidencia: "VP Transformación",
     contribution: { opex: 1_400_000, intangible: 1_100_000 },
   },
   "ini-006": {
     expected_value_usd: 1_800_000,
     expected_cost_usd: 240_000,
-    vicepresidencia: "VP Downstream",
+    vicepresidencia: "VP Transformación",
     contribution: { opex: 900_000, intangible: 700_000, hh: 4_000 },
   },
   "ini-007": {
     expected_value_usd: 2_100_000,
     expected_cost_usd: 310_000,
-    vicepresidencia: "VP Downstream",
+    vicepresidencia: "VP Operaciones",
     contribution: { opex: 1_500_000, capex: 380_000 },
   },
   "ini-008": {
     expected_value_usd: 650_000,
     expected_cost_usd: 150_000,
-    vicepresidencia: "VP Upstream",
+    vicepresidencia: "VP Perforación",
     contribution: { intangible: 500_000 },
   },
 };
@@ -429,11 +439,28 @@ function mapCustomEvent(
     id: evt.id,
     name: evt.type === "otro" && evt.custom_type_label ? evt.custom_type_label : evt.name,
     kind: eventKindFromType(evt.type),
+    event_type: evt.type,
     initiative_id: ini.id,
     initiative_name: ini.name,
     date: evt.date,
     your_vote_pending: false,
+    is_custom: true,
+    status: evt.status,
   };
+}
+
+const EVENTS_ANCHOR = Date.UTC(2026, 3, 14); // 14 abril 2026
+
+function dateOffsetIso(days: number): string {
+  const d = new Date(EVENTS_ANCHOR + days * 86_400_000);
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(d.getUTCDate()).padStart(2, "0")}`;
+}
+
+function iniJitter(id: Id): number {
+  const match = id.match(/(\d+)$/);
+  const digits = match?.[1];
+  if (!digits) return 0;
+  return parseInt(digits, 10) % 7;
 }
 
 function computeEvents(
@@ -444,42 +471,169 @@ function computeEvents(
   const byId = new Map(initiatives.map((i) => [i.id, i]));
   const evts: DashboardEvent[] = [];
 
-  const anchorDates = [
-    "2026-04-14",
-    "2026-04-21",
-    "2026-04-28",
-    "2026-05-05",
-    "2026-05-12",
-  ];
-
-  // Gate events from pending gateways
+  // ---- 1) Pending gateways → Gate N (concretos)
   const pendingGateways = store.gateways.filter(
     (g) => g.status === "pending" && byId.has(g.initiative_id),
   );
-  pendingGateways.slice(0, 3).forEach((g, idx) => {
+  pendingGateways.forEach((g, idx) => {
     const ini = byId.get(g.initiative_id);
     if (!ini) return;
     evts.push({
       id: `evt_gate_${g.id}`,
       name: `Gate ${g.gateway_number}`,
       kind: "gate",
+      event_type: "gate",
+      status: "scheduled",
       initiative_id: ini.id,
       initiative_name: ini.name,
-      date: anchorDates[idx] ?? "2026-05-01",
+      date: dateOffsetIso(idx * 7),
       your_vote_pending: userVotePending.has(g.id),
+      is_custom: false,
     });
   });
 
-  // Custom events persisted by the user
-  for (const evt of store.portfolio_events) {
-    const mapped = mapCustomEvent(evt, byId);
-    if (mapped) evts.push(mapped);
+  // ---- 2) Eventos sintetizados por etapa desde los formularios
+  for (const ini of initiatives) {
+    if (ini.status !== "in_progress") continue;
+    const iniForms = store.forms.filter((f) => f.initiative_id === ini.id);
+    const hasDraft = iniForms.some((f) => f.status === "draft");
+    const hasSubmitted = iniForms.some((f) => f.status === "submitted");
+    const jitter = iniJitter(ini.id);
+
+    if (ini.current_stage === "proposal") {
+      if (hasDraft) {
+        evts.push({
+          id: `evt_sprint_prop_${ini.id}`,
+          name: "Sprint Propuesta",
+          kind: "sprint_review",
+          event_type: "sprint_review",
+          status: "scheduled",
+          initiative_id: ini.id,
+          initiative_name: ini.name,
+          date: dateOffsetIso(10 + jitter),
+          your_vote_pending: false,
+      is_custom: false,
+        });
+      }
+      if (hasDraft || hasSubmitted) {
+        evts.push({
+          id: `evt_next_gate1_${ini.id}`,
+          name: "Próximo Gate 1",
+          kind: "gate",
+          event_type: "gate",
+          status: "scheduled",
+          initiative_id: ini.id,
+          initiative_name: ini.name,
+          date: dateOffsetIso(21 + jitter),
+          your_vote_pending: false,
+      is_custom: false,
+        });
+      }
+    } else if (ini.current_stage === "dimensioning") {
+      evts.push({
+        id: `evt_sprint_dim_${ini.id}`,
+        name: "Sprint Dimensionamiento",
+        kind: "sprint_review",
+        event_type: "sprint_review",
+        status: "scheduled",
+        initiative_id: ini.id,
+        initiative_name: ini.name,
+        date: dateOffsetIso(7 + jitter),
+        your_vote_pending: false,
+      is_custom: false,
+      });
+      if (hasDraft) {
+        evts.push({
+          id: `evt_next_gate2_${ini.id}`,
+          name: "Próximo Gate 2",
+          kind: "gate",
+          event_type: "gate",
+          status: "scheduled",
+          initiative_id: ini.id,
+          initiative_name: ini.name,
+          date: dateOffsetIso(28 + jitter),
+          your_vote_pending: false,
+      is_custom: false,
+        });
+      }
+    } else if (ini.current_stage === "mvp") {
+      evts.push({
+        id: `evt_sprint_mvp_${ini.id}`,
+        name: "Sprint MVP",
+        kind: "sprint_review",
+        event_type: "sprint_review",
+        status: "scheduled",
+        initiative_id: ini.id,
+        initiative_name: ini.name,
+        date: dateOffsetIso(5 + jitter),
+        your_vote_pending: false,
+      is_custom: false,
+      });
+      if (hasDraft) {
+        evts.push({
+          id: `evt_next_gate3_${ini.id}`,
+          name: "Próximo Gate 3",
+          kind: "gate",
+          event_type: "gate",
+          status: "scheduled",
+          initiative_id: ini.id,
+          initiative_name: ini.name,
+          date: dateOffsetIso(35 + jitter),
+          your_vote_pending: false,
+      is_custom: false,
+        });
+      }
+    } else if (ini.current_stage === "ltp_tracking") {
+      evts.push({
+        id: `evt_seg_m_${ini.id}`,
+        name: "Seg. mensual",
+        kind: "seguimiento",
+        event_type: "seg_mensual",
+        status: "scheduled",
+        initiative_id: ini.id,
+        initiative_name: ini.name,
+        date: dateOffsetIso(14 + jitter),
+        your_vote_pending: false,
+      is_custom: false,
+      });
+      const hasF4 = iniForms.some((f) => f.form_type === "F4");
+      const hasF5 = iniForms.some((f) => f.form_type === "F5");
+      if (hasF4 || hasF5) {
+        evts.push({
+          id: `evt_ltp_review_${ini.id}`,
+          name: hasF5 ? "Review F5 · Planificación" : "Review F4 · Visión Anual",
+          kind: "ltp_plan",
+          event_type: "ltp_plan",
+          status: "scheduled",
+          initiative_id: ini.id,
+          initiative_name: ini.name,
+          date: dateOffsetIso(42 + jitter),
+          your_vote_pending: false,
+      is_custom: false,
+        });
+      }
+    }
   }
 
-  // Sort by date ascending
-  evts.sort((a, b) => a.date.localeCompare(b.date));
+  // ---- 3) Eventos custom creados por el usuario (incluye materializados
+  //      de sintetizados). Custom gana ante duplicados de id.
+  const customMapped: DashboardEvent[] = [];
+  for (const evt of store.portfolio_events) {
+    const mapped = mapCustomEvent(evt, byId);
+    if (mapped) customMapped.push(mapped);
+  }
+  const customIds = new Set(customMapped.map((e) => e.id));
 
-  return evts.slice(0, 10);
+  // Orden + dedup: custom primero (gana), luego sintetizados no duplicados.
+  const all: DashboardEvent[] = [
+    ...customMapped,
+    ...evts.filter((e) => !customIds.has(e.id)),
+  ];
+  // Filtrar cancelados del timeline (siguen en store para historial).
+  const visible = all.filter((e) => e.status !== "cancelled");
+  visible.sort((a, b) => a.date.localeCompare(b.date));
+
+  return visible.slice(0, 12);
 }
 
 // ---------------------------------------------------------------------------
@@ -544,7 +698,32 @@ export function getDashboardData(
     data.cross_value_streams = computeCrossStreams(filtered);
   }
 
+  if (roleKey === "at") {
+    data.vp_breakdown = computeVpBreakdown(filtered);
+  }
+
   return ok(data);
+}
+
+function computeVpBreakdown(initiatives: Initiative[]): VpBreakdown[] {
+  const map = new Map<string, VpBreakdown>();
+  for (const ini of initiatives) {
+    const vp = getOverlay(ini.id).vicepresidencia;
+    let entry = map.get(vp);
+    if (!entry) {
+      entry = {
+        vicepresidencia: vp,
+        total: 0,
+        by_stage: { proposal: 0, dimensioning: 0, mvp: 0, ltp_tracking: 0 },
+      };
+      map.set(vp, entry);
+    }
+    entry.total += 1;
+    entry.by_stage[ini.current_stage] += 1;
+  }
+  return Array.from(map.values()).sort((a, b) =>
+    a.vicepresidencia.localeCompare(b.vicepresidencia),
+  );
 }
 
 export function roleDisplayName(roleKey: DashboardRoleKey): string {

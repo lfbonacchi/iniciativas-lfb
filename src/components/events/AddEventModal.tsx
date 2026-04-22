@@ -136,7 +136,7 @@ export function AddEventModal({
         <div className="mb-5 flex items-center justify-between">
           <h2
             id="add-event-title"
-            className="text-[14px] font-semibold text-pae-text"
+            className="text-[16px] font-semibold text-pae-text"
           >
             Agregar evento
           </h2>
@@ -144,7 +144,7 @@ export function AddEventModal({
             type="button"
             onClick={onClose}
             aria-label="Cerrar"
-            className="rounded-md p-1 text-[14px] text-pae-text-tertiary hover:bg-pae-bg hover:text-pae-text"
+            className="rounded-md p-1 text-[16px] text-pae-text-tertiary hover:bg-pae-bg hover:text-pae-text"
           >
             ✕
           </button>
@@ -152,7 +152,7 @@ export function AddEventModal({
 
         <div className="space-y-4">
           <label className="block">
-            <span className="block text-[11px] font-medium text-pae-text-secondary">
+            <span className="block text-[13px] font-medium text-pae-text-secondary">
               Nombre del evento
             </span>
             <input
@@ -161,12 +161,12 @@ export function AddEventModal({
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Ej: Gate 1 · Optimización de pozo"
-              className="mt-1.5 block h-9 w-full rounded-lg border border-pae-border bg-pae-bg px-3 text-[12px] text-pae-text placeholder:text-pae-text-tertiary focus:border-pae-blue focus:outline-none"
+              className="mt-1.5 block h-9 w-full rounded-lg border border-pae-border bg-pae-bg px-3 text-[14px] text-pae-text placeholder:text-pae-text-tertiary focus:border-pae-blue focus:outline-none"
             />
           </label>
 
           <label className="block">
-            <span className="block text-[11px] font-medium text-pae-text-secondary">
+            <span className="block text-[13px] font-medium text-pae-text-secondary">
               Tipo
             </span>
             <select
@@ -174,7 +174,7 @@ export function AddEventModal({
               onChange={(e) =>
                 setType(e.target.value as PortfolioEventType)
               }
-              className="mt-1.5 block h-9 w-full rounded-lg border border-pae-border bg-pae-bg px-3 text-[12px] text-pae-text focus:border-pae-blue focus:outline-none"
+              className="mt-1.5 block h-9 w-full rounded-lg border border-pae-border bg-pae-bg px-3 text-[14px] text-pae-text focus:border-pae-blue focus:outline-none"
             >
               {TYPE_OPTIONS.map((opt) => (
                 <option key={opt.value} value={opt.value}>
@@ -186,7 +186,7 @@ export function AddEventModal({
 
           {type === "otro" && (
             <label className="block">
-              <span className="block text-[11px] font-medium text-pae-text-secondary">
+              <span className="block text-[13px] font-medium text-pae-text-secondary">
                 Describí el tipo
               </span>
               <input
@@ -195,21 +195,21 @@ export function AddEventModal({
                 value={customTypeLabel}
                 onChange={(e) => setCustomTypeLabel(e.target.value)}
                 placeholder="Ej: Workshop con proveedor"
-                className="mt-1.5 block h-9 w-full rounded-lg border border-pae-border bg-pae-bg px-3 text-[12px] text-pae-text placeholder:text-pae-text-tertiary focus:border-pae-blue focus:outline-none"
+                className="mt-1.5 block h-9 w-full rounded-lg border border-pae-border bg-pae-bg px-3 text-[14px] text-pae-text placeholder:text-pae-text-tertiary focus:border-pae-blue focus:outline-none"
               />
             </label>
           )}
 
           {!lockInitiative && (
             <label className="block">
-              <span className="block text-[11px] font-medium text-pae-text-secondary">
+              <span className="block text-[13px] font-medium text-pae-text-secondary">
                 Iniciativa
               </span>
               <select
                 required
                 value={initiativeId}
                 onChange={(e) => setInitiativeId(e.target.value as Id)}
-                className="mt-1.5 block h-9 w-full rounded-lg border border-pae-border bg-pae-bg px-3 text-[12px] text-pae-text focus:border-pae-blue focus:outline-none"
+                className="mt-1.5 block h-9 w-full rounded-lg border border-pae-border bg-pae-bg px-3 text-[14px] text-pae-text focus:border-pae-blue focus:outline-none"
               >
                 <option value="">— Seleccioná una iniciativa —</option>
                 {initiatives.map((ini) => (
@@ -222,7 +222,7 @@ export function AddEventModal({
           )}
 
           <label className="block">
-            <span className="block text-[11px] font-medium text-pae-text-secondary">
+            <span className="block text-[13px] font-medium text-pae-text-secondary">
               Fecha
             </span>
             <input
@@ -230,17 +230,17 @@ export function AddEventModal({
               required
               value={date}
               onChange={(e) => setDate(e.target.value)}
-              className="mt-1.5 block h-9 w-full rounded-lg border border-pae-border bg-pae-bg px-3 text-[12px] text-pae-text focus:border-pae-blue focus:outline-none"
+              className="mt-1.5 block h-9 w-full rounded-lg border border-pae-border bg-pae-bg px-3 text-[14px] text-pae-text focus:border-pae-blue focus:outline-none"
             />
           </label>
 
           <div>
-            <span className="block text-[11px] font-medium text-pae-text-secondary">
+            <span className="block text-[13px] font-medium text-pae-text-secondary">
               Invitados ({invitedUserIds.length} seleccionados)
             </span>
             <div className="mt-1.5 max-h-40 overflow-y-auto rounded-lg border border-pae-border bg-pae-bg p-2">
               {sortedUsers.length === 0 ? (
-                <p className="px-2 py-1 text-[11px] text-pae-text-tertiary">
+                <p className="px-2 py-1 text-[13px] text-pae-text-tertiary">
                   No hay usuarios disponibles.
                 </p>
               ) : (
@@ -249,7 +249,7 @@ export function AddEventModal({
                     const checked = invitedUserIds.includes(u.id);
                     return (
                       <li key={u.id}>
-                        <label className="flex cursor-pointer items-center gap-2 rounded px-2 py-1 text-[11px] hover:bg-pae-surface">
+                        <label className="flex cursor-pointer items-center gap-2 rounded px-2 py-1 text-[13px] hover:bg-pae-surface">
                           <input
                             type="checkbox"
                             checked={checked}
@@ -273,7 +273,7 @@ export function AddEventModal({
         </div>
 
         {error && (
-          <p className="mt-4 rounded-lg bg-pae-red/10 px-3 py-2 text-[11px] text-pae-red">
+          <p className="mt-4 rounded-lg bg-pae-red/10 px-3 py-2 text-[13px] text-pae-red">
             {error}
           </p>
         )}
@@ -282,20 +282,20 @@ export function AddEventModal({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-lg border border-pae-border bg-pae-surface px-3 py-2 text-[12px] font-medium text-pae-text-secondary hover:bg-pae-bg"
+            className="rounded-lg border border-pae-border bg-pae-surface px-3 py-2 text-[14px] font-medium text-pae-text-secondary hover:bg-pae-bg"
           >
             Cancelar
           </button>
           <button
             type="submit"
             disabled={submitting}
-            className="rounded-lg bg-pae-blue px-4 py-2 text-[12px] font-semibold text-white transition hover:bg-pae-blue/90 disabled:bg-pae-blue/50"
+            className="rounded-lg bg-pae-blue px-4 py-2 text-[14px] font-semibold text-white transition hover:bg-pae-blue/90 disabled:bg-pae-blue/50"
           >
             {submitting ? "Guardando…" : "Guardar"}
           </button>
         </div>
 
-        <p className="mt-3 text-[9px] text-pae-text-tertiary">
+        <p className="mt-3 text-[11px] text-pae-text-tertiary">
           Se agrega a la lista de próximos eventos del dashboard y al tab
           Eventos de la iniciativa.
         </p>

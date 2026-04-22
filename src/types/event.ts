@@ -9,6 +9,10 @@ export type PortfolioEventType =
   | "entrega"
   | "otro";
 
+export type AttendanceStatus = "yes" | "no";
+
+export type EventStatus = "scheduled" | "cancelled";
+
 export interface PortfolioEvent {
   id: Id;
   name: string;
@@ -16,7 +20,10 @@ export interface PortfolioEvent {
   custom_type_label: string | null;
   initiative_id: Id;
   date: IsoDateString;
+  original_date: IsoDateString | null;
+  status: EventStatus;
   invited_user_ids: Id[];
+  attendance: Record<Id, AttendanceStatus>;
   created_by: Id;
   created_at: IsoDateString;
 }

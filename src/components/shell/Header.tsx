@@ -2,12 +2,76 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useEffect, useState } from "react";
 
 import type { User } from "@/types";
 
 interface HeaderProps {
   user: User | null;
   notificationCount?: number;
+}
+
+const ZOOM_STORAGE_KEY = "pae-ui-zoom";
+const ZOOM_MIN = 0.85;
+const ZOOM_MAX = 1.4;
+
+function applyZoom(value: number) {
+  if (typeof document === "undefined") return;
+  document.body.style.setProperty("zoom", String(value));
+}
+
+function FontSizeSlider() {
+  const [zoom, setZoom] = useState<number>(1);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    const raw =
+      typeof window !== "undefined"
+        ? window.localStorage.getItem(ZOOM_STORAGE_KEY)
+        : null;
+    const parsed = raw ? parseFloat(raw) : NaN;
+    const initial =
+      Number.isFinite(parsed) && parsed >= ZOOM_MIN && parsed <= ZOOM_MAX
+        ? parsed
+        : 1;
+    setZoom(initial);
+    applyZoom(initial);
+    setMounted(true);
+  }, []);
+
+  function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const v = parseFloat(e.target.value);
+    setZoom(v);
+    applyZoom(v);
+    window.localStorage.setItem(ZOOM_STORAGE_KEY, String(v));
+  }
+
+  if (!mounted) return null;
+
+  return (
+    <div
+      className="hidden items-center gap-2 rounded-lg bg-pae-bg px-3 py-1.5 md:flex"
+      title="Tamaño de letra"
+    >
+      <span className="text-[12px] font-semibold text-pae-text-secondary">
+        A
+      </span>
+      <input
+        type="range"
+        min={ZOOM_MIN}
+        max={ZOOM_MAX}
+        step={0.05}
+        value={zoom}
+        onChange={handleChange}
+        aria-label="Ajustar tamaño de letra"
+        className="h-1 w-24 cursor-pointer appearance-none rounded-full bg-pae-border accent-pae-blue"
+      />
+      <span className="text-[16px] font-semibold text-pae-text">A</span>
+      <span className="ml-1 min-w-[36px] text-right text-[11px] font-medium tabular-nums text-pae-text-tertiary">
+        {Math.round(zoom * 100)}%
+      </span>
+    </div>
+  );
 }
 
 function initials(name: string): string {
@@ -29,7 +93,7 @@ export function Header({ user, notificationCount = 0 }: HeaderProps) {
   const accent = user ? avatarAccent(user) : null;
 
   return (
-    <header className="fixed left-0 right-0 top-0 z-50 flex h-12 items-center justify-between border-b border-pae-border bg-pae-surface px-4 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+    <header className="fixed left-0 right-0 top-0 z-50 flex h-14 items-center justify-between border-b border-pae-border bg-pae-surface px-4 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
       <Link href="/dashboard" className="flex items-center gap-3">
         <Image
           src="/logo-pae.svg"
@@ -39,14 +103,14 @@ export function Header({ user, notificationCount = 0 }: HeaderProps) {
           priority
           className="h-8 w-auto"
         />
-        <span className="hidden text-[10px] font-medium text-pae-text-secondary sm:inline">
+        <span className="hidden text-[14px] font-medium text-pae-text-secondary sm:inline">
           Gestión de Portfolio
         </span>
       </Link>
 
       <nav
         aria-label="Pipeline"
-        className="hidden items-center gap-2 text-[12px] text-pae-text-tertiary md:flex"
+        className="hidden items-center gap-2 text-[16px] text-pae-text-tertiary md:flex"
       >
         <span>Propuesta</span>
         <span aria-hidden>›</span>
@@ -58,16 +122,18 @@ export function Header({ user, notificationCount = 0 }: HeaderProps) {
       </nav>
 
       <div className="flex items-center gap-3">
+        <FontSizeSlider />
+
         <button
           type="button"
           aria-label="Notificaciones"
           className="relative grid h-8 w-8 place-items-center rounded-full border border-pae-border text-pae-text-secondary transition hover:bg-pae-bg"
         >
-          <span className="text-[14px]" aria-hidden>
+          <span className="text-[18px]" aria-hidden>
             🔔
           </span>
           {notificationCount > 0 && (
-            <span className="absolute -right-1 -top-1 grid h-4 min-w-4 place-items-center rounded-full bg-pae-red px-1 text-[9px] font-semibold text-white">
+            <span className="absolute -right-1 -top-1 grid h-4 min-w-4 place-items-center rounded-full bg-pae-red px-1 text-[13px] font-semibold text-white">
               {notificationCount}
             </span>
           )}
@@ -75,7 +141,7 @@ export function Header({ user, notificationCount = 0 }: HeaderProps) {
 
         {user && accent && (
           <div
-            className={`grid h-8 w-8 place-items-center rounded-full text-[11px] font-semibold ${accent.bg} ${accent.fg}`}
+            className={`grid h-8 w-8 place-items-center rounded-full text-[15px] font-semibold ${accent.bg} ${accent.fg}`}
             title={user.display_name}
             aria-label={user.display_name}
           >

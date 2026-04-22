@@ -15,7 +15,12 @@ export type AuditAction =
   | "gateway_resolved"
   | "document_uploaded"
   | "document_generated"
-  | "file_uploaded";
+  | "file_uploaded"
+  | "event_created"
+  | "event_attendance_set"
+  | "event_rescheduled"
+  | "event_cancelled"
+  | "event_materialized";
 
 export type AuditEntityType =
   | "initiative"
@@ -25,7 +30,8 @@ export type AuditEntityType =
   | "gateway"
   | "gateway_vote"
   | "document"
-  | "file_upload";
+  | "file_upload"
+  | "portfolio_event";
 
 export interface AuditLog {
   id: Id;

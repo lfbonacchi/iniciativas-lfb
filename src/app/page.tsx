@@ -24,7 +24,7 @@ export default function MockSsoPage() {
             <h1 className="text-center text-[18px] font-semibold text-pae-text">
               Iniciar sesión
             </h1>
-            <p className="mt-1 text-center text-[12px] text-pae-text-secondary">
+            <p className="mt-1 text-center text-[14px] text-pae-text-secondary">
               Pan American Energy — Cuenta corporativa
             </p>
 
@@ -35,7 +35,7 @@ export default function MockSsoPage() {
               <div>
                 <label
                   htmlFor="email"
-                  className="block text-[11px] font-medium text-pae-text-secondary"
+                  className="block text-[13px] font-medium text-pae-text-secondary"
                 >
                   Correo electrónico
                 </label>
@@ -46,14 +46,14 @@ export default function MockSsoPage() {
                   placeholder="nombre@pae.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="mt-2 block h-10 w-full rounded-lg border border-pae-border bg-pae-bg px-3 text-[12px] text-pae-text placeholder:text-pae-text-tertiary focus:border-pae-blue focus:outline-none"
+                  className="mt-2 block h-10 w-full rounded-lg border border-pae-border bg-pae-bg px-3 text-[14px] text-pae-text placeholder:text-pae-text-tertiary focus:border-pae-blue focus:outline-none"
                 />
               </div>
 
               <div>
                 <label
                   htmlFor="password"
-                  className="block text-[11px] font-medium text-pae-text-secondary"
+                  className="block text-[13px] font-medium text-pae-text-secondary"
                 >
                   Contraseña
                 </label>
@@ -64,19 +64,19 @@ export default function MockSsoPage() {
                   placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="mt-2 block h-10 w-full rounded-lg border border-pae-border bg-pae-bg px-3 text-[12px] text-pae-text placeholder:text-pae-text-tertiary focus:border-pae-blue focus:outline-none"
+                  className="mt-2 block h-10 w-full rounded-lg border border-pae-border bg-pae-bg px-3 text-[14px] text-pae-text placeholder:text-pae-text-tertiary focus:border-pae-blue focus:outline-none"
                 />
               </div>
 
               <button
                 type="submit"
                 disabled
-                className="block w-full cursor-not-allowed rounded-lg bg-pae-blue/70 py-3 text-[13px] font-semibold text-white"
+                className="block w-full cursor-not-allowed rounded-lg bg-pae-blue/70 py-3 text-[15px] font-semibold text-white"
               >
                 Ingresar con cuenta Microsoft
               </button>
 
-              <p className="text-center text-[11px] font-medium text-pae-blue">
+              <p className="text-center text-[13px] font-medium text-pae-blue">
                 ¿Olvidaste tu contraseña?
               </p>
             </form>
@@ -84,10 +84,10 @@ export default function MockSsoPage() {
         </div>
 
         <div className="mt-6 rounded-xl border-2 border-dashed border-pae-border bg-pae-surface/60 px-5 py-4">
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-pae-text-tertiary">
+          <p className="text-[13px] font-semibold uppercase tracking-wide text-pae-text-tertiary">
             Post-MVP
           </p>
-          <p className="mt-1 text-[12px] leading-relaxed text-pae-text-secondary">
+          <p className="mt-1 text-[14px] leading-relaxed text-pae-text-secondary">
             Este login se conecta automáticamente con Microsoft Entra ID. El
             rol del usuario se asigna según su perfil corporativo de PAE.
           </p>
@@ -96,7 +96,7 @@ export default function MockSsoPage() {
         <div className="mt-6 flex justify-end">
           <Link
             href="/seleccionar-usuario"
-            className="inline-flex items-center gap-2 rounded-lg bg-pae-blue px-5 py-3 text-[13px] font-semibold text-white shadow-sm transition hover:bg-pae-blue/90"
+            className="inline-flex items-center gap-2 rounded-lg bg-pae-blue px-5 py-3 text-[15px] font-semibold text-white shadow-sm transition hover:bg-pae-blue/90"
           >
             Ir a MVP
             <span aria-hidden>→</span>

@@ -32,7 +32,7 @@ export function AppShell({ children, notificationCount }: AppShellProps) {
     <div className="min-h-screen bg-pae-bg">
       <Header user={user} notificationCount={notificationCount} />
       <Sidebar user={user} pendingApprovals={pendingApprovals} />
-      <main className="pt-12 md:pl-[200px]">
+      <main className="pt-14 md:pl-[220px]">
         <div className="px-6 py-6">{children}</div>
       </main>
     </div>
