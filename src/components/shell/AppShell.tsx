@@ -20,6 +20,7 @@ interface AppShellProps {
 export function AppShell({ children, notificationCount }: AppShellProps) {
   const [user, setUser] = useState<User | null>(null);
   const [pendingActions, setPendingActions] = useState<number>(0);
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
   useEffect(() => {
     const result = getCurrentUser();
@@ -35,10 +36,19 @@ export function AppShell({ children, notificationCount }: AppShellProps) {
     <PipelineProvider>
       <UploadDocumentProvider>
         <div className="min-h-screen bg-pae-bg">
-          <Header user={user} notificationCount={notificationCount} />
-          <Sidebar user={user} pendingActions={pendingActions} />
+          <Header
+            user={user}
+            notificationCount={notificationCount}
+            onOpenSidebar={() => setMobileSidebarOpen(true)}
+          />
+          <Sidebar
+            user={user}
+            pendingActions={pendingActions}
+            mobileOpen={mobileSidebarOpen}
+            onCloseMobile={() => setMobileSidebarOpen(false)}
+          />
           <main className="pt-14 md:pl-[220px]">
-            <div className="px-6 py-6">{children}</div>
+            <div className="px-4 py-4 md:px-6 md:py-6">{children}</div>
           </main>
         </div>
         <UploadDocumentModal />

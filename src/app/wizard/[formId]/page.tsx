@@ -457,7 +457,7 @@ export default function WizardPage({
         )}
       </header>
 
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1 flex-col overflow-hidden md:flex-row">
         <WizardStepper
           formName={FORM_LABEL[formType]}
           percent={completeness.percent}
@@ -470,7 +470,7 @@ export default function WizardPage({
         />
 
         <main className="flex flex-1 flex-col overflow-y-auto">
-          <div className="mx-auto w-full max-w-4xl px-8 py-8">
+          <div className="mx-auto w-full max-w-4xl px-4 py-4 md:px-8 md:py-8">
             {carriedOverKeys.size > 0 && carryOverSourceType && (
               <div className="mb-4 rounded-lg border border-pae-amber/40 bg-pae-amber/10 px-4 py-3 text-[12px] text-pae-text">
                 <span className="mr-1">⚠</span>

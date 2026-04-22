@@ -527,14 +527,14 @@ function DecisionPanel({
         </div>
       )}
 
-      <div className="mt-4 flex flex-wrap gap-2">
+      <div className="mt-4 flex flex-col gap-2 md:flex-row md:flex-wrap">
         {DECISIONS.map((b) => (
           <button
             key={b.vote}
             type="button"
             disabled={!canVote || hasPendingDecision}
             onClick={() => onVote(b.vote)}
-            className={`inline-flex h-9 items-center rounded-md px-4 text-[11px] font-semibold text-white transition disabled:cursor-not-allowed disabled:opacity-40 ${b.className}`}
+            className={`inline-flex h-9 items-center justify-center rounded-md px-4 text-[11px] font-semibold text-white transition disabled:cursor-not-allowed disabled:opacity-40 md:justify-start ${b.className}`}
             title={b.description}
           >
             {b.label}

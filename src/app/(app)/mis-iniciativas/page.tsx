@@ -307,7 +307,7 @@ export default function MisIniciativasPage() {
           )}
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           {visibleCards.map((ini) => (
             <InitiativeCard key={ini.id} ini={ini} />
           ))}
@@ -366,7 +366,7 @@ function InitiativeCard({ ini }: { ini: IniciativaCard }) {
           </p>
         )}
 
-        <div className="mt-4 grid grid-cols-3 gap-3">
+        <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
           <Metric label="Valor esp." value={fmtUsd(ini.expected_value_usd)} />
           <Metric label="Gasto esp." value={fmtUsd(ini.expected_cost_usd)} />
           {ini.third_metric ? (

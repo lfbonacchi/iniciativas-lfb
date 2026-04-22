@@ -66,7 +66,7 @@ export function WizardBottomBar({
   }
 
   return (
-    <div className="sticky bottom-0 z-10 border-t border-pae-border bg-pae-surface/95 px-6 py-3 backdrop-blur">
+    <div className="sticky bottom-0 z-10 border-t border-pae-border bg-pae-surface/95 px-3 py-2 backdrop-blur md:px-6 md:py-3">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div
           className={`rounded-full px-3 py-1 text-[11px] font-medium ${indicator.className}`}

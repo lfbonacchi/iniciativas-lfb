@@ -197,8 +197,11 @@ export function DetailHeader({ detail }: { detail: InitiativeDetail }) {
         />
       )}
 
-      <nav className="border-b border-pae-border" aria-label="Tabs">
-        <ul className="-mb-px flex flex-wrap gap-5">
+      <nav
+        className="overflow-x-auto border-b border-pae-border"
+        aria-label="Tabs"
+      >
+        <ul className="-mb-px flex flex-nowrap gap-5 md:flex-wrap">
           {TABS.map((t) => {
             const href = t.segment ? `${base}/${t.segment}` : base;
             const active =
@@ -210,7 +213,7 @@ export function DetailHeader({ detail }: { detail: InitiativeDetail }) {
 
             if (locked) {
               return (
-                <li key={t.key}>
+                <li key={t.key} className="shrink-0 whitespace-nowrap">
                   <span
                     className="inline-flex cursor-not-allowed items-center gap-1.5 border-b-[3px] border-transparent py-2 text-[13px] text-pae-text-tertiary"
                     title="Se desbloquea en etapa Delivery (F3 aprobado o F4 existe)"
@@ -223,7 +226,7 @@ export function DetailHeader({ detail }: { detail: InitiativeDetail }) {
             }
 
             return (
-              <li key={t.key}>
+              <li key={t.key} className="shrink-0 whitespace-nowrap">
                 <Link
                   href={href}
                   className={`inline-block border-b-[3px] py-2 text-[13px] transition ${

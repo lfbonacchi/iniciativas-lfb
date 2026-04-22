@@ -11,6 +11,8 @@ import { useUploadDocument } from "./UploadDocumentContext";
 interface SidebarProps {
   user: User | null;
   pendingActions?: number;
+  mobileOpen?: boolean;
+  onCloseMobile?: () => void;
 }
 
 const STATUS_CHIPS = [
@@ -38,7 +40,12 @@ function canCreateInitiative(user: User | null): boolean {
   return user.global_role === "area_transformacion" || !user.is_vp;
 }
 
-export function Sidebar({ user, pendingActions = 0 }: SidebarProps) {
+export function Sidebar({
+  user,
+  pendingActions = 0,
+  mobileOpen = false,
+  onCloseMobile,
+}: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const { openUpload } = useUploadDocument();
@@ -70,15 +77,39 @@ export function Sidebar({ user, pendingActions = 0 }: SidebarProps) {
     }
   }
 
+  const handleNavClick = () => {
+    if (onCloseMobile) onCloseMobile();
+  };
+
   return (
     <>
-      <aside className="fixed left-0 top-14 hidden h-[calc(100vh-56px)] w-[220px] flex-col border-r border-pae-border bg-pae-surface px-3 py-6 md:flex">
+      {mobileOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/50 md:hidden"
+          onClick={onCloseMobile}
+          aria-hidden
+        />
+      )}
+      <aside
+        className={`fixed left-0 top-14 z-50 h-[calc(100vh-56px)] w-[240px] flex-col border-r border-pae-border bg-pae-surface px-3 py-6 transition-transform duration-200 md:top-14 md:z-30 md:flex md:w-[220px] md:translate-x-0 ${
+          mobileOpen ? "flex translate-x-0" : "flex -translate-x-full"
+        }`}
+      >
+        <button
+          type="button"
+          onClick={onCloseMobile}
+          aria-label="Cerrar menú"
+          className="absolute right-3 top-3 grid h-8 w-8 place-items-center rounded-lg text-pae-text-secondary hover:bg-pae-bg md:hidden"
+        >
+          <span aria-hidden className="text-[18px]">✕</span>
+        </button>
         <div className="mb-8">
           <p className={SECTION_LABEL}>Acciones</p>
           <div className="space-y-3">
             {canCreateInitiative(user) && (
               <Link
                 href="/nueva-propuesta"
+                onClick={handleNavClick}
                 className="flex h-10 w-full items-center justify-center rounded-lg border border-pae-blue/30 bg-pae-blue/10 text-[14px] font-medium text-pae-blue transition hover:bg-pae-blue/20"
               >
                 + Nueva propuesta
@@ -86,7 +117,10 @@ export function Sidebar({ user, pendingActions = 0 }: SidebarProps) {
             )}
             <button
               type="button"
-              onClick={() => openUpload()}
+              onClick={() => {
+                openUpload();
+                handleNavClick();
+              }}
               className="flex h-10 w-full items-center justify-center rounded-lg border border-pae-green/30 bg-pae-green/10 text-[14px] font-medium text-pae-green transition hover:bg-pae-green/20"
             >
               Subir documento
@@ -95,6 +129,7 @@ export function Sidebar({ user, pendingActions = 0 }: SidebarProps) {
                 el badge rojo muestra el número; si no, solo el texto. */}
             <Link
               href="/aprobaciones"
+              onClick={handleNavClick}
               className={`flex h-10 w-full items-center justify-between rounded-lg border px-3 text-[14px] font-medium transition ${
                 pendingActions > 0
                   ? "border-pae-red/30 bg-pae-red/10 text-pae-red hover:bg-pae-red/20"
@@ -126,6 +161,7 @@ export function Sidebar({ user, pendingActions = 0 }: SidebarProps) {
                   )}
                   <Link
                     href={item.href}
+                    onClick={handleNavClick}
                     className={`block rounded-md px-3 py-2.5 text-[15px] transition ${
                       active
                         ? "bg-pae-blue/[0.06] font-semibold text-pae-blue"

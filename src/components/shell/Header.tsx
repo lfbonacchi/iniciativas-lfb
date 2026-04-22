@@ -18,6 +18,7 @@ import { usePipeline } from "./PipelineContext";
 interface HeaderProps {
   user: User | null;
   notificationCount?: number;
+  onOpenSidebar?: () => void;
 }
 
 const PIPELINE_STAGES: {
@@ -122,7 +123,7 @@ function avatarAccent(user: User): { bg: string; fg: string } {
   return { bg: "bg-pae-blue/10", fg: "text-pae-blue" };
 }
 
-export function Header({ user, notificationCount }: HeaderProps) {
+export function Header({ user, notificationCount, onOpenSidebar }: HeaderProps) {
   const accent = user ? avatarAccent(user) : null;
   const { activeStage } = usePipeline();
   const [open, setOpen] = useState(false);
@@ -161,20 +162,32 @@ export function Header({ user, notificationCount }: HeaderProps) {
   const badgeCount = notificationCount ?? pendingActions.length;
 
   return (
-    <header className="fixed left-0 right-0 top-0 z-50 flex h-14 items-center justify-between border-b border-pae-border bg-pae-surface px-4 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
-      <Link href="/dashboard" className="flex items-center gap-3">
-        <Image
-          src="/logo-pae.svg"
-          alt="Pan American Energy"
-          width={88}
-          height={35}
-          priority
-          className="h-8 w-auto"
-        />
-        <span className="hidden text-[14px] font-medium text-pae-text-secondary sm:inline">
-          Gestión de Portfolio
-        </span>
-      </Link>
+    <header className="fixed left-0 right-0 top-0 z-50 flex h-14 items-center justify-between border-b border-pae-border bg-pae-surface px-3 shadow-[0_1px_3px_rgba(0,0,0,0.04)] md:px-4">
+      <div className="flex items-center gap-2">
+        {onOpenSidebar && (
+          <button
+            type="button"
+            aria-label="Abrir menú"
+            onClick={onOpenSidebar}
+            className="grid h-9 w-9 place-items-center rounded-lg text-pae-text-secondary transition hover:bg-pae-bg md:hidden"
+          >
+            <span aria-hidden className="text-[20px]">☰</span>
+          </button>
+        )}
+        <Link href="/dashboard" className="flex items-center gap-3">
+          <Image
+            src="/logo-pae.svg"
+            alt="Pan American Energy"
+            width={88}
+            height={35}
+            priority
+            className="h-7 w-auto md:h-8"
+          />
+          <span className="hidden text-[14px] font-medium text-pae-text-secondary md:inline">
+            Gestión de Portfolio
+          </span>
+        </Link>
+      </div>
 
       <nav
         aria-label="Pipeline"

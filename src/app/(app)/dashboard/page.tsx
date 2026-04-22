@@ -129,7 +129,7 @@ function KpiCards({ data }: { data: DashboardData }) {
   ];
 
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+    <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
       {cards.map((c) => (
         <div
           key={c.label}
@@ -460,12 +460,12 @@ function UpcomingEventsCard({
           No hay eventos próximos.
         </p>
       ) : (
-        <div className="relative mt-8">
+        <div className="relative mt-8 overflow-x-auto md:overflow-x-visible">
           <div
             className="absolute left-4 right-4 top-[6px] h-[1px] bg-pae-border"
             aria-hidden
           />
-          <div className="grid grid-cols-2 gap-x-4 gap-y-6 sm:grid-cols-3 lg:grid-cols-5">
+          <div className="grid min-w-[560px] grid-cols-5 gap-x-4 gap-y-6 md:min-w-0 md:grid-cols-5">
             {events.map((evt) => (
               <button
                 key={evt.id}
@@ -801,7 +801,7 @@ export default function DashboardPage() {
 
       <KpiCards data={data} />
 
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
         <StageDistributionCard dist={data.stage_distribution} />
         <ValueStreamsCard streams={data.value_streams} />
       </div>
