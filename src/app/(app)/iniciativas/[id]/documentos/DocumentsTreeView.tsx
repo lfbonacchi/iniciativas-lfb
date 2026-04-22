@@ -79,6 +79,41 @@ function FileRow({
     file.source.kind === "gateway_feedback" ||
     file.source.kind === "gateway_minuta";
 
+  const isManual = file.source.kind === "manual";
+
+  function handleOpenManual() {
+    if (file.source.kind !== "manual") return;
+    setError(null);
+    const res = getDocumentUrl(file.source.document_id);
+    if (!res.success) {
+      setError(res.error.message);
+      return;
+    }
+    if (!res.data.url.startsWith("data:")) {
+      setError(
+        "Este archivo se subió antes de habilitar la apertura. Volvé a subirlo.",
+      );
+      return;
+    }
+    // Word/Excel no se previsualizan inline en el browser; forzamos descarga
+    // con el nombre original para que el usuario lo abra con su app nativa.
+    fetch(res.data.url)
+      .then((r) => r.blob())
+      .then((blob) => {
+        const objectUrl = URL.createObjectURL(blob);
+        const win = window.open(objectUrl, "_blank", "noopener,noreferrer");
+        // Si el browser bloquea la nueva pestaña o no puede previsualizar
+        // (caso típico de .docx/.xlsx), caemos a descargar.
+        if (!win) {
+          downloadBlob(blob, file.name);
+        }
+        setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000);
+      })
+      .catch((e) => {
+        setError(e instanceof Error ? e.message : "Error al abrir el archivo");
+      });
+  }
+
   async function handleDownload() {
     if (downloading) return;
     setError(null);
@@ -165,6 +200,15 @@ function FileRow({
           className="rounded-md border border-pae-border bg-pae-surface px-2 py-1 text-[10px] font-medium text-pae-text-secondary transition hover:border-pae-blue/40 hover:text-pae-blue"
         >
           👁 Ver
+        </button>
+      )}
+      {isManual && (
+        <button
+          type="button"
+          onClick={handleOpenManual}
+          className="rounded-md border border-pae-border bg-pae-surface px-2 py-1 text-[10px] font-medium text-pae-text-secondary transition hover:border-pae-blue/40 hover:text-pae-blue"
+        >
+          👁 Abrir
         </button>
       )}
       <button

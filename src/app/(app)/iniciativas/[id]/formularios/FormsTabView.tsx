@@ -1,9 +1,9 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
-import type { FormType } from "@/types";
+import type { FormType, InitiativeStage } from "@/types";
 import {
   getFormsTabData,
   type FormFolderCard,
@@ -11,8 +11,47 @@ import {
   type FormsTabData,
   type SectionStatus,
 } from "@/lib/storage/forms_tab";
+import { uploadDocument } from "@/lib/storage/documents";
 
 import { useInitiativeDetail } from "../DetailContext";
+
+const FORM_TYPE_TO_STAGE: Record<FormType, InitiativeStage> = {
+  F1: "proposal",
+  F2: "dimensioning",
+  F3: "mvp",
+  F4: "ltp_tracking",
+  F5: "ltp_tracking",
+};
+
+const ALLOWED_MIME_TYPES: Record<string, "docx" | "xlsx"> = {
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
+    "docx",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": "xlsx",
+};
+
+const MAX_FILE_SIZE = 50 * 1024 * 1024;
+
+function sanitizeFileName(name: string): string {
+  const lastDot = name.lastIndexOf(".");
+  const base = lastDot > 0 ? name.slice(0, lastDot) : name;
+  const ext = lastDot > 0 ? name.slice(lastDot + 1).toLowerCase() : "";
+  const cleanBase = base
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .replace(/[^a-zA-Z0-9._-]+/g, "_")
+    .replace(/^_+|_+$/g, "")
+    .slice(0, 120);
+  return ext ? `${cleanBase || "archivo"}.${ext}` : cleanBase || "archivo";
+}
+
+function readFileAsDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result));
+    reader.onerror = () => reject(new Error("No se pudo leer el archivo"));
+    reader.readAsDataURL(file);
+  });
+}
 
 function FolderCard({
   folder,
@@ -201,13 +240,18 @@ function ExpandedFolder({
   instance,
   selectedYear,
   onYearChange,
+  onUpload,
+  isUploading,
 }: {
   folder: FormFolderCard;
   instance: FormInstanceView | null;
   selectedYear: number | null;
   onYearChange: (year: number) => void;
+  onUpload: (folder: FormFolderCard, file: File) => void;
+  isUploading: boolean;
 }) {
   const router = useRouter();
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const isLocked = folder.state === "locked";
 
   if (isLocked) {
@@ -246,9 +290,14 @@ function ExpandedFolder({
   }
 
   function handleYaTengo() {
-    alert(
-      `Subir archivo para ${instance?.full_title ?? folder.short_title} (pendiente integración).`,
-    );
+    fileInputRef.current?.click();
+  }
+
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    onUpload(folder, file);
   }
 
   function handleXlsx() {
@@ -334,11 +383,18 @@ function ExpandedFolder({
         <button
           type="button"
           onClick={handleYaTengo}
-          disabled={instance.is_read_only}
+          disabled={instance.is_read_only || isUploading}
           className="rounded-lg border border-pae-border bg-pae-surface px-4 py-2 text-[12px] font-medium text-pae-text-secondary transition hover:border-pae-blue/40 hover:text-pae-blue disabled:cursor-not-allowed disabled:opacity-50"
         >
-          Ya tengo archivo
+          {isUploading ? "Subiendo…" : "Ya tengo archivo"}
         </button>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".docx,.xlsx,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+          className="hidden"
+          onChange={handleFileChange}
+        />
         <button
           type="button"
           onClick={handleXlsx}
@@ -412,6 +468,11 @@ export function FormsTabView() {
   const [yearByType, setYearByType] = useState<Partial<Record<FormType, number>>>(
     {},
   );
+  const [uploadingType, setUploadingType] = useState<FormType | null>(null);
+  const [uploadMessage, setUploadMessage] = useState<
+    { tone: "success" | "error"; text: string } | null
+  >(null);
+  const [reloadNonce, setReloadNonce] = useState(0);
 
   useEffect(() => {
     const result = getFormsTabData(initiativeId);
@@ -429,7 +490,75 @@ export function FormsTabView() {
       }
     }
     setYearByType(initialYears);
-  }, [initiativeId]);
+  }, [initiativeId, reloadNonce]);
+
+  async function handleUpload(folder: FormFolderCard, file: File) {
+    setUploadMessage(null);
+
+    if (file.size > MAX_FILE_SIZE) {
+      setUploadMessage({
+        tone: "error",
+        text: `El archivo supera el máximo de 50MB (${(file.size / 1024 / 1024).toFixed(1)}MB).`,
+      });
+      return;
+    }
+
+    const extMatch = /\.([a-zA-Z0-9]+)$/.exec(file.name);
+    const ext = extMatch?.[1]?.toLowerCase() ?? "";
+    if (ext !== "docx" && ext !== "xlsx") {
+      setUploadMessage({
+        tone: "error",
+        text: "Solo se permiten archivos Word (.docx) o Excel (.xlsx).",
+      });
+      return;
+    }
+
+    const mimeFileType = ALLOWED_MIME_TYPES[file.type];
+    if (!mimeFileType || mimeFileType !== ext) {
+      setUploadMessage({
+        tone: "error",
+        text:
+          "El tipo de archivo real no coincide con su extensión (.docx o .xlsx). " +
+          "Verificá que el archivo no esté corrupto o renombrado.",
+      });
+      return;
+    }
+
+    if (file.size === 0) {
+      setUploadMessage({ tone: "error", text: "El archivo está vacío." });
+      return;
+    }
+
+    const stage = FORM_TYPE_TO_STAGE[folder.form_type];
+    const safeName = sanitizeFileName(file.name);
+
+    setUploadingType(folder.form_type);
+    try {
+      const dataUrl = await readFileAsDataUrl(file);
+      const result = uploadDocument(
+        initiativeId,
+        stage,
+        { name: safeName, type: mimeFileType, size: file.size },
+        dataUrl,
+      );
+      if (!result.success) {
+        setUploadMessage({ tone: "error", text: result.error.message });
+        return;
+      }
+      setUploadMessage({
+        tone: "success",
+        text: `"${safeName}" se guardó en la carpeta de ${folder.short_title}. Miralo en el tab Documentos con el badge "Manual".`,
+      });
+      setReloadNonce((n) => n + 1);
+    } catch (err) {
+      setUploadMessage({
+        tone: "error",
+        text: err instanceof Error ? err.message : "Error subiendo el archivo.",
+      });
+    } finally {
+      setUploadingType(null);
+    }
+  }
 
   const selectedFolder = useMemo(() => {
     if (!data || !selectedType) return null;
@@ -490,6 +619,18 @@ export function FormsTabView() {
         ))}
       </div>
 
+      {uploadMessage && (
+        <div
+          className={`rounded-xl border px-4 py-3 text-[12px] ${
+            uploadMessage.tone === "success"
+              ? "border-pae-green/30 bg-pae-green/5 text-pae-green"
+              : "border-pae-red/30 bg-pae-red/5 text-pae-red"
+          }`}
+        >
+          {uploadMessage.text}
+        </div>
+      )}
+
       {selectedFolder && (
         <ExpandedFolder
           folder={selectedFolder}
@@ -501,6 +642,8 @@ export function FormsTabView() {
               [selectedFolder.form_type]: year,
             }))
           }
+          onUpload={handleUpload}
+          isUploading={uploadingType === selectedFolder.form_type}
         />
       )}
 
