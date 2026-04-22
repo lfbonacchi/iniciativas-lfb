@@ -5,9 +5,11 @@ import { useEffect, useMemo, useRef } from "react";
 
 import type { Notification, NotificationType } from "@/types";
 import { markAsRead } from "@/lib/storage/notifications";
+import type { PendingActionItem } from "@/lib/storage/gateways";
 
 interface NotificationsPanelProps {
   notifications: Notification[];
+  pendingActions: PendingActionItem[];
   initiativeNames: Record<string, string>;
   onClose: () => void;
   onChanged: () => void;
@@ -37,6 +39,20 @@ function iconForType(type: NotificationType): string {
   }
 }
 
+function iconForAction(kind: PendingActionItem["kind"]): string {
+  switch (kind) {
+    case "vote":
+      return "🗳";
+    case "vf_pending":
+      return "📝";
+    case "minuta_missing":
+    case "minuta_incomplete":
+      return "📋";
+    case "form_draft":
+      return "✏️";
+  }
+}
+
 function routeForType(type: NotificationType, initiativeId: string): string {
   if (type === "gateway_vote_pending") return "/aprobaciones";
   return `/iniciativas/${initiativeId}`;
@@ -60,6 +76,7 @@ function formatDate(iso: string): string {
 
 export function NotificationsPanel({
   notifications,
+  pendingActions,
   initiativeNames,
   onClose,
   onChanged,
@@ -83,7 +100,7 @@ export function NotificationsPanel({
     };
   }, [onClose]);
 
-  const sorted = useMemo(
+  const sortedNotifs = useMemo(
     () =>
       [...notifications].sort((a, b) =>
         a.created_at < b.created_at ? 1 : -1,
@@ -91,7 +108,7 @@ export function NotificationsPanel({
     [notifications],
   );
 
-  function handleClick(n: Notification) {
+  function handleNotifClick(n: Notification) {
     if (!n.read) {
       const res = markAsRead(n.id);
       if (res.success) onChanged();
@@ -99,6 +116,13 @@ export function NotificationsPanel({
     onClose();
     router.push(routeForType(n.type, n.initiative_id));
   }
+
+  function handleActionClick(a: PendingActionItem) {
+    onClose();
+    router.push(a.href);
+  }
+
+  const totalItems = pendingActions.length + sortedNotifs.length;
 
   return (
     <div
@@ -122,60 +146,103 @@ export function NotificationsPanel({
       </div>
 
       <div className="max-h-[70vh] overflow-y-auto">
-        {sorted.length === 0 ? (
+        {totalItems === 0 ? (
           <div className="px-4 py-10 text-center text-[12px] text-pae-text-tertiary">
             No tenés notificaciones
           </div>
         ) : (
-          <ul className="divide-y divide-pae-border">
-            {sorted.map((n) => {
-              const iniName =
-                initiativeNames[n.initiative_id] ?? "Iniciativa";
-              return (
-                <li key={n.id}>
-                  <button
-                    type="button"
-                    onClick={() => handleClick(n)}
-                    className={`flex w-full items-start gap-3 px-4 py-3 text-left transition hover:bg-pae-bg ${
-                      n.read ? "" : "bg-pae-blue/[0.06]"
-                    }`}
-                  >
-                    <span
-                      aria-hidden
-                      className="mt-0.5 grid h-8 w-8 flex-none place-items-center rounded-full bg-pae-bg text-[16px]"
-                    >
-                      {iconForType(n.type)}
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      <span className="flex items-center gap-2">
+          <>
+            {pendingActions.length > 0 && (
+              <div>
+                <p className="bg-pae-red/[0.04] px-4 py-2 text-[10px] font-semibold uppercase tracking-wide text-pae-red">
+                  Acciones pendientes ({pendingActions.length})
+                </p>
+                <ul className="divide-y divide-pae-border">
+                  {pendingActions.map((a) => (
+                    <li key={a.id}>
+                      <button
+                        type="button"
+                        onClick={() => handleActionClick(a)}
+                        className="flex w-full items-start gap-3 bg-pae-red/[0.02] px-4 py-3 text-left transition hover:bg-pae-red/[0.06]"
+                      >
                         <span
-                          className={`truncate text-[13px] ${
-                            n.read
-                              ? "text-pae-text"
-                              : "font-semibold text-pae-text"
+                          aria-hidden
+                          className="mt-0.5 grid h-8 w-8 flex-none place-items-center rounded-full bg-pae-red/10 text-[16px]"
+                        >
+                          {iconForAction(a.kind)}
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate text-[13px] font-semibold text-pae-text">
+                            {a.label}
+                          </span>
+                          <span className="mt-0.5 block truncate text-[11px] text-pae-text-secondary">
+                            {a.initiative_name}
+                          </span>
+                        </span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {sortedNotifs.length > 0 && (
+              <div>
+                <p className="bg-pae-bg px-4 py-2 text-[10px] font-semibold uppercase tracking-wide text-pae-text-tertiary">
+                  Historial
+                </p>
+                <ul className="divide-y divide-pae-border">
+                  {sortedNotifs.map((n) => {
+                    const iniName =
+                      initiativeNames[n.initiative_id] ?? "Iniciativa";
+                    return (
+                      <li key={n.id}>
+                        <button
+                          type="button"
+                          onClick={() => handleNotifClick(n)}
+                          className={`flex w-full items-start gap-3 px-4 py-3 text-left transition hover:bg-pae-bg ${
+                            n.read ? "" : "bg-pae-blue/[0.06]"
                           }`}
                         >
-                          {n.title}
-                        </span>
-                        {!n.read && (
                           <span
-                            aria-label="No leída"
-                            className="h-2 w-2 flex-none rounded-full bg-pae-blue"
-                          />
-                        )}
-                      </span>
-                      <span className="mt-0.5 block truncate text-[11px] text-pae-text-secondary">
-                        {iniName}
-                      </span>
-                      <span className="mt-1 block text-[10px] text-pae-text-tertiary">
-                        {formatDate(n.created_at)}
-                      </span>
-                    </span>
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
+                            aria-hidden
+                            className="mt-0.5 grid h-8 w-8 flex-none place-items-center rounded-full bg-pae-bg text-[16px]"
+                          >
+                            {iconForType(n.type)}
+                          </span>
+                          <span className="min-w-0 flex-1">
+                            <span className="flex items-center gap-2">
+                              <span
+                                className={`truncate text-[13px] ${
+                                  n.read
+                                    ? "text-pae-text"
+                                    : "font-semibold text-pae-text"
+                                }`}
+                              >
+                                {n.title}
+                              </span>
+                              {!n.read && (
+                                <span
+                                  aria-label="No leída"
+                                  className="h-2 w-2 flex-none rounded-full bg-pae-blue"
+                                />
+                              )}
+                            </span>
+                            <span className="mt-0.5 block truncate text-[11px] text-pae-text-secondary">
+                              {iniName}
+                            </span>
+                            <span className="mt-1 block text-[10px] text-pae-text-tertiary">
+                              {formatDate(n.created_at)}
+                            </span>
+                          </span>
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>
