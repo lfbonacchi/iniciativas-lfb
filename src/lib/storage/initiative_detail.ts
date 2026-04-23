@@ -198,17 +198,11 @@ function kpisFromOverlay(
 
 function isStage4Unlocked(ini: Initiative, store: Store): boolean {
   if (ini.current_stage === "ltp_tracking") return true;
-  const hasF4 = store.forms.some(
-    (f) => f.initiative_id === ini.id && f.form_type === "F4",
-  );
-  if (hasF4) return true;
-  const f3Approved = store.forms.some(
+  return store.forms.some(
     (f) =>
       f.initiative_id === ini.id &&
-      f.form_type === "F3" &&
-      (f.status === "approved" || f.status === "final"),
+      (f.form_type === "F4" || f.form_type === "F5"),
   );
-  return f3Approved;
 }
 
 function vpOrAt(user: User): boolean {

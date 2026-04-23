@@ -450,13 +450,15 @@ function deriveBudget(
   initiativeId: Id,
   kind: "opex" | "capex",
 ): BudgetLine[] | null {
-  const forms = sortedByTypePriority(formsFor(store, initiativeId));
+  // "Presupuesto del año" sale solo de F4 (seccion_7_costos). F2/F3 son costos
+  // de dimensionamiento/MVP, no del ciclo anual.
+  const f4s = sortedLatestFirst(
+    formsFor(store, initiativeId).filter((f) => f.form_type === "F4"),
+  );
   const f4Key =
     kind === "opex" ? "erogaciones_opex" : "erogaciones_capex";
-  const f2Key = kind;
 
-  for (const form of forms) {
-    // F4: seccion_7_costos (puede tener sufijo _YYYY)
+  for (const form of f4s) {
     const f4Resp = findResponseByPrefix(store, form.id, "seccion_7_costos");
     if (
       f4Resp &&
@@ -464,34 +466,6 @@ function deriveBudget(
       f4Resp.value !== null
     ) {
       const arr = (f4Resp.value as Record<string, unknown>)[f4Key];
-      if (Array.isArray(arr)) {
-        const budget = costoRowsToBudget(arr as CostoRow[]);
-        if (budget.length > 0) return budget;
-      }
-    }
-
-    // F2: seccion_9_costos
-    const f2Resp = findResponse(store, form.id, "seccion_9_costos");
-    if (
-      f2Resp &&
-      typeof f2Resp.value === "object" &&
-      f2Resp.value !== null
-    ) {
-      const arr = (f2Resp.value as Record<string, unknown>)[f2Key];
-      if (Array.isArray(arr)) {
-        const budget = costoRowsToBudget(arr as CostoRow[]);
-        if (budget.length > 0) return budget;
-      }
-    }
-
-    // F3: seccion_10_costos
-    const f3Resp = findResponse(store, form.id, "seccion_10_costos");
-    if (
-      f3Resp &&
-      typeof f3Resp.value === "object" &&
-      f3Resp.value !== null
-    ) {
-      const arr = (f3Resp.value as Record<string, unknown>)[f2Key];
       if (Array.isArray(arr)) {
         const budget = costoRowsToBudget(arr as CostoRow[]);
         if (budget.length > 0) return budget;

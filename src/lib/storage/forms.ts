@@ -379,6 +379,100 @@ export function applyCarryOverInStore(
   return applied;
 }
 
+// Crea un form F4 (junio) o F5 (diciembre) para un ciclo anual (año).
+// F4 y F5 no tienen gateway: se crean on-demand cuando el usuario entra al
+// wizard desde el tab Formularios. El wizard después hace el carry-over en
+// memoria; las responses propias del form se persisten con saveFormResponses.
+export function createCyclicForm(
+  initiativeId: Id,
+  formType: "F4" | "F5",
+  year: number,
+): Result<{ form: Form }> {
+  if (formType !== "F4" && formType !== "F5") {
+    return err("VALIDATION_ERROR", "Solo se pueden crear ciclos de F4 o F5");
+  }
+  if (!Number.isInteger(year) || year < 2000 || year > 2100) {
+    return err("VALIDATION_ERROR", "Año de ciclo inválido");
+  }
+  const store = readStore();
+  const user = getCurrentUserFromStore(store);
+  if (!user) return err("AUTH_REQUIRED", "No hay un usuario autenticado");
+  if (!userCanAccessInitiative(user, initiativeId, store)) {
+    return err("FORBIDDEN", "No tenés acceso a esta iniciativa");
+  }
+  if (!userCanEditInitiativeForms(user, initiativeId, store)) {
+    return err(
+      "FORBIDDEN",
+      "Solo el PO, Promotor, LD, Scrum Master o el equipo con edición pueden iniciar el formulario",
+    );
+  }
+  const initiative = store.initiatives.find((i) => i.id === initiativeId);
+  if (!initiative) return err("NOT_FOUND", "Iniciativa no encontrada");
+
+  // F5 requiere un F4 del mismo año ya creado.
+  if (formType === "F5") {
+    const f4Same = store.forms.some(
+      (f) =>
+        f.initiative_id === initiativeId &&
+        f.form_type === "F4" &&
+        parseYearStr(f.ltp_period) === year,
+    );
+    if (!f4Same) {
+      return err(
+        "CONFLICT",
+        `No se puede iniciar el F5 del ciclo ${year} sin un F4 del mismo año`,
+      );
+    }
+  }
+
+  const ltpPeriod = `${formType === "F4" ? "06" : "12"}-${year}`;
+  const existing = store.forms.find(
+    (f) =>
+      f.initiative_id === initiativeId &&
+      f.form_type === formType &&
+      f.ltp_period === ltpPeriod,
+  );
+  if (existing) return ok({ form: existing });
+
+  const now = nowIso();
+  const form: Form = {
+    id: newId("form"),
+    initiative_id: initiativeId,
+    form_type: formType,
+    version: 1,
+    status: "draft",
+    ltp_period: ltpPeriod,
+    created_by: user.id,
+    created_at: now,
+    updated_at: now,
+    submitted_at: null,
+    approved_at: null,
+  };
+  store.forms.push(form);
+  appendAudit(store, {
+    user_id: user.id,
+    action: "form_created",
+    entity_type: "form",
+    entity_id: form.id,
+    old_data: null,
+    new_data: {
+      form_type: formType,
+      ltp_period: ltpPeriod,
+      initiative_id: initiativeId,
+    },
+  });
+  writeStore(store);
+  return ok({ form });
+}
+
+function parseYearStr(ltpPeriod: string | null): number | null {
+  if (!ltpPeriod) return null;
+  const m = /^(\d{2})-(\d{4})$/.exec(ltpPeriod);
+  if (!m) return null;
+  const y = Number(m[2]);
+  return Number.isFinite(y) ? y : null;
+}
+
 export function submitForm(formId: Id): Result<{ form: Form; gateway: Gateway | null }> {
   const parsed = submitFormSchema.safeParse({ formId });
   if (!parsed.success) {

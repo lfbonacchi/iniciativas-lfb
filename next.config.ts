@@ -3,9 +3,7 @@ import webpack from "webpack";
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
-  output: "export",
   images: { unoptimized: true },
-  trailingSlash: true,
   // pptxgenjs hace dynamic imports a `node:fs` / `node:https` protegidos por
   // un runtime check `process.versions.node`. En el bundle del browser nunca
   // se ejecutan, pero webpack igual intenta resolverlos. Los ignoramos con

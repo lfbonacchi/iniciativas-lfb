@@ -1518,7 +1518,8 @@ const ini003_F4_2026_responses: FormResponse[] = [
 // ============================================================================
 
 // ini-004 está en MVP con G3 aprobado con cambios: el PO todavía tiene que
-// armar la VF con los acuerdos del gateway antes de avanzar a LTP.
+// armar la VF con los acuerdos del gateway antes de avanzar a LTP. NO tiene
+// F4/F5 todavía — todos los bloques de Delivery deben estar vacíos.
 const ini004: Initiative = {
   id: "ini-004",
   name: "Automatización de sistemas de bombeo",

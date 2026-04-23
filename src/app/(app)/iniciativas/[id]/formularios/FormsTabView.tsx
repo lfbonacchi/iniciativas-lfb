@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 
-import type { FormType, InitiativeStage } from "@/types";
+import type { FormType, Id, InitiativeStage } from "@/types";
 import {
   getFormsTabData,
   type FormFolderCard,
@@ -12,6 +12,7 @@ import {
   type SectionStatus,
 } from "@/lib/storage/forms_tab";
 import { uploadDocument } from "@/lib/storage/documents";
+import { createCyclicForm } from "@/lib/storage/forms";
 
 import { useInitiativeDetail } from "../DetailContext";
 
@@ -238,16 +239,20 @@ function YearSelector({
 function ExpandedFolder({
   folder,
   instance,
+  initiativeId,
   selectedYear,
   onYearChange,
   onUpload,
+  onFormCreated,
   isUploading,
 }: {
   folder: FormFolderCard;
   instance: FormInstanceView | null;
+  initiativeId: Id;
   selectedYear: number | null;
   onYearChange: (year: number) => void;
   onUpload: (folder: FormFolderCard, file: File) => void;
+  onFormCreated: () => void;
   isUploading: boolean;
 }) {
   const router = useRouter();
@@ -271,13 +276,34 @@ function ExpandedFolder({
   if (!instance) return null;
 
   function handleEditar() {
-    if (!instance?.form_id) {
+    let formId = instance?.form_id ?? null;
+    // F4/F5: el form de un ciclo se crea on-demand al abrir el wizard por
+    // primera vez (no hay gateway que lo genere automáticamente como con F2/F3).
+    if (
+      !formId &&
+      folder.is_cyclic &&
+      selectedYear != null &&
+      (folder.form_type === "F4" || folder.form_type === "F5")
+    ) {
+      const created = createCyclicForm(
+        initiativeId,
+        folder.form_type,
+        selectedYear,
+      );
+      if (!created.success) {
+        alert(created.error.message);
+        return;
+      }
+      formId = created.data.form.id;
+      onFormCreated();
+    }
+    if (!formId) {
       alert("Este formulario todavía no fue creado.");
       return;
     }
     // VF pendiente: antes de abrir el wizard hay que habilitar la edición
     // post-gateway (el storage valida PO/Scrum + estado del gateway).
-    if (instance.vf_pending && instance.vf_gateway_id) {
+    if (instance?.vf_pending && instance.vf_gateway_id) {
       // eslint-disable-next-line @typescript-eslint/no-require-imports
       const gw = require("@/lib/storage/gateways") as typeof import("@/lib/storage/gateways");
       const res = gw.enableVFEditing(instance.vf_gateway_id);
@@ -286,7 +312,7 @@ function ExpandedFolder({
         return;
       }
     }
-    router.push(`/wizard/${instance.form_id}`);
+    router.push(`/wizard/${formId}`);
   }
 
   function handleYaTengo() {
@@ -635,6 +661,7 @@ export function FormsTabView() {
         <ExpandedFolder
           folder={selectedFolder}
           instance={selectedInstance}
+          initiativeId={initiativeId}
           selectedYear={selectedYear}
           onYearChange={(year) =>
             setYearByType((prev) => ({
@@ -643,6 +670,7 @@ export function FormsTabView() {
             }))
           }
           onUpload={handleUpload}
+          onFormCreated={() => setReloadNonce((n) => n + 1)}
           isUploading={uploadingType === selectedFolder.form_type}
         />
       )}

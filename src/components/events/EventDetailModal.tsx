@@ -57,6 +57,7 @@ const ACTION_LABEL: Record<EventChangeLogEntry["action"], string> = {
   initiative_member_added: "",
   initiative_member_removed: "",
   initiative_member_role_changed: "",
+  form_created: "",
   form_submitted: "",
   form_approved: "",
   form_reviewed: "",
