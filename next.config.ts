@@ -1,5 +1,4 @@
 import type { NextConfig } from "next";
-import webpack from "webpack";
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
@@ -8,11 +7,11 @@ const nextConfig: NextConfig = {
   // un runtime check `process.versions.node`. En el bundle del browser nunca
   // se ejecutan, pero webpack igual intenta resolverlos. Los ignoramos con
   // IgnorePlugin para que no se incluyan en el bundle client.
-  webpack: (config, { isServer }) => {
+  webpack: (config, { isServer, webpack: wp }) => {
     if (!isServer) {
       config.plugins = config.plugins ?? [];
       config.plugins.push(
-        new webpack.IgnorePlugin({
+        new wp.IgnorePlugin({
           resourceRegExp: /^node:(fs|https)$/,
         }),
       );
