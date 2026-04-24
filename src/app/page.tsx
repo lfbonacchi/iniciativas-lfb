@@ -29,7 +29,7 @@ export default function LoginPage() {
               <button
                 type="button"
                 onClick={() =>
-                  signIn("cognito", { callbackUrl: "/auth/callback" })
+                  signIn("cognito", { callbackUrl: "/auth/callback" }, { prompt: "login" })
                 }
                 className="flex w-full items-center justify-center gap-3 rounded-lg bg-pae-blue py-3 text-[15px] font-semibold text-white shadow-sm transition hover:bg-pae-blue/90"
               >
