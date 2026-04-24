@@ -3,11 +3,13 @@ import CognitoProvider from "next-auth/providers/cognito";
 
 // Cognito User Pool — sa-east-1 (São Paulo)
 // User Pool ID: sa-east-1_P5AVMFTDD
-// App Client ID: tv3iv3b5cr3nu5ifojbchh5ta
+// App Client ID: 5iki98keg7ikppijdvr5dfo20o
 // Domain: pae-portfolio-auth.auth.sa-east-1.amazoncognito.com
 
 export const authOptions: NextAuthOptions = {
-  secret: process.env.NEXTAUTH_SECRET ?? "9b62f01b5279cee7b5dd13d324e878691ec6387c8bed5c8fffd9bcf212ce0d0a",
+  secret:
+    process.env.NEXTAUTH_SECRET ??
+    "9b62f01b5279cee7b5dd13d324e878691ec6387c8bed5c8fffd9bcf212ce0d0a",
   providers: [
     CognitoProvider({
       clientId: process.env.COGNITO_CLIENT_ID!,
@@ -16,12 +18,9 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
   callbacks: {
-    // Agrega los grupos de Cognito y el sub al token JWT
     async jwt({ token, account, profile }) {
       if (account && profile) {
-        // El sub de Cognito es el identificador único del usuario
         token.sub = profile.sub ?? token.sub;
-        // Cognito incluye los grupos en el token de acceso
         const cognitoProfile = profile as Record<string, unknown>;
         if (Array.isArray(cognitoProfile["cognito:groups"])) {
           token.groups = cognitoProfile["cognito:groups"] as string[];
@@ -29,7 +28,6 @@ export const authOptions: NextAuthOptions = {
       }
       return token;
     },
-    // Expone grupos y sub en la sesión del cliente
     async session({ session, token }) {
       if (session.user) {
         session.user.sub = token.sub as string;
@@ -41,5 +39,4 @@ export const authOptions: NextAuthOptions = {
   pages: {
     signIn: "/",
   },
-  secret: process.env.NEXTAUTH_SECRET,
 };
