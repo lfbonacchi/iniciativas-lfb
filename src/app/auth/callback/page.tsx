@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef } from "react";
 
 import { switchUser } from "@/lib/storage/auth";
-import { readStore, seedStore } from "@/lib/storage/_store";
+import { writeStore } from "@/lib/storage/_store";
+import type { Store } from "@/lib/storage/_store";
 
 function destinationForGroups(groups: string[]): string {
   if (groups.includes("vp-sponsors")) return "/dashboard";
@@ -20,9 +21,7 @@ export default function AuthCallbackPage() {
   const handled = useRef(false);
 
   useEffect(() => {
-    // Esperar a que la sesión esté resuelta
     if (status === "loading") return;
-    // Evitar doble ejecución
     if (handled.current) return;
 
     if (status === "unauthenticated") {
@@ -36,23 +35,39 @@ export default function AuthCallbackPage() {
       const email = session.user.email;
       const groups = (session.user as { groups?: string[] }).groups ?? [];
 
-      // Cargar seed si el store está vacío
-      const store = readStore();
-      if (store.users.length === 0) seedStore();
+      // Cargar datos desde la DB y escribir en localStorage
+      fetch("/api/store")
+        .then((res) => res.json())
+        .then((store: Store) => {
+          // Escribir el store completo en localStorage
+          writeStore({ ...store, current_user_id: null });
 
-      // Buscar usuario por email
-      const freshStore = readStore();
-      const match = freshStore.users.find(
-        (u) => u.email.toLowerCase() === email.toLowerCase(),
-      );
+          // Encontrar el usuario por email y activarlo
+          const match = store.users.find(
+            (u) => u.email.toLowerCase() === email.toLowerCase(),
+          );
 
-      if (match) {
-        switchUser(match.id);
-        router.replace(destinationForGroups(groups));
-      } else {
-        // Email de Cognito no coincide con ningún usuario del store
-        router.replace("/seleccionar-usuario");
-      }
+          if (match) {
+            switchUser(match.id);
+            router.replace(destinationForGroups(groups));
+          } else {
+            router.replace("/seleccionar-usuario");
+          }
+        })
+        .catch(() => {
+          // Si falla la DB, intentar con datos locales
+          const { readStore, seedStore } = require("@/lib/storage/_store");
+          const store = readStore();
+          if (store.users.length === 0) seedStore();
+          const freshStore = readStore();
+          const match = freshStore.users.find(
+            (u: { email: string }) => u.email.toLowerCase() === email.toLowerCase(),
+          );
+          if (match) {
+            switchUser(match.id);
+          }
+          router.replace(destinationForGroups(groups));
+        });
     }
   }, [session, status, router]);
 
