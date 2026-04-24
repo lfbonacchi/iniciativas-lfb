@@ -6,10 +6,8 @@ import { useEffect, useMemo, useState } from "react";
 import type { Id, User } from "@/types";
 import {
   getAvailableUsers,
-  loadSeedData,
   switchUser,
 } from "@/lib/storage/auth";
-import { clearAllData } from "@/lib/storage/files";
 
 type RoleKey = "po" | "sm" | "bo" | "vp" | "at";
 
@@ -117,13 +115,15 @@ export default function SeleccionarUsuarioPage() {
   const [allUsers, setAllUsers] = useState<User[]>([]);
   const [demoLoaded, setDemoLoaded] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [resetting, setResetting] = useState(false);
+  const [resetMsg, setResetMsg] = useState<string | null>(null);
 
   useEffect(() => {
     const result = getAvailableUsers();
     if (result.success) {
       setAllUsers(result.data);
     }
-  }, [demoLoaded]);
+  }, []);
 
   const role = ROLES.find((r) => r.key === selectedRole) ?? null;
 
@@ -148,36 +148,27 @@ export default function SeleccionarUsuarioPage() {
     }
   }, [role, roleUsers]);
 
-  function handleLoadDemo() {
-    const result = loadSeedData();
-    if (!result.success) {
-      setErrorMsg(result.error.message);
-      return;
+  async function handleResetDB() {
+    if (!window.confirm(
+      "Se borrarán TODOS los datos y se restaurarán las 8 iniciativas originales. ¿Continuar?"
+    )) return;
+    setResetting(true);
+    setResetMsg(null);
+    try {
+      const res = await fetch("/api/store/reset", { method: "POST" });
+      if (res.ok) {
+        // También limpiar localStorage para que recargue desde DB al próximo login
+        const { resetStore } = await import("@/lib/storage/_store");
+        resetStore();
+        setResetMsg("✓ Base de datos reseteada exitosamente");
+      } else {
+        setResetMsg("✗ Error al resetear la base de datos");
+      }
+    } catch {
+      setResetMsg("✗ Error de conexión");
+    } finally {
+      setResetting(false);
     }
-    setErrorMsg(null);
-    setDemoLoaded(true);
-  }
-
-  function handleClearData() {
-    if (
-      !window.confirm(
-        "Se borran todas las iniciativas, formularios, gateways y eventos guardados. ¿Continuar?",
-      )
-    ) {
-      return;
-    }
-    const result = clearAllData();
-    if (!result.success) {
-      setErrorMsg(result.error.message);
-      return;
-    }
-    setErrorMsg(null);
-    setDemoLoaded(false);
-    setSelectedRole(null);
-    setSelectedUserId("");
-    // Forzar re-fetch de usuarios (el store se recarga con seed de users al próximo read)
-    const available = getAvailableUsers();
-    if (available.success) setAllUsers(available.data);
   }
 
   function handleConfirm() {
@@ -350,45 +341,37 @@ export default function SeleccionarUsuarioPage() {
             id="demo"
             className="mb-3 text-[12px] font-semibold uppercase tracking-[0.12em] text-pae-text-tertiary"
           >
-            Datos de ejemplo (opcional)
+            Base de datos
           </h2>
 
           <div className="flex items-center justify-between gap-4 rounded-xl border border-pae-border bg-pae-surface px-5 py-4">
             <div>
               <p className="text-[15px] font-semibold text-pae-text">
-                Cargar datos demo
+                Resetear a datos originales
               </p>
               <p className="mt-1 text-[13px] text-pae-text-secondary">
-                Carga 8 iniciativas de ejemplo con formularios, gateways y
-                eventos en localStorage.
+                Borra todos los cambios y restaura las 8 iniciativas de ejemplo
+                originales en la base de datos.
               </p>
-              {demoLoaded && (
-                <p className="mt-1 text-[13px] font-medium text-pae-green">
-                  ✓ Datos demo cargados
+              {resetMsg && (
+                <p className={`mt-1 text-[13px] font-medium ${resetMsg.startsWith("✓") ? "text-pae-green" : "text-pae-red"}`}>
+                  {resetMsg}
                 </p>
               )}
             </div>
             <div className="flex shrink-0 flex-col items-end gap-2">
               <button
                 type="button"
-                onClick={handleLoadDemo}
-                className="rounded-lg border border-pae-blue px-4 py-2 text-[14px] font-semibold text-pae-blue transition hover:bg-pae-blue/5"
+                onClick={handleResetDB}
+                disabled={resetting}
+                className="rounded-lg border border-pae-red px-4 py-2 text-[13px] font-medium text-pae-red transition hover:bg-pae-red/5 disabled:opacity-50"
               >
-                {demoLoaded ? "Recargar demo" : "Cargar datos demo"}
-              </button>
-              <button
-                type="button"
-                onClick={handleClearData}
-                className="rounded-lg border border-pae-red px-4 py-2 text-[13px] font-medium text-pae-red transition hover:bg-pae-red/5"
-              >
-                Limpiar todos los datos
+                {resetting ? "Reseteando…" : "Resetear DB"}
               </button>
             </div>
           </div>
           <p className="mt-2 text-[12px] text-pae-text-tertiary">
-            Tip: &ldquo;Limpiar&rdquo; borra iniciativas, formularios y eventos
-            guardados en este navegador. Los usuarios mock se recargan
-            automáticamente.
+            Esta acción es irreversible. Todos los datos agregados por los usuarios serán eliminados.
           </p>
         </section>
 

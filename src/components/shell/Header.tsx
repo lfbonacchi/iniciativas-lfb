@@ -131,6 +131,7 @@ export function Header({ user, notificationCount, onOpenSidebar }: HeaderProps) 
   const [open, setOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
+  const [refreshing, setRefreshing] = useState(false);
   const [notifs, setNotifs] = useState<Notification[]>([]);
   const [pendingActions, setPendingActions] = useState<PendingActionItem[]>([]);
   const [initiativeNames, setInitiativeNames] = useState<Record<string, string>>({});
@@ -171,6 +172,25 @@ export function Header({ user, notificationCount, onOpenSidebar }: HeaderProps) 
   // Badge de la campana = acciones pendientes (alineado con sidebar).
   // Así no hay desfase entre "tenés N acciones" (sidebar) y el 🔔.
   const badgeCount = notificationCount ?? pendingActions.length;
+
+  async function handleRefreshFromDB() {
+    if (refreshing) return;
+    setRefreshing(true);
+    try {
+      const res = await fetch("/api/store");
+      if (res.ok) {
+        const store = await res.json();
+        const { writeStore, readStore } = await import("@/lib/storage/_store");
+        const current = readStore();
+        writeStore({ ...store, current_user_id: current.current_user_id });
+        window.location.reload();
+      }
+    } catch {
+      // silently ignore
+    } finally {
+      setRefreshing(false);
+    }
+  }
 
   return (
     <header className="fixed left-0 right-0 top-0 z-50 flex h-14 items-center justify-between border-b border-pae-border bg-pae-surface px-3 shadow-[0_1px_3px_rgba(0,0,0,0.04)] md:px-4">
@@ -230,6 +250,22 @@ export function Header({ user, notificationCount, onOpenSidebar }: HeaderProps) 
 
       <div className="flex items-center gap-3">
         <FontSizeSlider />
+
+        <button
+          type="button"
+          onClick={handleRefreshFromDB}
+          disabled={refreshing}
+          title="Actualizar datos desde la base de datos"
+          aria-label="Actualizar datos"
+          className="grid h-8 w-8 place-items-center rounded-full border border-pae-border text-pae-text-secondary transition hover:bg-pae-bg disabled:opacity-50"
+        >
+          <span
+            aria-hidden
+            className={`text-[16px] ${refreshing ? "animate-spin" : ""}`}
+          >
+            ↻
+          </span>
+        </button>
 
         <div className="relative">
           <button
