@@ -1,0 +1,762 @@
+// Plataforma de Gestión de Portfolio — PAE
+// Schema Prisma para migración de localStorage a PostgreSQL
+// Fase 5: Backend real con RDS PostgreSQL en AWS
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================================
+// ENUMS
+// ============================================================================
+
+enum GlobalRole {
+  user
+  area_transformacion
+  admin
+}
+
+enum InitiativeStage {
+  proposal
+  dimensioning
+  mvp
+  ltp_tracking
+}
+
+enum InitiativeStatus {
+  in_progress
+  pending
+  paused
+  rejected
+  area_change
+}
+
+enum InitiativeMemberRole {
+  promotor
+  ld
+  po
+  bo
+  sponsor
+  sm
+  equipo
+  afectado
+}
+
+enum MemberAccessLevel {
+  edit
+  comment
+  view
+}
+
+enum FormType {
+  F1
+  F2
+  F3
+  F4
+  F5
+}
+
+enum FormStatus {
+  draft
+  submitted
+  in_review
+  approved
+  final
+  reviewed
+  closed
+}
+
+enum FormSnapshotType {
+  submitted
+  final
+}
+
+enum GatewayNumber {
+  G1
+  G2
+  G3
+}
+
+enum GatewayStatus {
+  pending
+  approved
+  approved_with_changes
+  feedback
+  pause
+  reject
+  area_change
+}
+
+enum GatewayVoteValue {
+  approved
+  approved_with_changes
+  feedback
+  pause
+  reject
+  area_change
+}
+
+enum InlineCommentStatus {
+  draft
+  published
+}
+
+enum DocumentType {
+  formulario_xlsx
+  formulario_pdf
+  vf_formulario_xlsx
+  vf_formulario_pdf
+  vf_presentacion_pptx
+  vf_nota_prensa_docx
+  minuta_gateway_docx
+  manual_upload
+}
+
+enum FileType {
+  docx
+  xlsx
+  pdf
+  pptx
+  png
+  jpg
+  mp4
+}
+
+enum PortfolioEventType {
+  gate
+  sprint_review
+  seg_q
+  seg_mensual
+  ltp_plan
+  entrega
+  otro
+}
+
+enum AttendanceStatus {
+  yes
+  no
+}
+
+enum EventStatus {
+  scheduled
+  cancelled
+}
+
+enum NotificationType {
+  gateway_vote_pending
+  gateway_resolved
+  form_feedback_received
+  form_submitted
+  form_reviewed
+  initiative_paused
+  initiative_rejected
+  initiative_area_change
+  member_added
+  member_removed
+  document_generated
+  document_uploaded
+}
+
+enum AuditAction {
+  initiative_created
+  initiative_imported
+  initiative_deleted
+  initiative_stage_changed
+  initiative_status_changed
+  initiative_member_added
+  initiative_member_removed
+  initiative_member_role_changed
+  form_created
+  form_submitted
+  form_approved
+  form_reviewed
+  form_response_changed
+  form_snapshot_created
+  form_access_granted
+  form_edit_access_revoked
+  gateway_vote_cast
+  gateway_resolved
+  gateway_approver_added
+  gateway_approver_removed
+  gateway_feedback_doc_created
+  gateway_inline_comments_published
+  gateway_minuta_saved
+  gateway_resubmitted
+  initiative_area_changed
+  initiative_affected_added
+  document_uploaded
+  document_generated
+  document_downloaded
+  document_moved
+  document_deleted
+  file_uploaded
+  file_downloaded
+  file_moved
+  file_deleted
+  memory_cleared
+  event_created
+  event_attendance_set
+  event_rescheduled
+  event_cancelled
+  event_materialized
+}
+
+enum AuditEntityType {
+  initiative
+  initiative_member
+  form
+  form_response
+  gateway
+  gateway_vote
+  document
+  file_upload
+  portfolio_event
+}
+
+// ============================================================================
+// USUARIOS
+// ============================================================================
+
+model User {
+  id             String     @id @default(cuid())
+  azure_oid      String?    @unique
+  email          String     @unique
+  display_name   String
+  job_title      String
+  department     String
+  vicepresidencia String
+  global_role    GlobalRole @default(user)
+  is_vp          Boolean    @default(false)
+  created_at     DateTime   @default(now())
+
+  // Relaciones
+  initiative_members      InitiativeMember[]
+  forms_created           Form[]                  @relation("FormCreatedBy")
+  gateway_votes           GatewayVote[]
+  gateway_extra_approvers GatewayExtraApprover[]  @relation("ExtraApproverUser")
+  gateway_extra_added_by  GatewayExtraApprover[]  @relation("ExtraApproverAddedBy")
+  gateway_feedback_docs   GatewayFeedbackDoc[]
+  gateway_inline_comments GatewayInlineComment[]
+  gateway_minutas         GatewayMinuta[]
+  gateway_decisions       GatewayDecisionPending[]
+  form_comments           FormComment[]
+  form_change_log         FormChangeLog[]
+  documents_generated     Document[]
+  file_uploads            FileUpload[]
+  portfolio_events        PortfolioEvent[]        @relation("EventCreatedBy")
+  mesa_bloqueantes        MesaBloqueante[]
+  mesa_temas_pendientes   MesaTemaPendiente[]
+  mesa_brainstorm_notes   MesaBrainstormNote[]
+  notifications           Notification[]
+  audit_logs              AuditLog[]
+  initiative_area_changes InitiativeAreaChange[]
+
+  @@map("users")
+}
+
+// ============================================================================
+// INICIATIVAS
+// ============================================================================
+
+model Initiative {
+  id            String           @id @default(cuid())
+  name          String
+  current_stage InitiativeStage  @default(proposal)
+  status        InitiativeStatus @default(in_progress)
+  has_etapa1    Boolean          @default(false)
+  has_etapa2    Boolean          @default(false)
+  has_etapa3    Boolean          @default(false)
+  created_at    DateTime         @default(now())
+
+  // Relaciones
+  members              InitiativeMember[]
+  folders              InitiativeFolder[]
+  forms                Form[]
+  gateways             Gateway[]
+  documents            Document[]
+  file_uploads         FileUpload[]
+  portfolio_events     PortfolioEvent[]
+  mesa_bloqueantes     MesaBloqueante[]
+  mesa_temas_pendientes MesaTemaPendiente[]
+  mesa_brainstorm_note MesaBrainstormNote?
+  notifications        Notification[]
+  audit_logs           AuditLog[]
+  area_changes         InitiativeAreaChange[]
+  gateway_minutas      GatewayMinuta[]
+  gateway_revisions    GatewayRevision[]
+
+  @@map("initiatives")
+}
+
+model InitiativeMember {
+  id            String                @id @default(cuid())
+  user_id       String
+  initiative_id String
+  role          InitiativeMemberRole
+  can_edit      Boolean               @default(true)
+  access_level  MemberAccessLevel?
+
+  user       User       @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  initiative Initiative @relation(fields: [initiative_id], references: [id], onDelete: Cascade)
+
+  @@unique([user_id, initiative_id])
+  @@map("initiative_members")
+}
+
+model InitiativeFolder {
+  id            String          @id @default(cuid())
+  initiative_id String
+  folder_path   String
+  stage         InitiativeStage
+  ltp_period    String?         // formato "MM-YYYY", ej: "06-2026"
+  created_at    DateTime        @default(now())
+
+  initiative Initiative  @relation(fields: [initiative_id], references: [id], onDelete: Cascade)
+  file_uploads FileUpload[]
+
+  @@map("initiative_folders")
+}
+
+model InitiativeAreaChange {
+  id            String   @id @default(cuid())
+  initiative_id String
+  from_vp       String?
+  to_vp         String
+  changed_by    String
+  changed_at    DateTime @default(now())
+  reason        String?
+
+  initiative Initiative @relation(fields: [initiative_id], references: [id], onDelete: Cascade)
+  user       User       @relation(fields: [changed_by], references: [id])
+
+  @@map("initiative_area_changes")
+}
+
+// ============================================================================
+// FORMULARIOS
+// ============================================================================
+
+// Definición estructural de cada formulario (F1-F5).
+// sections_config es JSONB — contiene la estructura completa de secciones y campos.
+model FormDefinition {
+  id              String   @id @default(cuid())
+  form_type       FormType @unique
+  version         Int      @default(1)
+  sections_config Json     // readonly FormSection[]
+
+  @@map("form_definitions")
+}
+
+model Form {
+  id            String     @id @default(cuid())
+  initiative_id String
+  form_type     FormType
+  version       Int        @default(1)
+  status        FormStatus @default(draft)
+  ltp_period    String?    // formato "MM-YYYY", solo para F4/F5
+  created_by    String
+  created_at    DateTime   @default(now())
+  updated_at    DateTime   @updatedAt
+  submitted_at  DateTime?
+  approved_at   DateTime?
+
+  initiative  Initiative      @relation(fields: [initiative_id], references: [id], onDelete: Cascade)
+  creator     User            @relation("FormCreatedBy", fields: [created_by], references: [id])
+  responses   FormResponse[]
+  change_log  FormChangeLog[]
+  snapshots   FormSnapshot[]
+  gateway     Gateway?
+  comments    FormComment[]
+
+  @@map("forms")
+}
+
+model FormResponse {
+  id        String @id @default(cuid())
+  form_id   String
+  field_key String
+  value     Json   // FormFieldValue: string | number | boolean | array | object
+
+  form Form @relation(fields: [form_id], references: [id], onDelete: Cascade)
+
+  @@unique([form_id, field_key])
+  @@map("form_responses")
+}
+
+model FormChangeLog {
+  id         String   @id @default(cuid())
+  form_id    String
+  field_key  String
+  old_value  Json?    // FormFieldValue
+  new_value  Json?    // FormFieldValue
+  changed_by String
+  changed_at DateTime @default(now())
+
+  form Form @relation(fields: [form_id], references: [id], onDelete: Cascade)
+  user User @relation(fields: [changed_by], references: [id])
+
+  @@map("form_change_log")
+}
+
+// Snapshot congela el estado del formulario en momentos clave:
+// "submitted" al enviar a aprobación, "final" al aprobar.
+model FormSnapshot {
+  id              String           @id @default(cuid())
+  form_id         String
+  snapshot_type   FormSnapshotType
+  version_number  Int
+  responses_data  Json             // Record<field_key, FormFieldValue>
+  created_at      DateTime         @default(now())
+
+  form Form @relation(fields: [form_id], references: [id], onDelete: Cascade)
+
+  @@map("form_snapshots")
+}
+
+model FormComment {
+  id         String   @id @default(cuid())
+  form_id    String
+  user_id    String
+  text       String
+  created_at DateTime @default(now())
+
+  form Form @relation(fields: [form_id], references: [id], onDelete: Cascade)
+  user User @relation(fields: [user_id], references: [id])
+
+  @@map("form_comments")
+}
+
+// ============================================================================
+// GATEWAYS
+// ============================================================================
+
+model Gateway {
+  id              String        @id @default(cuid())
+  form_id         String        @unique
+  initiative_id   String
+  gateway_number  Int           // 1, 2 o 3
+  status          GatewayStatus @default(pending)
+  requires_unanimity Boolean    @default(true)
+
+  form       Form       @relation(fields: [form_id], references: [id], onDelete: Cascade)
+  initiative Initiative @relation(fields: [initiative_id], references: [id], onDelete: Cascade)
+
+  votes            GatewayVote[]
+  extra_approvers  GatewayExtraApprover[]
+  feedback_docs    GatewayFeedbackDoc[]
+  inline_comments  GatewayInlineComment[]
+  minutas          GatewayMinuta[]
+  decisions        GatewayDecisionPending[]
+  revisions        GatewayRevision[]
+
+  @@map("gateways")
+}
+
+model GatewayVote {
+  id            String           @id @default(cuid())
+  gateway_id    String
+  user_id       String
+  vote          GatewayVoteValue
+  feedback_text String?
+
+  gateway Gateway @relation(fields: [gateway_id], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [user_id], references: [id])
+
+  @@unique([gateway_id, user_id])
+  @@map("gateway_votes")
+}
+
+model GatewayExtraApprover {
+  id         String   @id @default(cuid())
+  gateway_id String
+  user_id    String
+  required   Boolean  @default(false)
+  added_by   String
+  added_at   DateTime @default(now())
+
+  gateway  Gateway @relation(fields: [gateway_id], references: [id], onDelete: Cascade)
+  user     User    @relation("ExtraApproverUser", fields: [user_id], references: [id])
+  added_by_user User @relation("ExtraApproverAddedBy", fields: [added_by], references: [id])
+
+  @@unique([gateway_id, user_id])
+  @@map("gateway_extra_approvers")
+}
+
+// Documento de feedback generado por un aprobador en el gateway.
+model GatewayFeedbackDoc {
+  id            String   @id @default(cuid())
+  gateway_id    String
+  initiative_id String
+  user_id       String
+  content       String
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+
+  gateway Gateway @relation(fields: [gateway_id], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [user_id], references: [id])
+
+  @@map("gateway_feedback_docs")
+}
+
+// Comentario inline a nivel de campo en la vista read-only del gateway.
+model GatewayInlineComment {
+  id           String              @id @default(cuid())
+  gateway_id   String
+  user_id      String
+  section_key  String
+  field_key    String
+  text         String
+  status       InlineCommentStatus @default(draft)
+  created_at   DateTime            @default(now())
+  updated_at   DateTime            @updatedAt
+  published_at DateTime?
+
+  gateway Gateway @relation(fields: [gateway_id], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [user_id], references: [id])
+
+  // Un comentario por usuario/campo; re-guardar reemplaza
+  @@unique([gateway_id, user_id, section_key, field_key])
+  @@map("gateway_inline_comments")
+}
+
+// Minuta de reunión del gateway. Deadline = resolved_at + 3 días.
+model GatewayMinuta {
+  id            String   @id @default(cuid())
+  gateway_id    String
+  initiative_id String
+  content       String   // JSON con: fecha_reunion, participantes, asistentes, mejoras, acuerdos, proximos_pasos
+  created_by    String
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+  deadline_at   DateTime
+
+  gateway    Gateway    @relation(fields: [gateway_id], references: [id], onDelete: Cascade)
+  initiative Initiative @relation(fields: [initiative_id], references: [id], onDelete: Cascade)
+  user       User       @relation(fields: [created_by], references: [id])
+
+  @@map("gateway_minutas")
+}
+
+// Ventana de 60s para deshacer un voto antes de que se materialice.
+model GatewayDecisionPending {
+  id            String           @id @default(cuid())
+  gateway_id    String
+  user_id       String
+  vote          GatewayVoteValue
+  feedback_text String?
+  created_at    DateTime         @default(now())
+  expires_at    DateTime
+
+  gateway Gateway @relation(fields: [gateway_id], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [user_id], references: [id])
+
+  @@map("gateway_decisions_pending")
+}
+
+// Tracking de revisiones: si el gateway pide "feedback" se crea una nueva revisión.
+model GatewayRevision {
+  id              String   @id @default(cuid())
+  initiative_id   String
+  gateway_number  Int
+  revision_number Int
+  gateway_id      String
+  created_at      DateTime @default(now())
+
+  initiative Initiative @relation(fields: [initiative_id], references: [id], onDelete: Cascade)
+  gateway    Gateway    @relation(fields: [gateway_id], references: [id], onDelete: Cascade)
+
+  @@map("gateway_revisions")
+}
+
+// ============================================================================
+// DOCUMENTOS Y ARCHIVOS
+// ============================================================================
+
+model Document {
+  id               String       @id @default(cuid())
+  initiative_id    String
+  document_type    DocumentType
+  file_path        String
+  stage            InitiativeStage
+  ltp_period       String?
+  generated_by     String
+  created_at       DateTime     @default(now())
+  // Para manual_upload: URL de S3 en Fase 5 (en Fase 2-4 era data URL en localStorage)
+  content_data_url String?
+
+  initiative Initiative @relation(fields: [initiative_id], references: [id], onDelete: Cascade)
+  user       User       @relation(fields: [generated_by], references: [id])
+
+  @@map("documents")
+}
+
+model FileUpload {
+  id            String   @id @default(cuid())
+  initiative_id String
+  folder_id     String
+  file_name     String
+  file_type     FileType
+  file_size     Int
+  uploaded_by   String
+  created_at    DateTime @default(now())
+
+  initiative Initiative      @relation(fields: [initiative_id], references: [id], onDelete: Cascade)
+  folder     InitiativeFolder @relation(fields: [folder_id], references: [id], onDelete: Cascade)
+  user       User             @relation(fields: [uploaded_by], references: [id])
+
+  @@map("file_uploads")
+}
+
+// ============================================================================
+// EVENTOS DEL PORTFOLIO
+// ============================================================================
+
+model PortfolioEvent {
+  id                String             @id @default(cuid())
+  name              String
+  type              PortfolioEventType
+  custom_type_label String?
+  initiative_id     String
+  date              DateTime
+  original_date     DateTime?
+  status            EventStatus        @default(scheduled)
+  created_by        String
+  created_at        DateTime           @default(now())
+
+  initiative  Initiative              @relation(fields: [initiative_id], references: [id], onDelete: Cascade)
+  creator     User                    @relation("EventCreatedBy", fields: [created_by], references: [id])
+  invitations PortfolioEventInvitee[]
+  attendance  PortfolioEventAttendance[]
+
+  @@map("portfolio_events")
+}
+
+// Tabla de unión para invited_user_ids (era array en localStorage)
+model PortfolioEventInvitee {
+  event_id String
+  user_id  String
+
+  event PortfolioEvent @relation(fields: [event_id], references: [id], onDelete: Cascade)
+
+  @@id([event_id, user_id])
+  @@map("portfolio_event_invitees")
+}
+
+// Tabla de unión para attendance (era Record<user_id, status> en localStorage)
+model PortfolioEventAttendance {
+  event_id String
+  user_id  String
+  status   AttendanceStatus
+
+  event PortfolioEvent @relation(fields: [event_id], references: [id], onDelete: Cascade)
+
+  @@id([event_id, user_id])
+  @@map("portfolio_event_attendance")
+}
+
+// ============================================================================
+// MESA DE TRABAJO
+// ============================================================================
+
+model MesaBloqueante {
+  id            String   @id @default(cuid())
+  initiative_id String
+  name          String
+  is_priority   Boolean  @default(false)
+  resolved      Boolean  @default(false)
+  created_at    DateTime @default(now())
+  created_by    String
+
+  initiative   Initiative              @relation(fields: [initiative_id], references: [id], onDelete: Cascade)
+  user         User                    @relation(fields: [created_by], references: [id])
+  involucrados MesaBloqueanteMember[]
+
+  @@map("mesa_bloqueantes")
+}
+
+// Tabla de unión para involucrados (era array de user_ids en localStorage)
+model MesaBloqueanteMember {
+  bloqueante_id String
+  user_id       String
+
+  bloqueante MesaBloqueante @relation(fields: [bloqueante_id], references: [id], onDelete: Cascade)
+
+  @@id([bloqueante_id, user_id])
+  @@map("mesa_bloqueante_members")
+}
+
+model MesaTemaPendiente {
+  id            String   @id @default(cuid())
+  initiative_id String
+  text          String
+  done          Boolean  @default(false)
+  created_at    DateTime @default(now())
+  created_by    String
+
+  initiative Initiative @relation(fields: [initiative_id], references: [id], onDelete: Cascade)
+  user       User       @relation(fields: [created_by], references: [id])
+
+  @@map("mesa_temas_pendientes")
+}
+
+// Una sola nota de brainstorm por iniciativa (upsert)
+model MesaBrainstormNote {
+  initiative_id String   @id
+  content       String
+  updated_at    DateTime @updatedAt
+  updated_by    String
+
+  initiative Initiative @relation(fields: [initiative_id], references: [id], onDelete: Cascade)
+  user       User       @relation(fields: [updated_by], references: [id])
+
+  @@map("mesa_brainstorm_notes")
+}
+
+// ============================================================================
+// NOTIFICACIONES
+// ============================================================================
+
+model Notification {
+  id            String           @id @default(cuid())
+  user_id       String
+  type          NotificationType
+  title         String
+  message       String
+  initiative_id String
+  read          Boolean          @default(false)
+  created_at    DateTime         @default(now())
+
+  user       User       @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  initiative Initiative @relation(fields: [initiative_id], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
+}
+
+// ============================================================================
+// AUDITORÍA
+// ============================================================================
+
+model AuditLog {
+  id            String          @id @default(cuid())
+  user_id       String
+  action        AuditAction
+  entity_type   AuditEntityType
+  entity_id     String
+  old_data      Json?
+  new_data      Json?
+  timestamp     DateTime        @default(now())
+  initiative_id String?
+
+  user       User        @relation(fields: [user_id], references: [id])
+  initiative Initiative? @relation(fields: [initiative_id], references: [id], onDelete: SetNull)
+
+  @@index([entity_type, entity_id])
+  @@index([initiative_id])
+  @@index([timestamp])
+  @@map("audit_log")
+}
