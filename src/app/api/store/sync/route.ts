@@ -8,8 +8,9 @@ export async function POST(req: NextRequest) {
   try {
     const store = await req.json();
 
-    // Sincronizar en paralelo las entidades que pueden cambiar
-    await Promise.allSettled([
+    // Sync in order — users first (FK dependencies), then rest in parallel
+    await syncUsers(store);
+    const results = await Promise.allSettled([
       syncInitiatives(store),
       syncMembers(store),
       syncForms(store),
@@ -22,12 +23,43 @@ export async function POST(req: NextRequest) {
       syncDocuments(store),
     ]);
 
+    // Log any failures for debugging
+    results.forEach((r, i) => {
+      if (r.status === "rejected") {
+        console.error(`Sync entity ${i} failed:`, r.reason);
+      }
+    });
+
     return NextResponse.json({ ok: true });
   } catch (error) {
     console.error("Sync error:", error);
     return NextResponse.json({ error: "Sync failed" }, { status: 500 });
   } finally {
     await prisma.$disconnect();
+  }
+}
+
+async function syncUsers(store: Record<string, unknown[]>) {
+  const users = (store.users ?? []) as Array<Record<string, unknown>>;
+  for (const u of users) {
+    await prisma.user.upsert({
+      where: { id: u.id as string },
+      create: {
+        id: u.id as string,
+        azure_oid: u.azure_oid as string ?? null,
+        email: u.email as string,
+        display_name: u.display_name as string,
+        job_title: u.job_title as string,
+        department: u.department as string,
+        vicepresidencia: u.vicepresidencia as string,
+        global_role: u.global_role as "user" | "area_transformacion" | "admin",
+        is_vp: u.is_vp as boolean,
+      },
+      update: {
+        display_name: u.display_name as string,
+        job_title: u.job_title as string,
+      },
+    });
   }
 }
 
