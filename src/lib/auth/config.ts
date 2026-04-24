@@ -5,6 +5,7 @@ import {
   InitiateAuthCommand,
   GetUserCommand,
 } from "@aws-sdk/client-cognito-identity-provider";
+import { createHmac } from "crypto";
 
 // Cognito User Pool — sa-east-1 (São Paulo)
 // User Pool ID: sa-east-1_P5AVMFTDD
@@ -13,6 +14,13 @@ import {
 const cognitoClient = new CognitoIdentityProviderClient({
   region: "sa-east-1",
 });
+
+// SECRET_HASH requerido cuando el app client tiene secret
+function computeSecretHash(username: string, clientId: string, clientSecret: string): string {
+  return createHmac("sha256", clientSecret)
+    .update(username + clientId)
+    .digest("base64");
+}
 
 export const authOptions: NextAuthOptions = {
   secret:
@@ -29,15 +37,18 @@ export const authOptions: NextAuthOptions = {
         if (!credentials?.email || !credentials?.password) return null;
 
         try {
-          // Autenticar directamente contra Cognito con USER_PASSWORD_AUTH
+          const clientId = process.env.COGNITO_CLIENT_ID ?? "5iki98keg7ikppijdvr5dfo20o";
+          const clientSecret = process.env.COGNITO_CLIENT_SECRET ?? "vccsikv0al9u2nrasgrd6k8t029le9laj7h774ki3nsdookq7h6";
+          const secretHash = computeSecretHash(credentials.email, clientId, clientSecret);
+
           const authResult = await cognitoClient.send(
             new InitiateAuthCommand({
               AuthFlow: "USER_PASSWORD_AUTH",
-              ClientId:
-                process.env.COGNITO_CLIENT_ID ?? "5iki98keg7ikppijdvr5dfo20o",
+              ClientId: clientId,
               AuthParameters: {
                 USERNAME: credentials.email,
                 PASSWORD: credentials.password,
+                SECRET_HASH: secretHash,
               },
             }),
           );
