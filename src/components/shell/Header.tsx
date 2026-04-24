@@ -2,7 +2,8 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { signOut } from "next-auth/react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import type { InitiativeStage, Notification, User } from "@/types";
 import { listInitiatives } from "@/lib/storage/initiatives";
@@ -11,6 +12,7 @@ import {
   listPendingActionsForUser,
   type PendingActionItem,
 } from "@/lib/storage/gateways";
+import { resetStore } from "@/lib/storage/_store";
 
 import { NotificationsPanel } from "./NotificationsPanel";
 import { usePipeline } from "./PipelineContext";
@@ -127,13 +129,22 @@ export function Header({ user, notificationCount, onOpenSidebar }: HeaderProps) 
   const accent = user ? avatarAccent(user) : null;
   const { activeStage } = usePipeline();
   const [open, setOpen] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const userMenuRef = useRef<HTMLDivElement>(null);
   const [notifs, setNotifs] = useState<Notification[]>([]);
-  const [pendingActions, setPendingActions] = useState<PendingActionItem[]>(
-    [],
-  );
-  const [initiativeNames, setInitiativeNames] = useState<
-    Record<string, string>
-  >({});
+  const [pendingActions, setPendingActions] = useState<PendingActionItem[]>([]);
+  const [initiativeNames, setInitiativeNames] = useState<Record<string, string>>({});
+
+  // Cerrar el menú de usuario al hacer click fuera
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
+        setUserMenuOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const refresh = useCallback(() => {
     if (!user) {
@@ -252,12 +263,47 @@ export function Header({ user, notificationCount, onOpenSidebar }: HeaderProps) 
         </div>
 
         {user && accent && (
-          <div
-            className={`avatar-interactive grid h-8 w-8 cursor-default place-items-center rounded-full text-[15px] font-semibold ring-1 ring-pae-border ${accent.bg} ${accent.fg}`}
-            title={`${user.display_name}${user.job_title ? ` — ${user.job_title}` : user.is_vp ? " — VP" : user.global_role === "area_transformacion" ? " — Área Transformación" : ""}`}
-            aria-label={user.display_name}
-          >
-            {initials(user.display_name)}
+          <div ref={userMenuRef} className="relative">
+            <button
+              type="button"
+              onClick={() => setUserMenuOpen((v) => !v)}
+              className={`avatar-interactive grid h-8 w-8 cursor-pointer place-items-center rounded-full text-[15px] font-semibold ring-1 ring-pae-border transition hover:ring-2 hover:ring-pae-blue ${accent.bg} ${accent.fg}`}
+              title={user.display_name}
+              aria-label="Menú de usuario"
+              aria-expanded={userMenuOpen}
+            >
+              {initials(user.display_name)}
+            </button>
+
+            {userMenuOpen && (
+              <div className="absolute right-0 top-10 z-50 w-56 rounded-xl border border-pae-border bg-pae-surface shadow-lg">
+                <div className="border-b border-pae-border px-4 py-3">
+                  <p className="text-[14px] font-semibold text-pae-text">
+                    {user.display_name}
+                  </p>
+                  <p className="text-[12px] text-pae-text-secondary">
+                    {user.email}
+                  </p>
+                  <p className="mt-0.5 text-[11px] text-pae-text-tertiary">
+                    {user.job_title}
+                  </p>
+                </div>
+                <div className="p-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setUserMenuOpen(false);
+                      resetStore();
+                      signOut({ callbackUrl: "/" });
+                    }}
+                    className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-[14px] text-pae-red transition hover:bg-pae-red/5"
+                  >
+                    <span aria-hidden>↩</span>
+                    Cerrar sesión
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>

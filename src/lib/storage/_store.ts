@@ -294,6 +294,16 @@ export function readStore(): Store {
 export function writeStore(store: Store): void {
   if (!isClient()) return;
   window.localStorage.setItem(STORE_KEY, JSON.stringify(store));
+  // Sync to DB in background — fire and forget
+  if (typeof fetch !== "undefined") {
+    fetch("/api/store/sync", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(store),
+    }).catch(() => {
+      // Silently ignore sync errors — data is safe in localStorage
+    });
+  }
 }
 
 export function resetStore(): void {
