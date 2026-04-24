@@ -1,7 +1,14 @@
 import { NextResponse } from "next/server";
 import { PrismaClient } from "@prisma/client";
 
-const prisma = new PrismaClient();
+const prisma = new PrismaClient({
+  datasources: {
+    db: {
+      url: process.env.DATABASE_URL + "&connection_limit=1&connect_timeout=10",
+    },
+  },
+  log: ["error"],
+});
 
 // GET /api/store — devuelve todos los datos para hidratar el localStorage
 export async function GET() {

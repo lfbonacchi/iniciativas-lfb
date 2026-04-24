@@ -1,7 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { PrismaClient } from "@prisma/client";
 
-const prisma = new PrismaClient();
+// Usar connection_limit=1 y timeout corto para Lambda
+const prisma = new PrismaClient({
+  datasources: {
+    db: {
+      url: process.env.DATABASE_URL + "&connection_limit=1&connect_timeout=10",
+    },
+  },
+  log: ["error"],
+});
 
 // POST /api/store/sync — recibe el store completo y sincroniza con la DB
 export async function POST(req: NextRequest) {
@@ -32,7 +40,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ ok: true });
   } catch (error) {
-    console.error("Sync error:", error);
+    console.error("Sync error:", JSON.stringify(error, Object.getOwnPropertyNames(error as object)));
     return NextResponse.json({ error: "Sync failed" }, { status: 500 });
   } finally {
     await prisma.$disconnect();
