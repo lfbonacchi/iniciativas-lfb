@@ -13,6 +13,7 @@
     "docx": "^9.5.0",
     "html2pdf.js": "^0.10.2",
     "next": "15.5.15",
+    "next-auth": "^4.24.11",
     "pptxgenjs": "^4.0.1",
     "react": "19.0.0",
     "react-dom": "19.0.0",
