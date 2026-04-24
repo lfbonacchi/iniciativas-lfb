@@ -18,6 +18,12 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
   callbacks: {
+    async redirect({ url, baseUrl }) {
+      // Después del login siempre ir al selector de usuario
+      if (url === baseUrl || url === `${baseUrl}/`) return `${baseUrl}/seleccionar-usuario`;
+      if (url.startsWith(baseUrl)) return url;
+      return `${baseUrl}/seleccionar-usuario`;
+    },
     async jwt({ token, account, profile }) {
       if (account && profile) {
         token.sub = profile.sub ?? token.sub;
@@ -37,6 +43,6 @@ export const authOptions: NextAuthOptions = {
     },
   },
   pages: {
-    signIn: "/",
+    signIn: "/seleccionar-usuario",
   },
 };
