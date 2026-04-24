@@ -3,6 +3,11 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   images: { unoptimized: true },
+  // NEXTAUTH_URL debe estar disponible en build time para que NextAuth
+  // genere los callbacks correctos en Amplify SSR
+  env: {
+    NEXTAUTH_URL: process.env.NEXTAUTH_URL ?? "https://main.d1oo3gdtdngj2o.amplifyapp.com",
+  },
   // pptxgenjs hace dynamic imports a `node:fs` / `node:https` protegidos por
   // un runtime check `process.versions.node`. En el bundle del browser nunca
   // se ejecutan, pero webpack igual intenta resolverlos. Los ignoramos con
