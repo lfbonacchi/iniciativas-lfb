@@ -56,10 +56,18 @@ export const authOptions: NextAuthOptions = {
             attrs.find((a) => a.Name === name)?.Value ?? "";
 
           // Obtener grupos del token de acceso (decodificar JWT)
-          const payload = JSON.parse(
-            Buffer.from(accessToken.split(".")[1], "base64url").toString(),
-          );
-          const groups: string[] = payload["cognito:groups"] ?? [];
+          const parts = accessToken.split(".");
+          const groups: string[] = [];
+          if (parts[1]) {
+            try {
+              const payload = JSON.parse(
+                Buffer.from(parts[1], "base64url").toString(),
+              );
+              groups.push(...(payload["cognito:groups"] ?? []));
+            } catch {
+              // ignorar error de parseo
+            }
+          }
 
           return {
             id: get("sub"),
