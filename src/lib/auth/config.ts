@@ -43,6 +43,6 @@ export const authOptions: NextAuthOptions = {
     },
   },
   pages: {
-    signIn: "/seleccionar-usuario",
+    signIn: "/api/auth/signin",
   },
 };

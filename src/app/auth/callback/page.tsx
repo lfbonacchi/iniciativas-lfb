@@ -25,13 +25,14 @@ export default function AuthCallbackPage() {
     if (status === "loading") return;
 
     if (status === "unauthenticated") {
-      router.replace("/");
+      // No redirigir al signIn — dejar que el usuario use el mock selector
+      router.replace("/seleccionar-usuario");
       return;
     }
 
     if (status === "authenticated" && session?.user?.email) {
       const email = session.user.email;
-      const groups = session.user.groups ?? [];
+      const groups = (session.user as { groups?: string[] }).groups ?? [];
 
       // Asegurar que el store tiene datos seed
       const store = readStore();
@@ -46,12 +47,10 @@ export default function AuthCallbackPage() {
       );
 
       if (matchingUser) {
-        // Activar el usuario en el store (equivalente a seleccionarlo en el mock)
         switchUser(matchingUser.id);
         router.replace(destinationForGroups(groups));
       } else {
-        // Usuario autenticado en Cognito pero no encontrado en el store
-        // Redirigir al selector para que elija manualmente
+        // Usuario Cognito no encontrado en el store — ir al selector manual
         router.replace("/seleccionar-usuario");
       }
     }
