@@ -1,13 +1,16 @@
 import { NextResponse } from "next/server";
 import { PrismaClient } from "@prisma/client";
 
+const DB_URL = process.env.DATABASE_URL ?? 
+  "postgresql://pae_admin:PaePortfolio2026!@pae-portfolio-instance.c3hpfgbwvxqr.sa-east-1.rds.amazonaws.com:5432/pae_portfolio?schema=public&sslmode=require";
+
 const prisma = new PrismaClient({
   datasources: {
     db: {
-      url: process.env.DATABASE_URL + "&connection_limit=1&connect_timeout=10",
+      url: DB_URL + "&connection_limit=1&connect_timeout=10",
     },
   },
-  log: ["error"],
+  log: ["error", "warn"],
 });
 
 // GET /api/store — devuelve todos los datos para hidratar el localStorage

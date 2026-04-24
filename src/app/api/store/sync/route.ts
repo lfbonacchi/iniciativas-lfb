@@ -2,18 +2,22 @@ import { NextRequest, NextResponse } from "next/server";
 import { PrismaClient } from "@prisma/client";
 
 // Usar connection_limit=1 y timeout corto para Lambda
+const DB_URL = process.env.DATABASE_URL ?? 
+  "postgresql://pae_admin:PaePortfolio2026!@pae-portfolio-instance.c3hpfgbwvxqr.sa-east-1.rds.amazonaws.com:5432/pae_portfolio?schema=public&sslmode=require";
+
 const prisma = new PrismaClient({
   datasources: {
     db: {
-      url: process.env.DATABASE_URL + "&connection_limit=1&connect_timeout=10",
+      url: DB_URL + "&connection_limit=1&connect_timeout=10",
     },
   },
-  log: ["error"],
+  log: ["error", "warn"],
 });
 
 // POST /api/store/sync — recibe el store completo y sincroniza con la DB
 export async function POST(req: NextRequest) {
   try {
+    console.log("Sync started, DB_URL prefix:", DB_URL.substring(0, 40));
     const store = await req.json();
 
     // Sync in order — users first (FK dependencies), then rest in parallel
