@@ -1,36 +1,84 @@
 import type { NextAuthOptions } from "next-auth";
-import CognitoProvider from "next-auth/providers/cognito";
+import CredentialsProvider from "next-auth/providers/credentials";
+import {
+  CognitoIdentityProviderClient,
+  InitiateAuthCommand,
+  GetUserCommand,
+} from "@aws-sdk/client-cognito-identity-provider";
 
 // Cognito User Pool — sa-east-1 (São Paulo)
 // User Pool ID: sa-east-1_P5AVMFTDD
 // App Client ID: 5iki98keg7ikppijdvr5dfo20o
-// Domain: pae-portfolio-auth.auth.sa-east-1.amazoncognito.com
+
+const cognitoClient = new CognitoIdentityProviderClient({
+  region: "sa-east-1",
+});
 
 export const authOptions: NextAuthOptions = {
   secret:
     process.env.NEXTAUTH_SECRET ??
     "9b62f01b5279cee7b5dd13d324e878691ec6387c8bed5c8fffd9bcf212ce0d0a",
   providers: [
-    CognitoProvider({
-      clientId: process.env.COGNITO_CLIENT_ID!,
-      clientSecret: process.env.COGNITO_CLIENT_SECRET!,
-      issuer: process.env.COGNITO_ISSUER,
+    CredentialsProvider({
+      name: "PAE",
+      credentials: {
+        email: { label: "Email", type: "email" },
+        password: { label: "Contraseña", type: "password" },
+      },
+      async authorize(credentials) {
+        if (!credentials?.email || !credentials?.password) return null;
+
+        try {
+          // Autenticar directamente contra Cognito con USER_PASSWORD_AUTH
+          const authResult = await cognitoClient.send(
+            new InitiateAuthCommand({
+              AuthFlow: "USER_PASSWORD_AUTH",
+              ClientId:
+                process.env.COGNITO_CLIENT_ID ?? "5iki98keg7ikppijdvr5dfo20o",
+              AuthParameters: {
+                USERNAME: credentials.email,
+                PASSWORD: credentials.password,
+              },
+            }),
+          );
+
+          const accessToken =
+            authResult.AuthenticationResult?.AccessToken;
+          if (!accessToken) return null;
+
+          // Obtener datos del usuario desde Cognito
+          const userResult = await cognitoClient.send(
+            new GetUserCommand({ AccessToken: accessToken }),
+          );
+
+          const attrs = userResult.UserAttributes ?? [];
+          const get = (name: string) =>
+            attrs.find((a) => a.Name === name)?.Value ?? "";
+
+          // Obtener grupos del token de acceso (decodificar JWT)
+          const payload = JSON.parse(
+            Buffer.from(accessToken.split(".")[1], "base64url").toString(),
+          );
+          const groups: string[] = payload["cognito:groups"] ?? [];
+
+          return {
+            id: get("sub"),
+            email: get("email"),
+            name: get("name"),
+            groups,
+          };
+        } catch {
+          // Credenciales incorrectas u otro error de Cognito
+          return null;
+        }
+      },
     }),
   ],
   callbacks: {
-    async redirect({ url, baseUrl }) {
-      // Respetar callbackUrl si apunta a nuestro dominio
-      if (url.startsWith(baseUrl)) return url;
-      // Default: ir al callback de auto-login
-      return `${baseUrl}/auth/callback`;
-    },
-    async jwt({ token, account, profile }) {
-      if (account && profile) {
-        token.sub = profile.sub ?? token.sub;
-        const cognitoProfile = profile as Record<string, unknown>;
-        if (Array.isArray(cognitoProfile["cognito:groups"])) {
-          token.groups = cognitoProfile["cognito:groups"] as string[];
-        }
+    async jwt({ token, user }) {
+      if (user) {
+        token.sub = user.id;
+        token.groups = (user as { groups?: string[] }).groups ?? [];
       }
       return token;
     },
@@ -44,5 +92,8 @@ export const authOptions: NextAuthOptions = {
   },
   pages: {
     signIn: "/",
+  },
+  session: {
+    strategy: "jwt",
   },
 };
