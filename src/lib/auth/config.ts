@@ -19,9 +19,9 @@ export const authOptions: NextAuthOptions = {
   ],
   callbacks: {
     async redirect({ url, baseUrl }) {
-      // Después del login ir al callback que auto-selecciona el usuario
-      if (url === baseUrl || url === `${baseUrl}/`) return `${baseUrl}/auth/callback`;
+      // Respetar callbackUrl si apunta a nuestro dominio
       if (url.startsWith(baseUrl)) return url;
+      // Default: ir al callback de auto-login
       return `${baseUrl}/auth/callback`;
     },
     async jwt({ token, account, profile }) {
