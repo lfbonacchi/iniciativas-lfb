@@ -7,17 +7,17 @@ declare module "next-auth" {
       name?: string | null;
       email?: string | null;
       image?: string | null;
-      groups: string[];
-      global_role: string;
-      is_vp: boolean;
+      // Cognito sub — identificador único del usuario
+      sub?: string;
+      // Grupos de Cognito: product-owners, vp-sponsors, etc.
+      groups?: string[];
     };
   }
 }
 
 declare module "next-auth/jwt" {
   interface JWT {
-    groups: string[];
-    global_role: string;
-    is_vp: boolean;
+    sub?: string;
+    groups?: string[];
   }
 }
