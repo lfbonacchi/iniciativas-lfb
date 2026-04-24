@@ -1,12 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { signIn } from "next-auth/react";
 
-export default function MockSsoPage() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-
+export default function LoginPage() {
   return (
     <main className="flex min-h-screen items-center justify-center bg-pae-bg px-6 py-10">
       <div className="w-full max-w-md">
@@ -28,78 +25,32 @@ export default function MockSsoPage() {
               Pan American Energy — Cuenta corporativa
             </p>
 
-            <form
-              className="mt-8 space-y-4"
-              onSubmit={(e) => e.preventDefault()}
-            >
-              <div>
-                <label
-                  htmlFor="email"
-                  className="block text-[13px] font-medium text-pae-text-secondary"
-                >
-                  Correo electrónico
-                </label>
-                <input
-                  id="email"
-                  type="email"
-                  autoComplete="off"
-                  placeholder="nombre@pae.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="mt-2 block h-10 w-full rounded-lg border border-pae-border bg-pae-bg px-3 text-[14px] text-pae-text placeholder:text-pae-text-tertiary focus:border-pae-blue focus:outline-none"
-                />
-              </div>
-
-              <div>
-                <label
-                  htmlFor="password"
-                  className="block text-[13px] font-medium text-pae-text-secondary"
-                >
-                  Contraseña
-                </label>
-                <input
-                  id="password"
-                  type="password"
-                  autoComplete="off"
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="mt-2 block h-10 w-full rounded-lg border border-pae-border bg-pae-bg px-3 text-[14px] text-pae-text placeholder:text-pae-text-tertiary focus:border-pae-blue focus:outline-none"
-                />
-              </div>
-
+            <div className="mt-8 space-y-4">
               <button
-                type="submit"
-                disabled
-                className="block w-full cursor-not-allowed rounded-lg bg-pae-blue/70 py-3 text-[15px] font-semibold text-white"
+                type="button"
+                onClick={() =>
+                  signIn("cognito", { callbackUrl: "/auth/callback" })
+                }
+                className="flex w-full items-center justify-center gap-3 rounded-lg bg-pae-blue py-3 text-[15px] font-semibold text-white shadow-sm transition hover:bg-pae-blue/90"
               >
-                Ingresar con cuenta Microsoft
+                <div className="grid h-5 w-5 grid-cols-2 gap-[2px]">
+                  <span className="rounded-[1px] bg-[#F25022]" />
+                  <span className="rounded-[1px] bg-[#7FBA00]" />
+                  <span className="rounded-[1px] bg-[#00A4EF]" />
+                  <span className="rounded-[1px] bg-[#FFB900]" />
+                </div>
+                Ingresar con cuenta PAE
               </button>
-
-              <p className="text-center text-[13px] font-medium text-pae-blue">
-                ¿Olvidaste tu contraseña?
-              </p>
-            </form>
+            </div>
           </div>
-        </div>
-
-        <div className="mt-6 rounded-xl border-2 border-dashed border-pae-border bg-pae-surface/60 px-5 py-4">
-          <p className="text-[13px] font-semibold uppercase tracking-wide text-pae-text-tertiary">
-            Post-MVP
-          </p>
-          <p className="mt-1 text-[14px] leading-relaxed text-pae-text-secondary">
-            Este login se conecta automáticamente con Microsoft Entra ID. El
-            rol del usuario se asigna según su perfil corporativo de PAE.
-          </p>
         </div>
 
         <div className="mt-6 flex justify-end">
           <Link
             href="/seleccionar-usuario"
-            className="inline-flex items-center gap-2 rounded-lg bg-pae-blue px-5 py-3 text-[15px] font-semibold text-white shadow-sm transition hover:bg-pae-blue/90"
+            className="text-[13px] text-pae-text-tertiary transition hover:text-pae-text-secondary"
           >
-            Ir a MVP
-            <span aria-hidden>→</span>
+            Acceso de prueba →
           </Link>
         </div>
       </div>
