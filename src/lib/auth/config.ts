@@ -7,6 +7,7 @@ import CognitoProvider from "next-auth/providers/cognito";
 // Domain: pae-portfolio-auth.auth.sa-east-1.amazoncognito.com
 
 export const authOptions: NextAuthOptions = {
+  secret: process.env.NEXTAUTH_SECRET ?? "9b62f01b5279cee7b5dd13d324e878691ec6387c8bed5c8fffd9bcf212ce0d0a",
   providers: [
     CognitoProvider({
       clientId: process.env.COGNITO_CLIENT_ID!,
