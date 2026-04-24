@@ -19,10 +19,10 @@ export const authOptions: NextAuthOptions = {
   ],
   callbacks: {
     async redirect({ url, baseUrl }) {
-      // Después del login siempre ir al selector de usuario
-      if (url === baseUrl || url === `${baseUrl}/`) return `${baseUrl}/seleccionar-usuario`;
+      // Después del login ir al callback que auto-selecciona el usuario
+      if (url === baseUrl || url === `${baseUrl}/`) return `${baseUrl}/auth/callback`;
       if (url.startsWith(baseUrl)) return url;
-      return `${baseUrl}/seleccionar-usuario`;
+      return `${baseUrl}/auth/callback`;
     },
     async jwt({ token, account, profile }) {
       if (account && profile) {
