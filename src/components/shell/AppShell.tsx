@@ -23,12 +23,31 @@ export function AppShell({ children, notificationCount }: AppShellProps) {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
   useEffect(() => {
+    // Cargar usuario desde localStorage inmediatamente
     const result = getCurrentUser();
     const current = result.success ? result.data : null;
     setUser(current);
     if (current) {
       const pending = countPendingActionsForUser(current.id);
       setPendingActions(pending.success ? pending.data : 0);
+    }
+
+    // En paralelo, sincronizar datos frescos desde la DB
+    // Solo una vez por sesión (usando sessionStorage como flag)
+    const syncKey = "pae-db-synced";
+    if (!sessionStorage.getItem(syncKey)) {
+      sessionStorage.setItem(syncKey, "1");
+      fetch("/api/store")
+        .then((res) => res.ok ? res.json() : null)
+        .then((store) => {
+          if (!store) return;
+          const { writeStore, readStore } = require("@/lib/storage/_store");
+          const curr = readStore();
+          writeStore({ ...store, current_user_id: curr.current_user_id });
+          // Recargar la página para mostrar datos frescos
+          window.location.reload();
+        })
+        .catch(() => {});
     }
   }, []);
 
