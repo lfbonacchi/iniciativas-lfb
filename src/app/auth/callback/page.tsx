@@ -9,6 +9,7 @@ import { writeStore } from "@/lib/storage/_store";
 import type { Store } from "@/lib/storage/_store";
 
 function destinationForGroups(groups: string[]): string {
+  if (groups.includes("admin-demo")) return "/seleccionar-usuario";
   if (groups.includes("vp-sponsors")) return "/dashboard";
   if (groups.includes("area-transformacion")) return "/dashboard";
   if (groups.includes("business-owners")) return "/dashboard";

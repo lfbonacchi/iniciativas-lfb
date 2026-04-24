@@ -157,10 +157,19 @@ export default function SeleccionarUsuarioPage() {
     try {
       const res = await fetch("/api/store/reset", { method: "POST" });
       if (res.ok) {
-        // También limpiar localStorage para que recargue desde DB al próximo login
-        const { resetStore } = await import("@/lib/storage/_store");
-        resetStore();
+        // Recargar datos desde DB y escribir en localStorage
+        const storeRes = await fetch("/api/store");
+        if (storeRes.ok) {
+          const store = await storeRes.json();
+          const { writeStore, readStore } = await import("@/lib/storage/_store");
+          const current = readStore();
+          writeStore({ ...store, current_user_id: current.current_user_id });
+        }
         setResetMsg("✓ Base de datos reseteada exitosamente");
+        // Recargar usuarios del store actualizado
+        const { getAvailableUsers } = await import("@/lib/storage/auth");
+        const available = getAvailableUsers();
+        if (available.success) setAllUsers(available.data);
       } else {
         setResetMsg("✗ Error al resetear la base de datos");
       }

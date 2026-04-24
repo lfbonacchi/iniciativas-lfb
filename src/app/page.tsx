@@ -114,12 +114,6 @@ export default function LoginPage() {
         </div>
 
         <div className="mt-6 flex justify-end">
-          <Link
-            href="/seleccionar-usuario"
-            className="text-[13px] text-pae-text-tertiary transition hover:text-pae-text-secondary"
-          >
-            Acceso de prueba →
-          </Link>
         </div>
       </div>
     </main>
