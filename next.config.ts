@@ -7,6 +7,8 @@ const nextConfig: NextConfig = {
   // genere los callbacks correctos en Amplify SSR
   env: {
     NEXTAUTH_URL: process.env.NEXTAUTH_URL ?? "https://main.d1oo3gdtdngj2o.amplifyapp.com",
+    // Exponer DATABASE_URL al runtime de Lambda en Amplify
+    DATABASE_URL: process.env.DATABASE_URL ?? "",
   },
   // pptxgenjs hace dynamic imports a `node:fs` / `node:https` protegidos por
   // un runtime check `process.versions.node`. En el bundle del browser nunca

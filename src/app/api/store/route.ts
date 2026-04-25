@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 import { PrismaClient } from "@prisma/client";
 
-const DB_URL = process.env.DATABASE_URL ?? 
-  "postgresql://pae_admin:PaePortfolio2026!@pae-portfolio-instance.c3hpfgbwvxqr.sa-east-1.rds.amazonaws.com:5432/pae_portfolio?schema=public&sslmode=require";
+const DB_URL = process.env.DATABASE_URL ?? "";
 
 const prisma = new PrismaClient({
   datasources: {
